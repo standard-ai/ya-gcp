@@ -309,6 +309,7 @@ mod test {
         }
     }
 
+    #[cfg(feature = "tokio")]
     #[tokio::test]
     async fn check_retry() {
         let config = Config {
