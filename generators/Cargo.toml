@@ -1,0 +1,28 @@
+[package]
+name = "ya-gcp-generators"
+version = "0.1.0"
+authors = ["Renar Narubin <renar@standard.ai>"]
+edition = "2018"
+publish = false
+
+[[bin]]
+name = "grpc"
+path = "src/grpc.rs"
+
+[[bench]]
+name = "attribute_map"
+harness = false
+
+[dependencies]
+anyhow = "1"
+flate2 = "1"
+prost-build = "0.7"
+reqwest = { version = "0.11", features = ["blocking"] }
+structopt = "0.3"
+tar = "0.4"
+tempfile = "3"
+tonic-build = "0.4"
+
+[dev-dependencies]
+criterion = { version = "0.3", features = ["html_reports"] }
+rand = "0.8"
