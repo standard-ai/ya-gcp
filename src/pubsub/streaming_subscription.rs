@@ -624,7 +624,10 @@ mod test {
             .map(|(index, is_modify)| {
                 let id = index.to_string() + "th";
                 if is_modify {
-                    UserAck::Modify { id, seconds: index as i32 }
+                    UserAck::Modify {
+                        id,
+                        seconds: index as i32,
+                    }
                 } else {
                     UserAck::Ack { id }
                 }

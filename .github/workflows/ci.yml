@@ -1,0 +1,110 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rust_toolchain: [1.53.0, ""] # MSRV + ("" = rust-toolchain version)
+        # some features like emulators and openssl won't work on windows/mac; those are tested in test-xplat
+        os: [ubuntu-latest]
+        test_flags: ["", "--no-default-features", "--all-features"]
+    timeout-minutes: 5
+    steps:
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@master
+      - name: Install PubSub Emulator
+        run: gcloud components install beta pubsub-emulator
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust_toolchain }}
+          profile: minimal
+          default: true
+      - uses: actions-rs/cargo@v1
+        with:
+          toolchain: ${{ matrix.rust_toolchain }}
+          command: test
+          # TODO figure out why emulator tests fail to connect in CI
+          args: ${{ matrix.test_flags }} -- --skip message_responses_in_order --skip user_sink_closed_with_flush --skip pubsub_client_tests
+        env:
+          RUSTFLAGS: -Cdebuginfo=0
+
+  test-xplat:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        rust_toolchain: [""] # "" = rust-toolchain version
+        os: [windows-latest, macOS-latest]
+        test_flags: ["", "--no-default-features", "--features pubsub,storage,tokio"]
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.rust_toolchain }}
+          profile: minimal
+          default: true
+      - uses: actions-rs/cargo@v1
+        with:
+          toolchain: ${{ matrix.rust_toolchain }}
+          command: test
+          args: ${{ matrix.test_flags }}
+        env:
+          RUSTFLAGS: -Cdebuginfo=0
+
+  format:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          components: rustfmt
+          default: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: -- --check
+
+  clippy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          components: clippy
+          default: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: -- -Dclippy::all
+
+  documentation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          profile: minimal
+          default: true
+      - uses: actions-rs/cargo@v1
+        with:
+          toolchain: nightly
+          command: doc
+        env:
+          RUSTDOCFLAGS: "--cfg docsrs"
