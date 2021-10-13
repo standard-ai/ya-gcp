@@ -115,6 +115,7 @@ pub struct ValidateSchemaRequest {
     pub schema: ::core::option::Option<Schema>,
 }
 /// Response for the `ValidateSchema` method.
+/// Empty for now.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ValidateSchemaResponse {}
 /// Request for the `ValidateMessage` method.
@@ -148,6 +149,7 @@ pub mod validate_message_request {
     }
 }
 /// Response for the `ValidateMessage` method.
+/// Empty for now.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ValidateMessageResponse {}
 /// View of Schema object fields to be returned by GetSchema and ListSchemas.
@@ -176,8 +178,10 @@ pub enum Encoding {
 }
 #[doc = r" Generated client implementations."]
 pub mod schema_service_client {
-    #![allow(unused_variables, dead_code, missing_docs)]
+    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
+    #[doc = " Service for doing schema-related operations."]
+    #[derive(Debug, Clone)]
     pub struct SchemaServiceClient<T> {
         inner: tonic::client::Grpc<T>,
     }
@@ -195,20 +199,44 @@ pub mod schema_service_client {
     impl<T> SchemaServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::ResponseBody: Body + HttpBody + Send + 'static,
+        T::ResponseBody: Body + Send + Sync + 'static,
         T::Error: Into<StdError>,
-        <T::ResponseBody as HttpBody>::Error: Into<StdError> + Send,
+        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         pub fn new(inner: T) -> Self {
             let inner = tonic::client::Grpc::new(inner);
             Self { inner }
         }
-
-        pub fn with_interceptor(inner: T, interceptor: impl Into<tonic::Interceptor>) -> Self {
-            let inner = tonic::client::Grpc::with_interceptor(inner, interceptor);
-            Self { inner }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> SchemaServiceClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::BoxBody>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
+                Into<StdError> + Send + Sync,
+        {
+            SchemaServiceClient::new(InterceptedService::new(inner, interceptor))
         }
-
+        #[doc = r" Compress requests with `gzip`."]
+        #[doc = r""]
+        #[doc = r" This requires the server to support it otherwise it might respond with an"]
+        #[doc = r" error."]
+        pub fn send_gzip(mut self) -> Self {
+            self.inner = self.inner.send_gzip();
+            self
+        }
+        #[doc = r" Enable decompressing responses with `gzip`."]
+        pub fn accept_gzip(mut self) -> Self {
+            self.inner = self.inner.accept_gzip();
+            self
+        }
         #[doc = " Creates a schema."]
         pub async fn create_schema(
             &mut self,
@@ -226,7 +254,6 @@ pub mod schema_service_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Gets a schema."]
         pub async fn get_schema(
             &mut self,
@@ -243,7 +270,6 @@ pub mod schema_service_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.SchemaService/GetSchema");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Lists schemas in a project."]
         pub async fn list_schemas(
             &mut self,
@@ -260,7 +286,6 @@ pub mod schema_service_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.SchemaService/ListSchemas");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Deletes a schema."]
         pub async fn delete_schema(
             &mut self,
@@ -278,7 +303,6 @@ pub mod schema_service_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Validates a schema."]
         pub async fn validate_schema(
             &mut self,
@@ -296,7 +320,6 @@ pub mod schema_service_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Validates a message against a schema."]
         pub async fn validate_message(
             &mut self,
@@ -313,18 +336,6 @@ pub mod schema_service_client {
                 "/google.pubsub.v1.SchemaService/ValidateMessage",
             );
             self.inner.unary(request.into_request(), path, codec).await
-        }
-    }
-    impl<T: Clone> Clone for SchemaServiceClient<T> {
-        fn clone(&self) -> Self {
-            Self {
-                inner: self.inner.clone(),
-            }
-        }
-    }
-    impl<T> std::fmt::Debug for SchemaServiceClient<T> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "SchemaServiceClient {{ ... }}")
         }
     }
 }
@@ -380,14 +391,22 @@ pub struct Topic {
     #[prost(string, tag = "5")]
     pub kms_key_name: ::prost::alloc::string::String,
     /// Settings for validating messages published against a schema.
-    ///
-    /// EXPERIMENTAL: Schema support is in development and may not work yet.
     #[prost(message, optional, tag = "6")]
     pub schema_settings: ::core::option::Option<SchemaSettings>,
     /// Reserved for future use. This field is set only in responses from the
     /// server; it is ignored if it is set in any requests.
     #[prost(bool, tag = "7")]
     pub satisfies_pzs: bool,
+    /// Indicates the minimum duration to retain a message after it is published to
+    /// the topic. If this field is set, messages published to the topic in the
+    /// last `message_retention_duration` are always available to subscribers. For
+    /// instance, it allows any attached subscription to [seek to a
+    /// timestamp](https://cloud.google.com/pubsub/docs/replay-overview#seek_to_a_time)
+    /// that is up to `message_retention_duration` in the past. If this field is
+    /// not set, message retention is controlled by settings on individual
+    /// subscriptions. Cannot be more than 7 days or less than 10 minutes.
+    #[prost(message, optional, tag = "8")]
+    pub message_retention_duration: ::core::option::Option<::prost_types::Duration>,
 }
 /// A message that is published by publishers and consumed by subscribers. The
 /// message must contain either a non-empty data field or at least one attribute.
@@ -622,8 +641,9 @@ pub struct Subscription {
     /// Indicates whether to retain acknowledged messages. If true, then
     /// messages are not expunged from the subscription's backlog, even if they are
     /// acknowledged, until they fall out of the `message_retention_duration`
-    /// window. This must be true if you would like to [Seek to a timestamp]
-    /// (https://cloud.google.com/pubsub/docs/replay-overview#seek_to_a_time).
+    /// window. This must be true if you would like to [`Seek` to a timestamp]
+    /// (https://cloud.google.com/pubsub/docs/replay-overview#seek_to_a_time) in
+    /// the past to replay previously-acknowledged messages.
     #[prost(bool, tag = "7")]
     pub retain_acked_messages: bool,
     /// How long to retain unacknowledged messages in the subscription's backlog,
@@ -686,6 +706,14 @@ pub struct Subscription {
     /// the endpoint will not be made.
     #[prost(bool, tag = "15")]
     pub detached: bool,
+    /// Output only. Indicates the minimum duration for which a message is retained
+    /// after it is published to the subscription's topic. If this field is set,
+    /// messages published to the subscription's topic in the last
+    /// `topic_message_retention_duration` are always available to subscribers. See
+    /// the `message_retention_duration` field in `Topic`. This field is set only
+    /// in responses from the server; it is ignored if it is set in any requests.
+    #[prost(message, optional, tag = "17")]
+    pub topic_message_retention_duration: ::core::option::Option<::prost_types::Duration>,
 }
 /// A policy that specifies how Cloud Pub/Sub retries message delivery.
 ///
@@ -1079,6 +1107,20 @@ pub struct StreamingPullResponse {
     /// Received Pub/Sub messages. This will not be empty.
     #[prost(message, repeated, tag = "1")]
     pub received_messages: ::prost::alloc::vec::Vec<ReceivedMessage>,
+    /// Properties associated with this subscription.
+    #[prost(message, optional, tag = "4")]
+    pub subscription_properties:
+        ::core::option::Option<streaming_pull_response::SubscriptionProperties>,
+}
+/// Nested message and enum types in `StreamingPullResponse`.
+pub mod streaming_pull_response {
+    /// Subscription properties sent as part of the response.
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct SubscriptionProperties {
+        /// True iff message ordering is enabled for this subscription.
+        #[prost(bool, tag = "2")]
+        pub message_ordering_enabled: bool,
+    }
 }
 /// Request for the `CreateSnapshot` method.
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -1231,10 +1273,11 @@ pub mod seek_request {
 pub struct SeekResponse {}
 #[doc = r" Generated client implementations."]
 pub mod publisher_client {
-    #![allow(unused_variables, dead_code, missing_docs)]
+    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     #[doc = " The service that an application uses to manipulate topics, and to send"]
     #[doc = " messages to a topic."]
+    #[derive(Debug, Clone)]
     pub struct PublisherClient<T> {
         inner: tonic::client::Grpc<T>,
     }
@@ -1252,20 +1295,44 @@ pub mod publisher_client {
     impl<T> PublisherClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::ResponseBody: Body + HttpBody + Send + 'static,
+        T::ResponseBody: Body + Send + Sync + 'static,
         T::Error: Into<StdError>,
-        <T::ResponseBody as HttpBody>::Error: Into<StdError> + Send,
+        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         pub fn new(inner: T) -> Self {
             let inner = tonic::client::Grpc::new(inner);
             Self { inner }
         }
-
-        pub fn with_interceptor(inner: T, interceptor: impl Into<tonic::Interceptor>) -> Self {
-            let inner = tonic::client::Grpc::with_interceptor(inner, interceptor);
-            Self { inner }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> PublisherClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::BoxBody>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
+                Into<StdError> + Send + Sync,
+        {
+            PublisherClient::new(InterceptedService::new(inner, interceptor))
         }
-
+        #[doc = r" Compress requests with `gzip`."]
+        #[doc = r""]
+        #[doc = r" This requires the server to support it otherwise it might respond with an"]
+        #[doc = r" error."]
+        pub fn send_gzip(mut self) -> Self {
+            self.inner = self.inner.send_gzip();
+            self
+        }
+        #[doc = r" Enable decompressing responses with `gzip`."]
+        pub fn accept_gzip(mut self) -> Self {
+            self.inner = self.inner.accept_gzip();
+            self
+        }
         #[doc = " Creates the given topic with the given name. See the [resource name rules]"]
         #[doc = " (https://cloud.google.com/pubsub/docs/admin#resource_names)."]
         pub async fn create_topic(
@@ -1283,7 +1350,6 @@ pub mod publisher_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.Publisher/CreateTopic");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Updates an existing topic. Note that certain properties of a"]
         #[doc = " topic are not modifiable."]
         pub async fn update_topic(
@@ -1301,7 +1367,6 @@ pub mod publisher_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.Publisher/UpdateTopic");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Adds one or more messages to the topic. Returns `NOT_FOUND` if the topic"]
         #[doc = " does not exist."]
         pub async fn publish(
@@ -1318,7 +1383,6 @@ pub mod publisher_client {
             let path = http::uri::PathAndQuery::from_static("/google.pubsub.v1.Publisher/Publish");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Gets the configuration of a topic."]
         pub async fn get_topic(
             &mut self,
@@ -1334,7 +1398,6 @@ pub mod publisher_client {
             let path = http::uri::PathAndQuery::from_static("/google.pubsub.v1.Publisher/GetTopic");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Lists matching topics."]
         pub async fn list_topics(
             &mut self,
@@ -1351,7 +1414,6 @@ pub mod publisher_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.Publisher/ListTopics");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Lists the names of the attached subscriptions on this topic."]
         pub async fn list_topic_subscriptions(
             &mut self,
@@ -1369,7 +1431,6 @@ pub mod publisher_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Lists the names of the snapshots on this topic. Snapshots are used in"]
         #[doc = " [Seek](https://cloud.google.com/pubsub/docs/replay-overview) operations,"]
         #[doc = " which allow you to manage message acknowledgments in bulk. That is, you can"]
@@ -1391,7 +1452,6 @@ pub mod publisher_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Deletes the topic with the given name. Returns `NOT_FOUND` if the topic"]
         #[doc = " does not exist. After a topic is deleted, a new topic may be created with"]
         #[doc = " the same name; this is an entirely new topic with none of the old"]
@@ -1412,7 +1472,6 @@ pub mod publisher_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.Publisher/DeleteTopic");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Detaches a subscription from this topic. All messages retained in the"]
         #[doc = " subscription are dropped. Subsequent `Pull` and `StreamingPull` requests"]
         #[doc = " will return FAILED_PRECONDITION. If the subscription is a push"]
@@ -1434,26 +1493,15 @@ pub mod publisher_client {
             self.inner.unary(request.into_request(), path, codec).await
         }
     }
-    impl<T: Clone> Clone for PublisherClient<T> {
-        fn clone(&self) -> Self {
-            Self {
-                inner: self.inner.clone(),
-            }
-        }
-    }
-    impl<T> std::fmt::Debug for PublisherClient<T> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "PublisherClient {{ ... }}")
-        }
-    }
 }
 #[doc = r" Generated client implementations."]
 pub mod subscriber_client {
-    #![allow(unused_variables, dead_code, missing_docs)]
+    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
     #[doc = " The service that an application uses to manipulate subscriptions and to"]
     #[doc = " consume messages from a subscription via the `Pull` method or by"]
     #[doc = " establishing a bi-directional stream using the `StreamingPull` method."]
+    #[derive(Debug, Clone)]
     pub struct SubscriberClient<T> {
         inner: tonic::client::Grpc<T>,
     }
@@ -1471,20 +1519,44 @@ pub mod subscriber_client {
     impl<T> SubscriberClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::ResponseBody: Body + HttpBody + Send + 'static,
+        T::ResponseBody: Body + Send + Sync + 'static,
         T::Error: Into<StdError>,
-        <T::ResponseBody as HttpBody>::Error: Into<StdError> + Send,
+        <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         pub fn new(inner: T) -> Self {
             let inner = tonic::client::Grpc::new(inner);
             Self { inner }
         }
-
-        pub fn with_interceptor(inner: T, interceptor: impl Into<tonic::Interceptor>) -> Self {
-            let inner = tonic::client::Grpc::with_interceptor(inner, interceptor);
-            Self { inner }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> SubscriberClient<InterceptedService<T, F>>
+        where
+            F: tonic::service::Interceptor,
+            T: tonic::codegen::Service<
+                http::Request<tonic::body::BoxBody>,
+                Response = http::Response<
+                    <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
+                >,
+            >,
+            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
+                Into<StdError> + Send + Sync,
+        {
+            SubscriberClient::new(InterceptedService::new(inner, interceptor))
         }
-
+        #[doc = r" Compress requests with `gzip`."]
+        #[doc = r""]
+        #[doc = r" This requires the server to support it otherwise it might respond with an"]
+        #[doc = r" error."]
+        pub fn send_gzip(mut self) -> Self {
+            self.inner = self.inner.send_gzip();
+            self
+        }
+        #[doc = r" Enable decompressing responses with `gzip`."]
+        pub fn accept_gzip(mut self) -> Self {
+            self.inner = self.inner.accept_gzip();
+            self
+        }
         #[doc = " Creates a subscription to a given topic. See the [resource name rules]"]
         #[doc = " (https://cloud.google.com/pubsub/docs/admin#resource_names)."]
         #[doc = " If the subscription already exists, returns `ALREADY_EXISTS`."]
@@ -1512,7 +1584,6 @@ pub mod subscriber_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Gets the configuration details of a subscription."]
         pub async fn get_subscription(
             &mut self,
@@ -1530,7 +1601,6 @@ pub mod subscriber_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Updates an existing subscription. Note that certain properties of a"]
         #[doc = " subscription, such as its topic, are not modifiable."]
         pub async fn update_subscription(
@@ -1549,7 +1619,6 @@ pub mod subscriber_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Lists matching subscriptions."]
         pub async fn list_subscriptions(
             &mut self,
@@ -1567,7 +1636,6 @@ pub mod subscriber_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Deletes an existing subscription. All messages retained in the subscription"]
         #[doc = " are immediately dropped. Calls to `Pull` after deletion will return"]
         #[doc = " `NOT_FOUND`. After a subscription is deleted, a new one may be created with"]
@@ -1589,7 +1657,6 @@ pub mod subscriber_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Modifies the ack deadline for a specific message. This method is useful"]
         #[doc = " to indicate that more time is needed to process a message by the"]
         #[doc = " subscriber, or to make the message available for redelivery if the"]
@@ -1611,7 +1678,6 @@ pub mod subscriber_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Acknowledges the messages associated with the `ack_ids` in the"]
         #[doc = " `AcknowledgeRequest`. The Pub/Sub system can remove the relevant messages"]
         #[doc = " from the subscription."]
@@ -1634,7 +1700,6 @@ pub mod subscriber_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.Subscriber/Acknowledge");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Pulls messages from the server. The server may return `UNAVAILABLE` if"]
         #[doc = " there are too many concurrent pull requests pending for the given"]
         #[doc = " subscription."]
@@ -1652,7 +1717,6 @@ pub mod subscriber_client {
             let path = http::uri::PathAndQuery::from_static("/google.pubsub.v1.Subscriber/Pull");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Establishes a stream with the server, which sends messages down to the"]
         #[doc = " client. The client streams acknowledgements and ack deadline modifications"]
         #[doc = " back to the server. The server will close the stream and return the status"]
@@ -1680,7 +1744,6 @@ pub mod subscriber_client {
                 .streaming(request.into_streaming_request(), path, codec)
                 .await
         }
-
         #[doc = " Modifies the `PushConfig` for a specified subscription."]
         #[doc = ""]
         #[doc = " This may be used to change a push subscription to a pull one (signified by"]
@@ -1703,7 +1766,6 @@ pub mod subscriber_client {
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Gets the configuration details of a snapshot. Snapshots are used in"]
         #[doc = " <a href=\"https://cloud.google.com/pubsub/docs/replay-overview\">Seek</a>"]
         #[doc = " operations, which allow you to manage message acknowledgments in bulk. That"]
@@ -1724,7 +1786,6 @@ pub mod subscriber_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.Subscriber/GetSnapshot");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Lists the existing snapshots. Snapshots are used in [Seek]("]
         #[doc = " https://cloud.google.com/pubsub/docs/replay-overview) operations, which"]
         #[doc = " allow you to manage message acknowledgments in bulk. That is, you can set"]
@@ -1745,7 +1806,6 @@ pub mod subscriber_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.Subscriber/ListSnapshots");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Creates a snapshot from the requested subscription. Snapshots are used in"]
         #[doc = " [Seek](https://cloud.google.com/pubsub/docs/replay-overview) operations,"]
         #[doc = " which allow you to manage message acknowledgments in bulk. That is, you can"]
@@ -1777,7 +1837,6 @@ pub mod subscriber_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.Subscriber/CreateSnapshot");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Updates an existing snapshot. Snapshots are used in"]
         #[doc = " <a href=\"https://cloud.google.com/pubsub/docs/replay-overview\">Seek</a>"]
         #[doc = " operations, which allow"]
@@ -1799,7 +1858,6 @@ pub mod subscriber_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.Subscriber/UpdateSnapshot");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Removes an existing snapshot. Snapshots are used in [Seek]"]
         #[doc = " (https://cloud.google.com/pubsub/docs/replay-overview) operations, which"]
         #[doc = " allow you to manage message acknowledgments in bulk. That is, you can set"]
@@ -1824,7 +1882,6 @@ pub mod subscriber_client {
                 http::uri::PathAndQuery::from_static("/google.pubsub.v1.Subscriber/DeleteSnapshot");
             self.inner.unary(request.into_request(), path, codec).await
         }
-
         #[doc = " Seeks an existing subscription to a point in time or to a given snapshot,"]
         #[doc = " whichever is provided in the request. Snapshots are used in [Seek]"]
         #[doc = " (https://cloud.google.com/pubsub/docs/replay-overview) operations, which"]
@@ -1845,18 +1902,6 @@ pub mod subscriber_client {
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static("/google.pubsub.v1.Subscriber/Seek");
             self.inner.unary(request.into_request(), path, codec).await
-        }
-    }
-    impl<T: Clone> Clone for SubscriberClient<T> {
-        fn clone(&self) -> Self {
-            Self {
-                inner: self.inner.clone(),
-            }
-        }
-    }
-    impl<T> std::fmt::Debug for SubscriberClient<T> {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            write!(f, "SubscriberClient {{ ... }}")
         }
     }
 }

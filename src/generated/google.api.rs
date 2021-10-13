@@ -186,13 +186,14 @@ pub struct Http {
 /// 1. Leaf request fields (recursive expansion nested messages in the request
 ///    message) are classified into three categories:
 ///    - Fields referred by the path template. They are passed via the URL path.
-///    - Fields referred by the [HttpRule.body][google.api.HttpRule.body]. They are passed via the
-///      HTTP request body.
-///    - All other fields are passed via the URL query parameters, and the parameter name is the
-///      field path in the request message. A repeated field can be represented as multiple query
-///      parameters under the same name.
-///  2. If [HttpRule.body][google.api.HttpRule.body] is "*", there is no URL query parameter, all
-/// fields     are passed via URL path and HTTP request body.
+///    - Fields referred by the [HttpRule.body][google.api.HttpRule.body]. They are passed via the HTTP
+///      request body.
+///    - All other fields are passed via the URL query parameters, and the
+///      parameter name is the field path in the request message. A repeated
+///      field can be represented as multiple query parameters under the same
+///      name.
+///  2. If [HttpRule.body][google.api.HttpRule.body] is "*", there is no URL query parameter, all fields
+///     are passed via URL path and HTTP request body.
 ///  3. If [HttpRule.body][google.api.HttpRule.body] is omitted, there is no HTTP request body, all
 ///     fields are passed via URL path and URL query parameters.
 ///
@@ -255,8 +256,8 @@ pub struct Http {
 ///     http:
 ///       rules:
 ///         # Selects a gRPC method and applies HttpRule to it.
-///         - selector: example.v1.Messaging.GetMessage get:
-///           /v1/messages/{message_id}/{sub.subfield}
+///         - selector: example.v1.Messaging.GetMessage
+///           get: /v1/messages/{message_id}/{sub.subfield}
 ///
 /// ## Special notes
 ///
@@ -394,9 +395,14 @@ pub enum FieldBehavior {
     Immutable = 5,
     /// Denotes that a (repeated) field is an unordered list.
     /// This indicates that the service may provide the elements of the list
-    /// in any arbitrary order, rather than the order the user originally
+    /// in any arbitrary  order, rather than the order the user originally
     /// provided. Additionally, the list's order may or may not be stable.
     UnorderedList = 6,
+    /// Denotes that this field returns a non-empty default value if not set.
+    /// This indicates that if the user provides the empty value in a request,
+    /// a non-empty value will be returned. The user will not be aware of what
+    /// non-empty value to expect.
+    NonEmptyDefault = 7,
 }
 /// A simple descriptor of a resource type.
 ///
@@ -423,10 +429,11 @@ pub enum FieldBehavior {
 /// The ResourceDescriptor Yaml config will look like:
 ///
 ///     resources:
-///     - type: "pubsub.googleapis.com/Topic" name_descriptor:
-///         - pattern: "projects/{project}/topics/{topic}" parent_type:
-///           "cloudresourcemanager.googleapis.com/Project" parent_name_extractor:
-///           "projects/{project}"
+///     - type: "pubsub.googleapis.com/Topic"
+///       name_descriptor:
+///         - pattern: "projects/{project}/topics/{topic}"
+///           parent_type: "cloudresourcemanager.googleapis.com/Project"
+///           parent_name_extractor: "projects/{project}"
 ///
 /// Sometimes, resources have multiple patterns, typically because they can
 /// live under multiple parents.
@@ -462,18 +469,20 @@ pub enum FieldBehavior {
 /// The ResourceDescriptor Yaml config will look like:
 ///
 ///     resources:
-///     - type: 'logging.googleapis.com/LogEntry' name_descriptor:
-///         - pattern: "projects/{project}/logs/{log}" parent_type:
-///           "cloudresourcemanager.googleapis.com/Project" parent_name_extractor:
-///           "projects/{project}"
-///         - pattern: "folders/{folder}/logs/{log}" parent_type:
-///           "cloudresourcemanager.googleapis.com/Folder" parent_name_extractor: "folders/{folder}"
-///         - pattern: "organizations/{organization}/logs/{log}" parent_type:
-///           "cloudresourcemanager.googleapis.com/Organization" parent_name_extractor:
-///           "organizations/{organization}"
-///         - pattern: "billingAccounts/{billing_account}/logs/{log}" parent_type:
-///           "billing.googleapis.com/BillingAccount" parent_name_extractor:
-///           "billingAccounts/{billing_account}"
+///     - type: 'logging.googleapis.com/LogEntry'
+///       name_descriptor:
+///         - pattern: "projects/{project}/logs/{log}"
+///           parent_type: "cloudresourcemanager.googleapis.com/Project"
+///           parent_name_extractor: "projects/{project}"
+///         - pattern: "folders/{folder}/logs/{log}"
+///           parent_type: "cloudresourcemanager.googleapis.com/Folder"
+///           parent_name_extractor: "folders/{folder}"
+///         - pattern: "organizations/{organization}/logs/{log}"
+///           parent_type: "cloudresourcemanager.googleapis.com/Organization"
+///           parent_name_extractor: "organizations/{organization}"
+///         - pattern: "billingAccounts/{billing_account}/logs/{log}"
+///           parent_type: "billing.googleapis.com/BillingAccount"
+///           parent_name_extractor: "billingAccounts/{billing_account}"
 ///
 /// For flexible resources, the resource name doesn't contain parent names, but
 /// the resource itself has parents for policy evaluation.
@@ -497,9 +506,12 @@ pub enum FieldBehavior {
 /// The ResourceDescriptor Yaml config will look like:
 ///
 ///     resources:
-///     - type: 'library.googleapis.com/Shelf' name_descriptor:
-///         - pattern: "shelves/{shelf}" parent_type: "cloudresourcemanager.googleapis.com/Project"
-///         - pattern: "shelves/{shelf}" parent_type: "cloudresourcemanager.googleapis.com/Folder"
+///     - type: 'library.googleapis.com/Shelf'
+///       name_descriptor:
+///         - pattern: "shelves/{shelf}"
+///           parent_type: "cloudresourcemanager.googleapis.com/Project"
+///         - pattern: "shelves/{shelf}"
+///           parent_type: "cloudresourcemanager.googleapis.com/Folder"
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResourceDescriptor {
     /// The resource type. It must be in the format of
