@@ -46,6 +46,15 @@ pub struct OAuthTokenSource<C = crate::builder::DefaultConnector> {
     scopes: Arc<[String]>,
 }
 
+impl<C> std::fmt::Debug for OAuthTokenSource<C> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("OAuthTokenSource")
+            .field("scopes", &self.scopes)
+            .field("oauth", &"...")
+            .finish()
+    }
+}
+
 impl<C> TokenSource for OAuthTokenSource<C>
 where
     C: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
@@ -243,7 +252,7 @@ mod test {
                         &http::header::HeaderValue::from_str(&format!("Bearer {}", TOKEN)).unwrap()
                     ),
                 );
-                Box::pin(async { Ok(http::Response::new(tonic::body::BoxBody::empty())) })
+                Box::pin(async { Ok(http::Response::new(tonic::body::empty_body())) })
             }
         }
 
@@ -274,7 +283,7 @@ mod test {
 
         assert!(matches!(
             auth_service
-                .call(http::request::Request::new(tonic::body::BoxBody::empty()))
+                .call(http::request::Request::new(tonic::body::empty_body()))
                 .await,
             Err(AuthGrpcError::Auth(InjectedError))
         ));
@@ -296,7 +305,7 @@ mod test {
 
         assert!(matches!(
             auth_service
-                .call(http::request::Request::new(tonic::body::BoxBody::empty()))
+                .call(http::request::Request::new(tonic::body::empty_body()))
                 .await,
             Err(AuthGrpcError::InvalidToken(
                 http::header::InvalidHeaderValue { .. },
@@ -333,7 +342,7 @@ mod test {
                         .get(http::header::AUTHORIZATION),
                     None,
                 );
-                Box::pin(async { Ok(http::Response::new(tonic::body::BoxBody::empty())) })
+                Box::pin(async { Ok(http::Response::new(tonic::body::empty_body())) })
             }
         }
 
