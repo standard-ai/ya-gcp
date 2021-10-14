@@ -17,7 +17,7 @@ jobs:
         # some features like emulators and openssl won't work on windows/mac; those are tested in test-xplat
         os: [ubuntu-latest]
         test_flags: ["", "--no-default-features", "--all-features"]
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@master
@@ -46,7 +46,7 @@ jobs:
         rust_toolchain: [""] # "" = rust-toolchain version
         os: [windows-latest, macOS-latest]
         test_flags: ["", "--no-default-features", "--features pubsub,storage,tokio"]
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -64,7 +64,7 @@ jobs:
 
   format:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -79,7 +79,7 @@ jobs:
 
   clippy:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
@@ -94,7 +94,7 @@ jobs:
 
   documentation:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
