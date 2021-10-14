@@ -1,6 +1,6 @@
 [package]
 name = "ya-gcp"
-version = "0.6.0"
+version = "0.6.1"
 authors = ["Renar Narubin <renar@standard.ai>"]
 edition = "2018"
 description = "APIs for using Google Cloud Platform services"
@@ -80,3 +80,7 @@ tokio = { version = "1.4.0", features = ["rt-multi-thread", "time", "test-util"]
 # enabled _and_ "rustls" is disabled. CI builds with --all-features, so udeps
 # fails unless we ignore the package explicitly
 normal = ["hyper-openssl"]
+
+[package.metadata.docs.rs]
+rustc-args = ["--cfg", "docsrs"]
+all-features = true
