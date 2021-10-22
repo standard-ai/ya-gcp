@@ -101,9 +101,13 @@ impl From<SinkError<Infallible>> for tonic::Status {
 
 /// A sink created by [`publish_topic_sink`] for publishing messages to a topic.
 ///
+/// Messages will be sent to the pubsub service in the same order that they are submitted to this sink
+/// (unless a message exceeds the defined [resource limits], in which case it's returned in an
+/// error and prior messages may still be sent).
+///
 /// ## Buffering
-/// This sink will attempt to buffer messages up to the resource limits outlined in the [PubSub
-/// documentation] when using `poll_ready`+`start_send` alone. The `poll_flush` method may be used
+/// This sink will attempt to buffer messages up to the [resource limits] outlined in the PubSub
+/// documentation when using `poll_ready`+`start_send` alone. The `poll_flush` method may be used
 /// to publish messages before the buffering limits. Higher-level combinators like [`send_all`] will
 /// invoke these methods to meet the combinator's documented behavior.
 ///
@@ -123,11 +127,11 @@ impl From<SinkError<Infallible>> for tonic::Status {
 /// By default, the sink does not report when and which messages are successfully published, only
 /// whether errors occured. Calling the [`with_response_sink`] method will attach a sink to the
 /// response outputs, which allows users to observe successful publishing. The given sink will be
-/// sent elements for each message successfully published by the publishing sink. See the method's
-/// documentation for more details.
+/// sent elements for each message successfully published by the publishing sink, in the order they
+/// were published. See the method's documentation for more details.
 ///
 /// [`publish_topic_sink`]: super::PublisherClient::publish_topic_sink
-/// [PubSub documentation]: https://cloud.google.com/pubsub/quotas#resource_limits
+/// [resource limits]: https://cloud.google.com/pubsub/quotas#resource_limits
 /// [`send_all`]: futures::SinkExt::send_all
 /// [exponential backoff]: crate::retry_policy::ExponentialBackoff
 /// [retriable status codes]: crate::pubsub::DEFAULT_RETRY_CODES
