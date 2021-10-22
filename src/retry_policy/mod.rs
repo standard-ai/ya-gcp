@@ -76,7 +76,7 @@ pub use exponential_backoff::ExponentialBackoff;
 /// responsibility and complexity on the user compared to internal retry mechanisms.
 ///
 /// [1]: http://journal.stuffwithstuff.com/2013/01/13/iteration-inside-and-out
-pub trait RetryPolicy<T, E> {
+pub trait RetryPolicy<T: ?Sized, E> {
     /// The [`RetryOperation`] returned by [`new_operation`](RetryPolicy::new_operation)
     type RetryOp: RetryOperation<T, E>;
 
@@ -95,7 +95,7 @@ pub trait RetryPolicy<T, E> {
 /// For example, a `GET` to an endpoint might create an instance of this type after encountering an
 /// error, and use this instance to repeatedly `GET` again until either the resource is returned
 /// successfully, or the policy determines retries should stop.
-pub trait RetryOperation<T, E> {
+pub trait RetryOperation<T: ?Sized, E> {
     /// A future used to delay re-attempts of the operation, to potentially reduce resource
     /// exhaustion.
     type Sleep: Future<Output = ()>;

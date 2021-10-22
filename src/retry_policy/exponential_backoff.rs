@@ -51,6 +51,7 @@ impl<R, S> ExponentialBackoff<R, S> {
 
 impl<T, E, R, S> RetryPolicy<T, E> for ExponentialBackoff<R, S>
 where
+    T: ?Sized,
     R: RetryPredicate<E> + Clone,
     S: Sleeper + Clone,
     E: std::fmt::Debug,
@@ -81,6 +82,7 @@ pub struct ExponentialRetry<R, S = DefaultSleeper> {
 
 impl<T, E, R, S> RetryOperation<T, E> for ExponentialRetry<R, S>
 where
+    T: ?Sized,
     R: RetryPredicate<E>,
     S: Sleeper,
     E: std::fmt::Debug,

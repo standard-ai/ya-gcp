@@ -240,12 +240,11 @@ impl<C, Retry, ResponseSink: Sink<api::PubsubMessage>> PublishTopicSink<C, Retry
 impl<C, Retry, ResponseSink> Sink<api::PubsubMessage> for PublishTopicSink<C, Retry, ResponseSink>
 where
     C: crate::Connect + Clone + Send + Sync + 'static,
-    // TODO(type_alias_impl_trait) remove most of these 'static (and Sync?) bounds
+    // TODO(type_alias_impl_trait) remove most of these 'static (and Send?) bounds
     Retry: RetryPolicy<api::PublishRequest, tonic::Status> + 'static,
-    Retry::RetryOp: Send + Sync + 'static,
-    <Retry::RetryOp as RetryOperation<api::PublishRequest, tonic::Status>>::Sleep:
-        Send + Sync + 'static,
-    ResponseSink: Sink<api::PubsubMessage> + Unpin + Send + Sync + 'static,
+    Retry::RetryOp: Send + 'static,
+    <Retry::RetryOp as RetryOperation<api::PublishRequest, tonic::Status>>::Sleep: Send + 'static,
+    ResponseSink: Sink<api::PubsubMessage> + Unpin + Send + 'static,
 {
     type Error = SinkError<ResponseSink::Error>;
 
@@ -284,10 +283,9 @@ impl<'pin, C, Retry, ResponseSink> PublishTopicSinkProjection<'pin, C, Retry, Re
 where
     C: crate::Connect + Clone + Send + Sync + 'static,
     Retry: RetryPolicy<api::PublishRequest, tonic::Status> + 'static,
-    Retry::RetryOp: Send + Sync + 'static,
-    <Retry::RetryOp as RetryOperation<api::PublishRequest, tonic::Status>>::Sleep:
-        Send + Sync + 'static,
-    ResponseSink: Sink<api::PubsubMessage> + Unpin + Send + Sync + 'static,
+    Retry::RetryOp: Send + 'static,
+    <Retry::RetryOp as RetryOperation<api::PublishRequest, tonic::Status>>::Sleep: Send + 'static,
+    ResponseSink: Sink<api::PubsubMessage> + Unpin + Send + 'static,
 {
     fn poll_flush_projected(
         &mut self,
