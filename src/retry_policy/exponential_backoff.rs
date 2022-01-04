@@ -129,7 +129,7 @@ config_default! {
         @default(2.0, "Config::default_multiplier")
         pub multiplier: f32,
 
-        /// The number of times that retry attemps will be made before the underlying error is returned
+        /// The number of times that retry attempts will be made before the underlying error is returned
         ///
         /// A value of `None` will cause the retries to continue indefinitely
         @default(Some(16), "Config::default_max_retries")
