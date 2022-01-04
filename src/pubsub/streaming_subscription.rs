@@ -303,10 +303,23 @@ impl<C> StreamSubscription<C> {
                     // ensure that the retry codes include Unavailable to retry the pubsub
                     // documented cases of disconnection
                     crate::pubsub::DEFAULT_RETRY_CODES | tonic::Code::Unavailable.into(),
-                    exponential_backoff::Config::default(),
+                    Self::default_retry_configuration(),
                 ),
             },
             _p: std::marker::PhantomPinned,
+        }
+    }
+
+    /// The default configuration values used for retrying connections to the PubSub streaming pull
+    /// RPC
+    pub fn default_retry_configuration() -> exponential_backoff::Config {
+        // values pulled from java lib
+        // https://github.com/googleapis/java-pubsub/blob/d969e8925edc3401e6eb534699ce0351a5f0b20b/google-cloud-pubsub/src/main/java/com/google/cloud/pubsub/v1/StreamingSubscriberConnection.java#L70
+        exponential_backoff::Config {
+            initial_interval: Duration::from_millis(100),
+            max_interval: Duration::from_secs(10),
+            multiplier: 2.0,
+            ..Default::default()
         }
     }
 }
@@ -446,62 +459,70 @@ where
             );
 
             debug!(message="connecting streaming pull stream", %subscription, %client_id);
-            let mut message_stream = client
+            let mut error = match client
                 .streaming_pull(request_stream)
                 .await
-                .map_err(|mut err| {
-                    err.metadata_mut()
-                        .insert("subscription", subscription_meta.clone());
-                    err
-                })?
-                .into_inner();
+                .map(|response| response.into_inner())
+            {
+                Err(err) => err,
+                Ok(mut message_stream) => 'read: loop {
+                    match message_stream.next().await {
+                        // if the stream is out of elements, exit the reconnect loop
+                        None => break 'reconnect,
 
-            while let Some(response_result) = message_stream.next().await {
-                match response_result {
-                    Ok(response) => {
-                        // we got a successful response. If we were in a retry loop, declare it
-                        // complete
-                        retry_op = None;
+                        // if there's an error in reading, break to the error handler and check
+                        // whether to retry
+                        Some(Err(err)) => break 'read err,
 
-                        for message in response.received_messages {
-                            let ack_token = AcknowledgeToken {
-                                id: message.ack_id,
-                                channel: sender.clone()
-                            };
-                            let message = message
-                                .message
-                                .expect("message should be populated by RPC server");
-                            yield Ok((ack_token, message));
-                        }
-                    }
-                    Err(mut err) => {
-                        // check if this error can be recovered by reconnecting the stream.
-                        let should_retry = retry_op
-                            .get_or_insert_with(|| retry_policy.new_operation())
-                            .check_retry(&(), &err);
+                        // otherwise, we got a successful response
+                        Some(Ok(response)) => {
+                            // If we were in a retry loop, declare it complete
+                            retry_op = None;
 
-                        match should_retry {
-                            // if the retry policy determines a retry is possible, sleep for the
-                            // given backoff and then try reconnecting
-                            Some(backoff_sleep) => {
-                                backoff_sleep.await;
-                                continue 'reconnect;
+                            for message in response.received_messages {
+                                let ack_token = AcknowledgeToken {
+                                    id: message.ack_id,
+                                    channel: sender.clone()
+                                };
+                                let message = match message.message {
+                                    Some(msg) => msg,
+                                    None => break 'read tonic::Status::internal(
+                                        "message should be populated by RPC server"
+                                    ),
+                                };
+                                yield Ok((ack_token, message));
                             }
-                            // if the policy does not provide a sleep, then it determined that the
-                            // operation is terminal (or the retries have been exhausted). Yield
-                            // the error, and then exit
-                            None => {
-                                err.metadata_mut().insert("subscription", subscription_meta);
-                                yield Err(err);
-                                break;
-                            }
+
+                            continue 'read;
                         }
                     }
                 }
             };
 
-            // the stream is out of elements. exit the reconnect loop
-            break;
+            // if either the streaming connection or a stream element produces an error,
+            // the error will arrive here.
+
+            // check if this error can be recovered by reconnecting the stream.
+            let should_retry = retry_op
+                .get_or_insert_with(|| retry_policy.new_operation())
+                .check_retry(&(), &error);
+
+            match should_retry {
+                // if the retry policy determines a retry is possible, sleep for the
+                // given backoff and then try reconnecting
+                Some(backoff_sleep) => {
+                    backoff_sleep.await;
+                    continue 'reconnect;
+                }
+                // if the policy does not provide a sleep, then it determined that the
+                // operation is terminal (or the retries have been exhausted). Yield
+                // the error, and then exit
+                None => {
+                    error.metadata_mut().insert("subscription", subscription_meta);
+                    yield Err(error);
+                    break 'reconnect;
+                }
+            }
         }
     }
 }
