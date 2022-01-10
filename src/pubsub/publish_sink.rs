@@ -1,7 +1,6 @@
-use super::{api, ProjectTopicName};
+use super::{api, ProjectTopicName, PubSubRetryCheck};
 use crate::{
     auth::grpc::{AuthGrpcService, OAuthTokenSource},
-    grpc::StatusCodeSet,
     retry_policy::{exponential_backoff, ExponentialBackoff, RetryOperation, RetryPolicy},
 };
 use futures::{future::BoxFuture, ready, stream, Sink, SinkExt};
@@ -140,7 +139,7 @@ impl From<SinkError<Infallible>> for tonic::Status {
 #[pin_project(project=PublishTopicSinkProjection)]
 pub struct PublishTopicSink<
     C = crate::DefaultConnector,
-    Retry = ExponentialBackoff<StatusCodeSet>,
+    Retry = ExponentialBackoff<PubSubRetryCheck>,
     ResponseSink: Sink<api::PubsubMessage> = Drain,
 > {
     /// the underlying client used to execute the requests
@@ -176,7 +175,7 @@ enum FlushState<ResponseSink: Sink<api::PubsubMessage>> {
     Flushing(#[pin] BoxFuture<'static, FlushOutput<ResponseSink, ResponseSink::Error>>),
 }
 
-impl<C> PublishTopicSink<C, ExponentialBackoff<StatusCodeSet>, Drain> {
+impl<C> PublishTopicSink<C, ExponentialBackoff<PubSubRetryCheck>, Drain> {
     /// Create a new `PublishTopicSink` with the default retry policy and no response sink
     pub(super) fn new(client: ApiPublisherClient<C>, topic: ProjectTopicName) -> Self
     where
@@ -187,7 +186,7 @@ impl<C> PublishTopicSink<C, ExponentialBackoff<StatusCodeSet>, Drain> {
             buffer: PublishBuffer::new(String::from(topic)),
             flush_state: FlushState::NotFlushing(futures::sink::drain()),
             retry_policy: ExponentialBackoff::new(
-                crate::pubsub::DEFAULT_RETRY_CODES,
+                PubSubRetryCheck::default(),
                 exponential_backoff::Config::default(),
             ),
             _pin: std::marker::PhantomPinned,

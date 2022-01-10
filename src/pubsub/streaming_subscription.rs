@@ -17,8 +17,7 @@ use tracing::debug;
 
 use crate::{
     auth::grpc::{AuthGrpcService, OAuthTokenSource},
-    grpc::StatusCodeSet,
-    pubsub::api,
+    pubsub::{api, PubSubRetryCheck},
     retry_policy::{exponential_backoff, ExponentialBackoff, RetryOperation, RetryPolicy},
 };
 
@@ -257,7 +256,8 @@ fn create_streaming_pull_request_stream(
 /// The stream returned by the
 /// [`stream_subscription`](crate::pubsub::SubscriberClient::stream_subscription) function
 #[pin_project]
-pub struct StreamSubscription<C = crate::DefaultConnector, R = ExponentialBackoff<StatusCodeSet>> {
+pub struct StreamSubscription<C = crate::DefaultConnector, R = ExponentialBackoff<PubSubRetryCheck>>
+{
     state: StreamState<C, R>,
     // reserve the right to be !Unpin in the future without a major version bump
     _p: std::marker::PhantomPinned,
@@ -300,9 +300,7 @@ impl<C> StreamSubscription<C> {
                 subscription,
                 config,
                 retry_policy: ExponentialBackoff::new(
-                    // ensure that the retry codes include Unavailable to retry the pubsub
-                    // documented cases of disconnection
-                    crate::pubsub::DEFAULT_RETRY_CODES | tonic::Code::Unavailable.into(),
+                    PubSubRetryCheck::default(),
                     Self::default_retry_configuration(),
                 ),
             },
@@ -467,8 +465,15 @@ where
                 Err(err) => err,
                 Ok(mut message_stream) => 'read: loop {
                     match message_stream.next().await {
-                        // if the stream is out of elements, exit the reconnect loop
-                        None => break 'reconnect,
+                        // If the stream is out of elements, some connection must have been closed.
+                        // However PubSub docs say StreamingPull always terminates with an error,
+                        // so this normal end-of-stream shouldn't happen, and instead should fall
+                        // to the error branch.
+                        //
+                        // Here we assume some other part of the stack ended the connection, and
+                        // therefore attempting to reconnect (with retry/backoff) is the right
+                        // resolution
+                        None => break 'read tonic::Status::aborted("unexpected end of stream"),
 
                         // if there's an error in reading, break to the error handler and check
                         // whether to retry

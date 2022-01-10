@@ -5,7 +5,7 @@
 
 use crate::{
     auth::grpc::{AuthGrpcService, OAuthTokenSource},
-    grpc::StatusCodeSet,
+    retry_policy::RetryPredicate,
 };
 use std::fmt::Display;
 
@@ -35,18 +35,6 @@ pub mod api {
     // re-exports of prost types used within the generated code for convenience
     pub use prost_types::{Duration, FieldMask, Timestamp};
 }
-
-/// A set of status codes which should generally be retried when returned from an unsuccessful
-/// operation.
-///
-/// See notes on retry recommendations in the pubsub docs
-/// <https://cloud.google.com/pubsub/docs/reference/error-codes>
-pub const DEFAULT_RETRY_CODES: StatusCodeSet = StatusCodeSet::new(&[
-    tonic::Code::DeadlineExceeded,
-    tonic::Code::Internal,
-    tonic::Code::ResourceExhausted,
-    tonic::Code::Unavailable,
-]);
 
 /// A client through which pubsub messages are sent, and topics are managed. Created
 /// from the [`build_pubsub_publisher`](crate::builder::ClientBuilder::build_pubsub_publisher)
@@ -207,5 +195,54 @@ impl From<ProjectTopicName> for String {
 impl std::fmt::Display for ProjectTopicName {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
+/// The default [`RetryPredicate`] used for errors from PubSub operations
+#[derive(Debug, Default, Clone)]
+pub struct PubSubRetryCheck {
+    _priv: (),
+}
+
+impl PubSubRetryCheck {
+    /// Create a new instance with default settings
+    pub fn new() -> Self {
+        Self { _priv: () }
+    }
+}
+
+impl RetryPredicate<Error> for PubSubRetryCheck {
+    fn is_retriable(&self, error: &Error) -> bool {
+        use tonic::Code;
+
+        // this error code check is based on the ones used in the Java and Go pubsub client libs:
+        // https://github.com/googleapis/java-pubsub/blob/d969e8925edc3401e6eb534699ce0351a5f0b20b/google-cloud-pubsub/src/main/java/com/google/cloud/pubsub/v1/StatusUtil.java#L33
+        // https://github.com/googleapis/google-cloud-go/blob/ac9924157f35a00ff9d1e6ece9a7e0f12fc60226/pubsub/service.go#L51
+        // Go doesn't retry on cancelled, but Java does; Java always retries Unknown, but Go only
+        // does when the message implies "goaway". This takes a middle road and retries Cancelled,
+        // while only retrying Unknown with goaway.
+        //
+        // This may need adjustment based on lower layers from the rust ecosystem, for example if
+        // tonic interprets h2 errors and forwards as Internal/Unknown for particular cases. Keep
+        // an eye on it
+
+        match error.code() {
+            Code::DeadlineExceeded
+            | Code::Internal
+            | Code::Cancelled
+            | Code::ResourceExhausted
+            | Code::Aborted => true,
+            Code::Unavailable => {
+                let is_shutdown = error.message().contains("Server shutdownNow invoked");
+                !is_shutdown
+            }
+            Code::Unknown => {
+                let is_goaway = error
+                    .message()
+                    .contains("received prior goaway: code: NO_ERROR");
+                is_goaway
+            }
+            _ => false,
+        }
     }
 }
