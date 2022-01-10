@@ -1,6 +1,6 @@
 [package]
 name = "ya-gcp"
-version = "0.6.3"
+version = "0.7.0"
 authors = ["Renar Narubin <renar@standard.ai>"]
 edition = "2018"
 description = "APIs for using Google Cloud Platform services"
