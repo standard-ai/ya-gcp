@@ -45,7 +45,7 @@ pub struct CreateSchemaRequest {
     /// The ID to use for the schema, which will become the final component of
     /// the schema's resource name.
     ///
-    /// See https://cloud.google.com/pubsub/docs/admin#resource_names for resource
+    /// See <https://cloud.google.com/pubsub/docs/admin#resource_names> for resource
     /// name constraints.
     #[prost(string, tag = "3")]
     pub schema_id: ::prost::alloc::string::String,
@@ -199,7 +199,7 @@ pub mod schema_service_client {
     impl<T> SchemaServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::ResponseBody: Body + Send + Sync + 'static,
+        T::ResponseBody: Body + Send + 'static,
         T::Error: Into<StdError>,
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
@@ -368,14 +368,14 @@ pub struct SchemaSettings {
 pub struct Topic {
     /// Required. The name of the topic. It must have the format
     /// `"projects/{project}/topics/{topic}"`. `{topic}` must start with a letter,
-    /// and contain only letters (`[A-Za-z]`), numbers (`[0-9]`), dashes (`-`),
+    /// and contain only letters (`\[A-Za-z\]`), numbers (`\[0-9\]`), dashes (`-`),
     /// underscores (`_`), periods (`.`), tildes (`~`), plus (`+`) or percent
     /// signs (`%`). It must be between 3 and 255 characters in length, and it
     /// must not start with `"goog"`.
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
     /// See [Creating and managing labels]
-    /// (https://cloud.google.com/pubsub/docs/labels).
+    /// (<https://cloud.google.com/pubsub/docs/labels>).
     #[prost(map = "string, string", tag = "2")]
     pub labels:
         ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
@@ -401,7 +401,7 @@ pub struct Topic {
     /// the topic. If this field is set, messages published to the topic in the
     /// last `message_retention_duration` are always available to subscribers. For
     /// instance, it allows any attached subscription to [seek to a
-    /// timestamp](https://cloud.google.com/pubsub/docs/replay-overview#seek_to_a_time)
+    /// timestamp](<https://cloud.google.com/pubsub/docs/replay-overview#seek_to_a_time>)
     /// that is up to `message_retention_duration` in the past. If this field is
     /// not set, message retention is controlled by settings on individual
     /// subscriptions. Cannot be more than 7 days or less than 10 minutes.
@@ -412,9 +412,9 @@ pub struct Topic {
 /// message must contain either a non-empty data field or at least one attribute.
 /// Note that client libraries represent this object differently
 /// depending on the language. See the corresponding [client library
-/// documentation](https://cloud.google.com/pubsub/docs/reference/libraries) for
+/// documentation](<https://cloud.google.com/pubsub/docs/reference/libraries>) for
 /// more information. See [quotas and limits]
-/// (https://cloud.google.com/pubsub/quotas) for more information about message
+/// (<https://cloud.google.com/pubsub/quotas>) for more information about message
 /// limits.
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PubsubMessage {
@@ -600,8 +600,8 @@ pub struct DetachSubscriptionResponse {}
 pub struct Subscription {
     /// Required. The name of the subscription. It must have the format
     /// `"projects/{project}/subscriptions/{subscription}"`. `{subscription}` must
-    /// start with a letter, and contain only letters (`[A-Za-z]`), numbers
-    /// (`[0-9]`), dashes (`-`), underscores (`_`), periods (`.`), tildes (`~`),
+    /// start with a letter, and contain only letters (`\[A-Za-z\]`), numbers
+    /// (`\[0-9\]`), dashes (`-`), underscores (`_`), periods (`.`), tildes (`~`),
     /// plus (`+`) or percent signs (`%`). It must be between 3 and 255 characters
     /// in length, and it must not start with `"goog"`.
     #[prost(string, tag = "1")]
@@ -642,7 +642,7 @@ pub struct Subscription {
     /// messages are not expunged from the subscription's backlog, even if they are
     /// acknowledged, until they fall out of the `message_retention_duration`
     /// window. This must be true if you would like to [`Seek` to a timestamp]
-    /// (https://cloud.google.com/pubsub/docs/replay-overview#seek_to_a_time) in
+    /// (<https://cloud.google.com/pubsub/docs/replay-overview#seek_to_a_time>) in
     /// the past to replay previously-acknowledged messages.
     #[prost(bool, tag = "7")]
     pub retain_acked_messages: bool,
@@ -654,7 +654,7 @@ pub struct Subscription {
     /// minutes.
     #[prost(message, optional, tag = "8")]
     pub message_retention_duration: ::core::option::Option<::prost_types::Duration>,
-    /// See <a href="https://cloud.google.com/pubsub/docs/labels"> Creating and
+    /// See <a href="<https://cloud.google.com/pubsub/docs/labels">> Creating and
     /// managing labels</a>.
     #[prost(map = "string, string", tag = "9")]
     pub labels:
@@ -674,7 +674,7 @@ pub struct Subscription {
     #[prost(message, optional, tag = "11")]
     pub expiration_policy: ::core::option::Option<ExpirationPolicy>,
     /// An expression written in the Pub/Sub [filter
-    /// language](https://cloud.google.com/pubsub/docs/filtering). If non-empty,
+    /// language](<https://cloud.google.com/pubsub/docs/filtering>). If non-empty,
     /// then only `PubsubMessage`s whose `attributes` field matches the filter are
     /// delivered on this subscription. If empty, then no messages are filtered
     /// out.
@@ -718,7 +718,7 @@ pub struct Subscription {
 /// A policy that specifies how Cloud Pub/Sub retries message delivery.
 ///
 /// Retry delay will be exponential based on provided minimum and maximum
-/// backoffs. https://en.wikipedia.org/wiki/Exponential_backoff.
+/// backoffs. <https://en.wikipedia.org/wiki/Exponential_backoff.>
 ///
 /// RetryPolicy will be triggered on NACKs or acknowledgement deadline exceeded
 /// events for a given message.
@@ -788,7 +788,7 @@ pub struct ExpirationPolicy {
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PushConfig {
     /// A URL locating the endpoint to which messages should be pushed.
-    /// For example, a Webhook endpoint might use `https://example.com/push`.
+    /// For example, a Webhook endpoint might use `<https://example.com/push`.>
     #[prost(string, tag = "1")]
     pub push_endpoint: ::prost::alloc::string::String,
     /// Endpoint configuration attributes that can be used to control different
@@ -827,11 +827,11 @@ pub struct PushConfig {
 pub mod push_config {
     /// Contains information needed for generating an
     /// [OpenID Connect
-    /// token](https://developers.google.com/identity/protocols/OpenIDConnect).
+    /// token](<https://developers.google.com/identity/protocols/OpenIDConnect>).
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct OidcToken {
         /// [Service account
-        /// email](https://cloud.google.com/iam/docs/service-accounts)
+        /// email](<https://cloud.google.com/iam/docs/service-accounts>)
         /// to be used for generating the OIDC token. The caller (for
         /// CreateSubscription, UpdateSubscription, and ModifyPushConfig RPCs) must
         /// have the iam.serviceAccounts.actAs permission for the service account.
@@ -841,7 +841,7 @@ pub mod push_config {
         /// identifies the recipients that the JWT is intended for. The audience
         /// value is a single case-sensitive string. Having multiple values (array)
         /// for the audience field is not supported. More info about the OIDC JWT
-        /// token audience here: https://tools.ietf.org/html/rfc7519#section-4.1.3
+        /// token audience here: <https://tools.ietf.org/html/rfc7519#section-4.1.3>
         /// Note: if not specified, the Push endpoint URL will be used.
         #[prost(string, tag = "2")]
         pub audience: ::prost::alloc::string::String,
@@ -1129,7 +1129,7 @@ pub struct CreateSnapshotRequest {
     /// in the request, the server will assign a random name for this snapshot on
     /// the same project as the subscription. Note that for REST API requests, you
     /// must specify a name.  See the <a
-    /// href="https://cloud.google.com/pubsub/docs/admin#resource_names"> resource
+    /// href="<https://cloud.google.com/pubsub/docs/admin#resource_names">> resource
     /// name rules</a>. Format is `projects/{project}/snapshots/{snap}`.
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
@@ -1144,7 +1144,7 @@ pub struct CreateSnapshotRequest {
     /// Format is `projects/{project}/subscriptions/{sub}`.
     #[prost(string, tag = "2")]
     pub subscription: ::prost::alloc::string::String,
-    /// See <a href="https://cloud.google.com/pubsub/docs/labels"> Creating and
+    /// See <a href="<https://cloud.google.com/pubsub/docs/labels">> Creating and
     /// managing labels</a>.
     #[prost(map = "string, string", tag = "3")]
     pub labels:
@@ -1162,7 +1162,7 @@ pub struct UpdateSnapshotRequest {
     pub update_mask: ::core::option::Option<::prost_types::FieldMask>,
 }
 /// A snapshot resource. Snapshots are used in
-/// [Seek](https://cloud.google.com/pubsub/docs/replay-overview)
+/// \[Seek\](<https://cloud.google.com/pubsub/docs/replay-overview>)
 /// operations, which allow you to manage message acknowledgments in bulk. That
 /// is, you can set the acknowledgment state of messages in an existing
 /// subscription to the state captured by a snapshot.
@@ -1187,7 +1187,7 @@ pub struct Snapshot {
     #[prost(message, optional, tag = "3")]
     pub expire_time: ::core::option::Option<::prost_types::Timestamp>,
     /// See [Creating and managing labels]
-    /// (https://cloud.google.com/pubsub/docs/labels).
+    /// (<https://cloud.google.com/pubsub/docs/labels>).
     #[prost(map = "string, string", tag = "4")]
     pub labels:
         ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
@@ -1295,7 +1295,7 @@ pub mod publisher_client {
     impl<T> PublisherClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::ResponseBody: Body + Send + Sync + 'static,
+        T::ResponseBody: Body + Send + 'static,
         T::Error: Into<StdError>,
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
@@ -1519,7 +1519,7 @@ pub mod subscriber_client {
     impl<T> SubscriberClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::ResponseBody: Body + Send + Sync + 'static,
+        T::ResponseBody: Body + Send + 'static,
         T::Error: Into<StdError>,
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {

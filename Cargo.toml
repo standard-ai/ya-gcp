@@ -58,12 +58,12 @@ derive_more = { version = "0.99", optional = true }
 hyper-openssl = { version = "0.9", optional = true }
 hyper-rustls = { version = "0.22", features = ["rustls-native-certs"], optional = true }
 pin-project = { version = "1", optional = true }
-prost = { version = "0.8", optional = true }
-prost-types = { version = "0.8", optional = true }
+prost = { version = "0.9", optional = true }
+prost-types = { version = "0.9", optional = true }
 tame-gcs = { version = "0.10.0", optional = true }
 tempdir = { version = "0.3", optional = true }
 tokio = { version = "1", features = ["time"], optional = true }
-tonic = { version = "0.5", optional = true }
+tonic = { version = "0.6.2", optional = true }
 tower = { version = "0.4", features = ["make"], optional = true }
 uuid = { version = "0.8.1", features = ["v4"], optional = true }
 
