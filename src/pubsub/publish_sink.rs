@@ -694,9 +694,7 @@ mod test {
         // is made (then it will error). That's good enough for testing certain functionality
         // that doesn't require the requests themselves, like validity checking
         ApiPublisherClient::new(crate::auth::grpc::oauth_grpc(
-            tonic::transport::channel::Endpoint::from_static("https://localhost")
-                .connect_lazy()
-                .unwrap(),
+            tonic::transport::channel::Endpoint::from_static("https://localhost").connect_lazy(),
             None,
             vec![],
         ))

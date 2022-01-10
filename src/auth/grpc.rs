@@ -277,7 +277,7 @@ mod test {
         struct InjectedError;
 
         let mut auth_service = AuthGrpcService::new(
-            tonic::transport::Endpoint::from_static("localhost").connect_lazy()?,
+            tonic::transport::Endpoint::from_static("localhost").connect_lazy(),
             Some(|| async { Err::<String, _>(InjectedError) }),
         );
 
@@ -299,7 +299,7 @@ mod test {
         struct InjectedError;
 
         let mut auth_service = AuthGrpcService::new(
-            tonic::transport::Endpoint::from_static("localhost").connect_lazy()?,
+            tonic::transport::Endpoint::from_static("localhost").connect_lazy(),
             Some(|| async { Ok::<_, std::io::Error>("\u{0000}") }),
         );
 
