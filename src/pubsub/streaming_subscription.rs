@@ -1,5 +1,5 @@
 use std::{
-    convert::{TryFrom, TryInto},
+    convert::TryFrom,
     pin::Pin,
     task::{Context, Poll},
     time::Duration,
@@ -39,9 +39,9 @@ config_default! {
         @default(0, "StreamSubscriptionConfig::default_max_outstanding_bytes")
         pub max_outstanding_bytes: i64,
 
-        /// Maximum number of ack ids to buffer while waiting for pull requests to complete. This value
-        /// should be at least as large as the maximum number of outstanding messages.
-        @default(2000, "StreamSubscriptionConfig::default_ack_channel_capacity")
+        /// Deprecated, subsumed by `max_outstanding_messages`
+        #[deprecated]
+        @default(0, "StreamSubscriptionConfig::default_ack_channel_capacity")
         pub ack_channel_capacity: usize,
     }
 }
@@ -423,14 +423,6 @@ where
     R::RetryOp: Send + 'static,
     <R::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,
 {
-    // Verify channel size is valid.
-    assert!(
-        config.ack_channel_capacity
-            >= config
-                .max_outstanding_messages
-                .try_into()
-                .expect("should be a valid usize")
-    );
     let subscription_meta =
         MetadataValue::from_str(&subscription).expect("valid subscription metadata");
 
@@ -443,7 +435,10 @@ where
     // is a period of time during reconnection when two receivers might exist, because the
     // disconnected stream is dropped in a background task at an unknown time (unknown to our
     // layer anyway), and the new receiver should continue to pull from the existing senders.
-    let (sender, receiver) = mpmc::bounded(config.ack_channel_capacity);
+    let (sender, receiver) = mpmc::bounded(
+        usize::try_from(config.max_outstanding_messages)
+            .expect("outstanding messages should fit in usize"),
+    );
 
     async_stream::stream! {
         let mut retry_op = None;
@@ -552,8 +547,8 @@ mod test {
             StreamSubscriptionConfig {
                 max_outstanding_messages: 2000,
                 max_outstanding_bytes: 3000,
-                ack_channel_capacity: 4000,
                 stream_ack_deadline: Duration::from_secs(20),
+                ..Default::default()
             },
         );
         pin_mut!(requests);

@@ -67,6 +67,7 @@ macro_rules! config_default {
                         )
                     ))]
                     #[cfg_attr(not(docsrs), doc = "Set this field to the given value")]
+                    #[allow(deprecated)]
                     pub fn $field_name(mut self, $field_name: $field_type) -> Self {
                         self.$field_name = $field_name;
                         self
@@ -89,6 +90,7 @@ macro_rules! config_default {
                 }), "`"
             )))]
             fn default() -> $struct_name {
+                #[allow(deprecated)]
                 $struct_name {
                     $(
                         $field_name: $field_default
