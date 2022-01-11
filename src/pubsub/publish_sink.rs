@@ -112,7 +112,7 @@ impl From<SinkError<Infallible>> for tonic::Status {
 ///
 /// ## Errors and Retrying
 /// By default, the sink constructed by `publish_topic_sink` will re-attempt certain failed publish
-/// requests by using an [exponential backoff] policy, for typically [retriable status codes] and
+/// requests by using an [exponential backoff] policy, for typically retriable status codes and
 /// up to a fixed retry count. This behavior can be controlled with the [`with_retry_policy`]
 /// method, which will apply a given retry policy to the sink's publish attempts. Should a publish
 /// request return an error, the sink will internally try again based on the retry policy, and may
@@ -133,7 +133,6 @@ impl From<SinkError<Infallible>> for tonic::Status {
 /// [resource limits]: https://cloud.google.com/pubsub/quotas#resource_limits
 /// [`send_all`]: futures::SinkExt::send_all
 /// [exponential backoff]: crate::retry_policy::ExponentialBackoff
-/// [retriable status codes]: crate::pubsub::DEFAULT_RETRY_CODES
 /// [`with_retry_policy`]: PublishTopicSink::with_retry_policy
 /// [`with_response_sink`]: PublishTopicSink::with_response_sink
 #[pin_project(project=PublishTopicSinkProjection)]
