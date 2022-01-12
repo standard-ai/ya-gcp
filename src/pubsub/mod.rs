@@ -219,28 +219,23 @@ impl RetryPredicate<Error> for PubSubRetryCheck {
         // https://github.com/googleapis/java-pubsub/blob/d969e8925edc3401e6eb534699ce0351a5f0b20b/google-cloud-pubsub/src/main/java/com/google/cloud/pubsub/v1/StatusUtil.java#L33
         // https://github.com/googleapis/google-cloud-go/blob/ac9924157f35a00ff9d1e6ece9a7e0f12fc60226/pubsub/service.go#L51
         // Go doesn't retry on cancelled, but Java does; Java always retries Unknown, but Go only
-        // does when the message implies "goaway". This takes a middle road and retries Cancelled,
-        // while only retrying Unknown with goaway.
+        // does when the message implies "goaway". This takes a broad approach and retries on both
         //
         // This may need adjustment based on lower layers from the rust ecosystem, for example if
-        // tonic interprets h2 errors and forwards as Internal/Unknown for particular cases. Keep
-        // an eye on it
+        // tonic interprets h2 errors and forwards as Internal/Unknown for particular cases. For
+        // example, we could inspect the h2::Reason to discern NO_ERROR/GOAWAY from other Unknown
+        // errors. For now, this is left as permissive for simplicity
 
         match error.code() {
             Code::DeadlineExceeded
             | Code::Internal
             | Code::Cancelled
             | Code::ResourceExhausted
-            | Code::Aborted => true,
+            | Code::Aborted
+            | Code::Unknown => true,
             Code::Unavailable => {
                 let is_shutdown = error.message().contains("Server shutdownNow invoked");
                 !is_shutdown
-            }
-            Code::Unknown => {
-                let is_goaway = error
-                    .message()
-                    .contains("received prior goaway: code: NO_ERROR");
-                is_goaway
             }
             _ => false,
         }
