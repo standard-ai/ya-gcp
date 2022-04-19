@@ -95,7 +95,11 @@ where
                 debug!(
                     message = "retrying after error",
                     ?error,
-                    backoff_ms = %interval.as_millis()
+                    backoff_ms = %interval.as_millis(),
+                    remaining_attempts = match self.intervals.size_hint() {
+                        (_lower_bound, Some(upper_bound)) => upper_bound,
+                        (lower_bound, None) => lower_bound
+                    },
                 );
                 return Some(self.sleeper.sleep(interval));
             } else {
@@ -212,6 +216,10 @@ impl Iterator for ExponentialIter {
 
     fn next(&mut self) -> Option<Self::Item> {
         self.iter.next()
+    }
+
+    fn size_hint(&self) -> (usize, Option<usize>) {
+        self.iter.size_hint()
     }
 }
 

@@ -10,7 +10,7 @@ mod pubsub_client_tests {
     use ya_gcp::{
         pubsub::{
             self, api::PubsubMessage, emulator::EmulatorClient, ProjectSubscriptionName,
-            ProjectTopicName, PublisherClient, SinkError, StreamSubscriptionConfig,
+            ProjectTopicName, PublishConfig, PublisherClient, SinkError, StreamSubscriptionConfig,
         },
         Connect,
     };
