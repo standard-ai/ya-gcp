@@ -13,7 +13,7 @@ use std::fmt::Display;
 pub use ::tonic::Status as Error;
 
 pub use client_builder::{BuildError, MakeConnection, PubSubConfig, Uri};
-pub use publish_sink::{PublishError, PublishTopicSink, SinkError};
+pub use publish_sink::{PublishConfig, PublishError, PublishTopicSink, SinkError};
 pub use streaming_subscription::{
     AcknowledgeError, AcknowledgeToken, ModifyAcknowledgeError, StreamSubscription,
     StreamSubscriptionConfig,
@@ -57,7 +57,16 @@ where
     ///
     /// See the type's [documentation](PublishTopicSink) for more details.
     pub fn publish_topic_sink(&mut self, topic: ProjectTopicName) -> PublishTopicSink<C> {
-        PublishTopicSink::new(self.inner.clone(), topic)
+        self.publish_topic_sink_config(topic, PublishConfig::default())
+    }
+
+    /// TODO break major semver
+    pub fn publish_topic_sink_config(
+        &mut self,
+        topic: ProjectTopicName,
+        config: PublishConfig,
+    ) -> PublishTopicSink<C> {
+        PublishTopicSink::new(self.inner.clone(), topic, config)
     }
 }
 

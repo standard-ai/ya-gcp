@@ -3,7 +3,7 @@ use crate::{
     auth::grpc::{AuthGrpcService, OAuthTokenSource},
     retry_policy::{exponential_backoff, ExponentialBackoff, RetryOperation, RetryPolicy},
 };
-use futures::{future::BoxFuture, ready, stream, Sink, SinkExt};
+use futures::{future::BoxFuture, ready, stream, Sink, SinkExt, TryFutureExt};
 use pin_project::pin_project;
 use prost::Message;
 use std::{
@@ -14,6 +14,7 @@ use std::{
     future::Future,
     pin::Pin,
     task::{Context, Poll},
+    time::Duration,
 };
 
 const MB: usize = 1000 * 1000;
@@ -98,6 +99,21 @@ impl From<SinkError<Infallible>> for tonic::Status {
     }
 }
 
+config_default! {
+    /// Configuration for a [publish sink](super::PublisherClient::publish_topic_sink)
+    /// request
+    #[derive(Debug, Clone, Copy, Eq, PartialEq, serde::Deserialize)]
+    #[non_exhaustive]
+    pub struct PublishConfig {
+        /// The amount of time to wait for a publish request to succeed before timing out
+        // default value from go lib https://github.com/googleapis/google-cloud-go/blob/pubsub/v1.20.0/pubsub/topic.go#L120
+        // FIXME use 60sec
+        #[serde(with = "humantime_serde")]
+        @default(Duration::from_secs(5), "PublishConfig::default_timeout")
+        pub timeout: Duration,
+    }
+}
+
 /// A sink created by [`publish_topic_sink`] for publishing messages to a topic.
 ///
 /// Messages will be sent to the pubsub service in the same order that they are submitted to this sink
@@ -154,6 +170,8 @@ pub struct PublishTopicSink<
     /// the retry policy to use when a publish attempt fails
     retry_policy: Retry,
 
+    config: PublishConfig,
+
     // reserve the right to be !Unpin in the future without breaking changes
     _pin: std::marker::PhantomPinned,
 }
@@ -176,7 +194,11 @@ enum FlushState<ResponseSink: Sink<api::PubsubMessage>> {
 
 impl<C> PublishTopicSink<C, ExponentialBackoff<PubSubRetryCheck>, Drain> {
     /// Create a new `PublishTopicSink` with the default retry policy and no response sink
-    pub(super) fn new(client: ApiPublisherClient<C>, topic: ProjectTopicName) -> Self
+    pub(super) fn new(
+        client: ApiPublisherClient<C>,
+        topic: ProjectTopicName,
+        config: PublishConfig,
+    ) -> Self
     where
         C: crate::Connect + Clone + Send + Sync + 'static,
     {
@@ -188,6 +210,7 @@ impl<C> PublishTopicSink<C, ExponentialBackoff<PubSubRetryCheck>, Drain> {
                 PubSubRetryCheck::default(),
                 exponential_backoff::Config::default(),
             ),
+            config,
             _pin: std::marker::PhantomPinned,
         }
     }
@@ -216,6 +239,7 @@ impl<C, Retry, ResponseSink: Sink<api::PubsubMessage>> PublishTopicSink<C, Retry
             retry_policy: self.retry_policy,
             client: self.client,
             buffer: self.buffer,
+            config: self.config,
             _pin: self._pin,
         }
     }
@@ -234,6 +258,7 @@ impl<C, Retry, ResponseSink: Sink<api::PubsubMessage>> PublishTopicSink<C, Retry
             client: self.client,
             buffer: self.buffer,
             flush_state: self.flush_state,
+            config: self.config,
             _pin: self._pin,
         }
     }
@@ -353,8 +378,13 @@ where
                     };
 
                     // construct the flush future
-                    let flush_fut =
-                        Self::flush(self.client, request, response_sink, self.retry_policy);
+                    let flush_fut = Self::flush(
+                        self.client,
+                        request,
+                        response_sink,
+                        self.retry_policy,
+                        self.config.timeout,
+                    );
 
                     // transition the state
                     self.flush_state
@@ -372,6 +402,7 @@ where
         mut request: api::PublishRequest,
         mut response_sink: ResponseSink,
         retry_policy: &mut Retry,
+        timeout: Duration,
     ) -> impl Future<Output = FlushOutput<ResponseSink, ResponseSink::Error>> {
         // until Sink gets syntax sugar like generators, internal futures can't borrow (safely) and
         // have to own their referents
@@ -388,11 +419,23 @@ where
                 // original to reuse for retries/errors/responses. On the bright side, message
                 // payloads are Bytes which are essentially Arc'ed, so alloc clones mostly apply to
                 // the attribute maps
-                break match client.publish(request.clone()).await {
-                    Ok(response) => Ok(response.into_inner()),
+                let publish = client.publish(request.clone());
+
+                // apply a timeout to the publish
+                let publish_fut = tokio::time::timeout(timeout, publish).map_err(
+                    |tokio::time::error::Elapsed { .. }| {
+                        tonic::Status::deadline_exceeded(format!(
+                            "publish attempt timed out after {} sec",
+                            timeout.as_secs_f32()
+                        ))
+                    },
+                );
+
+                break match publish_fut.await {
+                    Ok(Ok(response)) => Ok(response.into_inner()),
                     // if the status code is retry worthy, poll the retry policy to backoff
                     // before retrying, or stop retrying if the backoff is exhausted.
-                    Err(status) => match retry.check_retry(&request, &status) {
+                    Err(status) | Ok(Err(status)) => match retry.check_retry(&request, &status) {
                         // if the retry is non-empty, await the backoff then loop back to retry
                         Some(sleep) => {
                             sleep.await;
@@ -703,6 +746,7 @@ mod test {
         PublishTopicSink::new(
             dummy_client(),
             ProjectTopicName::new("dummy-project", "dummy-topic"),
+            PublishConfig::default(),
         )
     }
 
