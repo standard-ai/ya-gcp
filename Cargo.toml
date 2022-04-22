@@ -68,6 +68,7 @@ tower = { version = "0.4", features = ["make"], optional = true }
 uuid = { version = "0.8.1", features = ["v4"], optional = true }
 
 [dev-dependencies]
+approx = "0.5"
 async-stream = "0.3"
 quickcheck = "1"
 quickcheck_macros = "1"

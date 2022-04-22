@@ -260,6 +260,7 @@ where
 #[cfg(test)]
 mod test {
     use super::*;
+    use approx::assert_relative_eq;
 
     /// With no randomization, the exponential iterator should produce exponential growth up to its
     /// max interval until its retry limit
@@ -275,9 +276,10 @@ mod test {
 
         let iter = ExponentialIter::new(config);
 
-        assert_eq!(
-            vec![10, 20, 40, 80, 160, 320, 640, 1000, 1000, 1000],
-            iter.map(|t| Duration::as_millis(&t)).collect::<Vec<_>>()
+        // because the multiplication is floating, we need approximate equality
+        assert_relative_eq!(
+            &[0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.0, 1.0, 1.0][..],
+            &iter.map(|t| Duration::as_secs_f32(&t)).collect::<Vec<_>>()[..]
         );
     }
 
@@ -295,17 +297,17 @@ mod test {
 
         let iter = ExponentialIter::new(config);
 
-        for (interval, range) in iter.map(|t| Duration::as_millis(&t)).zip(vec![
-            (9..=11),
-            (18..=22),
-            (36..=44),
-            (72..=88),
-            (144..=176),
-            (288..=352),
-            (576..=704),
-            (900..=1100),
-            (900..=1100),
-            (900..=1100),
+        for (interval, range) in iter.map(|t| Duration::as_secs_f32(&t)).zip(vec![
+            (0.009..=0.011),
+            (0.018..=0.022),
+            (0.036..=0.044),
+            (0.072..=0.088),
+            (0.144..=0.176),
+            (0.288..=0.352),
+            (0.576..=0.704),
+            (0.900..=1.100),
+            (0.900..=1.100),
+            (0.900..=1.100),
         ]) {
             assert!(range.contains(&interval));
         }
@@ -341,33 +343,39 @@ mod test {
         assert!(operation.check_retry(&(), &Retriable::No).is_none());
 
         // a retriable error should yield the first interval for a sleep deadline
-        assert_eq!(
+        assert_relative_eq!(
             operation
                 .check_retry(&(), &Retriable::Yes)
                 .unwrap()
-                .deadline(),
-            now + Duration::from_millis(10),
+                .deadline()
+                .duration_since(now)
+                .as_secs_f32(),
+            Duration::from_millis(10).as_secs_f32(),
         );
 
         // a subsequent non-retriable error should return no retry attempt
         assert!(operation.check_retry(&(), &Retriable::No).is_none());
 
         // a following retriable error should yield the next interval
-        assert_eq!(
+        assert_relative_eq!(
             operation
                 .check_retry(&(), &Retriable::Yes)
                 .unwrap()
-                .deadline(),
-            now + Duration::from_millis(20),
+                .deadline()
+                .duration_since(now)
+                .as_secs_f32(),
+            Duration::from_millis(20).as_secs_f32(),
         );
 
         // one more retriable error
-        assert_eq!(
+        assert_relative_eq!(
             operation
                 .check_retry(&(), &Retriable::Yes)
                 .unwrap()
-                .deadline(),
-            now + Duration::from_millis(40),
+                .deadline()
+                .duration_since(now)
+                .as_secs_f32(),
+            Duration::from_millis(40).as_secs_f32(),
         );
 
         // now the retries have been exhausted and any error should return no interval
