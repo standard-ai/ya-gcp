@@ -20,7 +20,7 @@ jobs:
     timeout-minutes: 8
     steps:
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@v0
       - name: Install PubSub Emulator
         run: gcloud components install beta pubsub-emulator
       - uses: actions/checkout@v2
@@ -45,8 +45,8 @@ jobs:
       matrix:
         rust_toolchain: [""] # "" = rust-toolchain version
         os: [windows-latest, macOS-latest]
-        test_flags: ["", "--no-default-features", "--features pubsub,storage,tokio"]
-    timeout-minutes: 8
+        test_flags: ["--features pubsub,storage,tokio"]
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1

@@ -212,11 +212,9 @@ where
                 )
             })?;
 
-    Ok(
-        yup_oauth2::ServiceAccountAuthenticator::builder(service_account_key)
-            .hyper_client(client)
-            .build()
-            .await
-            .map_err(CreateBuilderError::Authenticator)?,
-    )
+    yup_oauth2::ServiceAccountAuthenticator::builder(service_account_key)
+        .hyper_client(client)
+        .build()
+        .await
+        .map_err(CreateBuilderError::Authenticator)
 }
