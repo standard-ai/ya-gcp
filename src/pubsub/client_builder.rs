@@ -1,8 +1,10 @@
 use crate::{
     auth::grpc,
     builder,
+    grpc::EndpointConfig,
     pubsub::{api, PublisherClient, SubscriberClient},
 };
+use std::time::Duration;
 
 // re-export traits and types necessary for the bounds on public functions
 #[allow(unreachable_pub)] // the reachability lint seems faulty with parent module re-exports
@@ -20,8 +22,35 @@ config_default! {
         pub endpoint: String,
 
         /// The authorization scopes to use when requesting auth tokens
-        @default(vec!["https://www.googleapis.com/auth/pubsub".into()], "PubSubConfig::default_auth_scopes")
+        @default(
+            vec![
+                "https://www.googleapis.com/auth/cloud-platform".into(),
+                "https://www.googleapis.com/auth/pubsub".into(),
+            ],
+            "PubSubConfig::default_auth_scopes"
+        )
         pub auth_scopes: Vec<String>,
+
+        /// Configuration for the connections to the endpoint
+        @default(
+            EndpointConfig::default()
+                // java and go set a keep alive interval of 5 minutes
+                // https://github.com/googleapis/java-pubsub/blob/3a8c83b973a1dfbae2ca037125574d74034218ce/google-cloud-pubsub/src/main/java/com/google/cloud/pubsub/v1/Subscriber.java#L487
+                // https://github.com/googleapis/google-cloud-go/blob/pubsub/v1.21.0/pubsub/pubsub.go#L144
+                .http2_keep_alive_interval(Some(Duration::from_secs(5 * 60))),
+            "PubSubConfig::default_endpoint_config"
+        )
+        pub endpoint_config: EndpointConfig,
+
+        /// The number of underlying connections to the gRPC servers. Requests will be load
+        /// balanced across these connections
+        // go sets a pool size of min(GOMAXPROCS, 4)
+        // java uses a complex adaptive pool size
+        // given this is configurable, just set to 4 and let the user decide
+        // https://github.com/googleapis/google-cloud-go/blob/pubsub/v1.21.0/pubsub/pubsub.go#L138
+        // https://github.com/googleapis/gax-java/blob/fff2babaf2620686c2e0be1b6d338ac088248cf6/gax-grpc/src/main/java/com/google/api/gax/grpc/ChannelPoolSettings.java#L139-L141
+        @default(4, "PubSubConfig::default_connection_pool_size")
+        pub connection_pool_size: usize,
     }
 }
 
@@ -44,9 +73,13 @@ where
         grpc::AuthGrpcService<tonic::transport::Channel, grpc::OAuthTokenSource<C>>,
         BuildError,
     > {
-        let connection = tonic::transport::Endpoint::new(config.endpoint)?
-            .connect_with_connector(self.connector.clone())
-            .await?;
+        let endpoint = tonic::transport::Endpoint::new(config.endpoint)?;
+        let endpoint = config.endpoint_config.apply(endpoint);
+
+        //TODO technically a breaking change, no longer delegates to user connector
+        let connection = tonic::transport::Channel::balance_list(
+            std::iter::repeat(endpoint).take(usize::min(config.connection_pool_size, 1)),
+        );
 
         Ok(grpc::oauth_grpc(
             connection,
