@@ -4,7 +4,7 @@ use crate::{
     grpc::EndpointConfig,
     pubsub::{api, PublisherClient, SubscriberClient},
 };
-use std::time::Duration;
+use std::{convert::TryFrom, time::Duration};
 
 // re-export traits and types necessary for the bounds on public functions
 #[allow(unreachable_pub)] // the reachability lint seems faulty with parent module re-exports
@@ -18,8 +18,9 @@ config_default! {
     #[non_exhaustive]
     pub struct PubSubConfig {
         /// Endpoint to connect to pubsub over.
-        @default("https://pubsub.googleapis.com/v1".into(), "PubSubConfig::default_endpoint")
-        pub endpoint: String,
+        #[serde(with = "UriDeser")]
+        @default(Uri::from_static("https://pubsub.googleapis.com:443"), "PubSubConfig::default_endpoint")
+        pub endpoint: Uri,
 
         /// The authorization scopes to use when requesting auth tokens
         @default(
@@ -51,6 +52,24 @@ config_default! {
         // https://github.com/googleapis/gax-java/blob/fff2babaf2620686c2e0be1b6d338ac088248cf6/gax-grpc/src/main/java/com/google/api/gax/grpc/ChannelPoolSettings.java#L139-L141
         @default(4, "PubSubConfig::default_connection_pool_size")
         pub connection_pool_size: usize,
+    }
+}
+
+// Stub to deserialize a Uri from String
+#[derive(serde::Deserialize)]
+#[serde(try_from = "String", remote = "Uri")]
+struct UriDeser(Uri);
+
+impl TryFrom<String> for UriDeser {
+    type Error = <Uri as TryFrom<String>>::Error;
+    fn try_from(string: String) -> Result<Self, Self::Error> {
+        Uri::try_from(string).map(Self)
+    }
+}
+
+impl From<UriDeser> for Uri {
+    fn from(UriDeser(uri): UriDeser) -> Self {
+        uri
     }
 }
 
@@ -122,6 +141,6 @@ mod test {
     #[test]
     fn config_default() {
         let config = PubSubConfig::default();
-        assert_eq!(config.endpoint, "https://pubsub.googleapis.com/v1");
+        assert_eq!(config.endpoint, "https://pubsub.googleapis.com:443");
     }
 }
