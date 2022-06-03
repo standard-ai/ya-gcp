@@ -1,4 +1,5 @@
 //! Utilities for authentication and authorization with GCP services.
+use std::convert::TryInto;
 
 #[cfg(feature = "grpc")]
 pub mod grpc;
@@ -14,13 +15,10 @@ pub(crate) fn add_auth_token<Token, RequestBody>(
 where
     Token: AsRef<str>,
 {
-    let header = format!("Bearer {}", token.as_ref());
-
-    let auth_header_value = http::header::HeaderValue::from_str(&header)?;
-
-    request
-        .headers_mut()
-        .insert(http::header::AUTHORIZATION, auth_header_value);
+    request.headers_mut().insert(
+        http::header::AUTHORIZATION,
+        format!("Bearer {}", token.as_ref()).try_into()?,
+    );
 
     Ok(())
 }

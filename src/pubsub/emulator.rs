@@ -21,7 +21,7 @@ use crate::{
     pubsub,
 };
 use rand::{self, Rng};
-use std::path::Path;
+use std::{convert::TryInto, path::Path};
 
 type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
@@ -97,8 +97,10 @@ impl EmulatorClient {
     }
 
     /// Get the endpoint at which the emulator is listening for requests
-    pub fn endpoint(&self) -> String {
-        format!("http://{}:{}/v1", HOST, self.port)
+    pub fn endpoint(&self) -> http::Uri {
+        format!("http://{}:{}", HOST, self.port)
+            .try_into()
+            .expect("should form valid URI")
     }
 
     /// Get the project name with which the emulator was initialized
