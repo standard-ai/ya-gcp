@@ -69,6 +69,8 @@ macro_rules! apply_if_some {
 }
 
 impl EndpointConfig {
+    //TODO endpoint configurability in ginepro pending https://github.com/TrueLayer/ginepro/pull/34
+    #[allow(unused)]
     pub(crate) fn apply(self, mut endpoint: Endpoint) -> Endpoint {
         apply_if_some!(
             self,

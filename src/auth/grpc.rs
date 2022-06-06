@@ -74,12 +74,14 @@ where
     }
 }
 
-pub(crate) fn oauth_grpc<C>(
-    channel: tonic::transport::Channel,
+pub(crate) fn oauth_grpc<C, Service, ReqBody>(
+    transport: Service,
     oauth: Option<crate::Auth<C>>,
     scopes: Vec<String>,
-) -> AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>
+) -> AuthGrpcService<Service, OAuthTokenSource<C>>
 where
+    Service: GrpcService<ReqBody> + Clone + 'static,
+    Service::Error: std::error::Error + Send + Sync + 'static,
     C: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
 {
     let token_fn = oauth.map(move |oauth| OAuthTokenSource {
@@ -87,10 +89,7 @@ where
         scopes: Arc::from(scopes),
     });
 
-    AuthGrpcService {
-        inner: channel,
-        token_fn,
-    }
+    AuthGrpcService::new(transport, token_fn)
 }
 
 /// A [gRPC service](tonic::client::GrpcService) with authorization support.

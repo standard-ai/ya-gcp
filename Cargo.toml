@@ -33,7 +33,7 @@ openssl = ["hyper-openssl"] # TODO maybe should be native-tls instead?
 # an internal feature used by services running grpc
 grpc = ["tonic", "prost", "prost-types", "tower", "derive_more"]
 
-pubsub = ["grpc", "uuid", "async-stream", "pin-project", "async-channel", "tokio", "tokio/time"]
+pubsub = ["grpc", "uuid", "async-stream", "pin-project", "async-channel", "tokio", "tokio/time", "ginepro", "anyhow"]
 storage = ["tame-gcs"]
 
 # whether to include service emulator implementations. useful for testing
@@ -52,9 +52,11 @@ thiserror = "1"
 tracing = "0.1"
 yup-oauth2 = "5"
 
+anyhow = { version = "1", optional = true }
 async-stream = { version = "0.3", optional = true }
 async-channel = { version = "1", optional = true }
 derive_more = { version = "0.99", optional = true }
+ginepro = { version = "0.3", optional = true }
 hyper-openssl = { version = "0.9", optional = true }
 hyper-rustls = { version = "0.22", features = ["rustls-native-certs"], optional = true }
 pin-project = { version = "1", optional = true }

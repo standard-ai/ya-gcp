@@ -43,6 +43,7 @@ config_default! {
         )
         pub endpoint_config: EndpointConfig,
 
+        #[deprecated]
         /// The number of underlying connections to the gRPC servers. Requests will be load
         /// balanced across these connections
         // go sets a pool size of min(GOMAXPROCS, 4)
@@ -76,7 +77,18 @@ impl From<UriDeser> for Uri {
 /// An error encountered when building PubSub clients
 #[derive(Debug, thiserror::Error)]
 #[error(transparent)]
-pub struct BuildError(#[from] tonic::transport::Error);
+pub struct BuildError(#[from] BuildErrorInner);
+
+#[derive(Debug, thiserror::Error)]
+#[error(transparent)]
+enum BuildErrorInner {
+    Tonic(#[from] tonic::transport::Error),
+
+    #[error("{0}")]
+    InvalidUri(String),
+
+    Ginepro(#[from] anyhow::Error),
+}
 
 impl<C> builder::ClientBuilder<C>
 where
@@ -92,16 +104,39 @@ where
         grpc::AuthGrpcService<tonic::transport::Channel, grpc::OAuthTokenSource<C>>,
         BuildError,
     > {
-        let endpoint = tonic::transport::Endpoint::new(config.endpoint)?;
-        let endpoint = config.endpoint_config.apply(endpoint);
+        let endpoint = config.endpoint;
+        let host = endpoint.host().ok_or_else(|| {
+            BuildErrorInner::InvalidUri(format!("URI missing host: {}", endpoint))
+        })?;
+        let connection = ginepro::LoadBalancedChannel::builder(
+            ginepro::ServiceDefinition::from_parts(
+                host,
+                endpoint
+                    .port()
+                    .ok_or_else(|| {
+                        BuildErrorInner::InvalidUri(format!("URI missing port: {}", endpoint))
+                    })?
+                    .as_u16(),
+            )
+            .map_err(BuildErrorInner::Ginepro)?,
+        );
 
-        //TODO technically a breaking change, no longer delegates to user connector
-        let connection = tonic::transport::Channel::balance_list(
-            std::iter::repeat(endpoint).take(usize::min(config.connection_pool_size, 1)),
+        // use tls if the endpoint uses https
+        let connection = match endpoint.scheme() {
+            Some(scheme) if scheme == &http::uri::Scheme::HTTPS => connection
+                .with_tls(tonic::transport::channel::ClientTlsConfig::new().domain_name(host)),
+            _ => connection,
+        };
+
+        let channel = tonic::transport::Channel::from(
+            connection
+                .channel()
+                .await
+                .map_err(BuildErrorInner::Ginepro)?,
         );
 
         Ok(grpc::oauth_grpc(
-            connection,
+            channel,
             self.auth.clone(),
             config.auth_scopes,
         ))

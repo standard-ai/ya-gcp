@@ -111,7 +111,7 @@ config_default! {
         // https://github.com/googleapis/google-cloud-go/blob/pubsub/v1.20.0/pubsub/topic.go#L120
         // https://github.com/googleapis/java-pubsub/blob/3a8c83b973a1dfbae2ca037125574d74034218ce/google-cloud-pubsub/src/main/java/com/google/cloud/pubsub/v1/Publisher.java#L660
         #[serde(with = "humantime_serde")]
-        @default(Duration::from_secs(5), "PublishConfig::default_timeout")
+        @default(Duration::from_secs(12), "PublishConfig::default_timeout")
         pub timeout: Duration,
     }
 }
