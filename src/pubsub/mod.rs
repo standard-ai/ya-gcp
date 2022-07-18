@@ -36,6 +36,51 @@ pub mod api {
     pub use prost_types::{Duration, FieldMask, Timestamp};
 }
 
+// A transport impl which creates new channels when cloned, instead of re-using the underlying
+// channel.
+#[doc(hidden)]
+#[derive(Debug)]
+pub struct NewChannelService<C> {
+    tokens: Option<crate::auth::grpc::OAuthTokenSource<C>>,
+    endpoint: std::sync::Arc<tonic::transport::Endpoint>,
+    inner: AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
+}
+
+impl<C: Clone> Clone for NewChannelService<C> {
+    fn clone(&self) -> Self {
+        NewChannelService {
+            tokens: self.tokens.clone(),
+            endpoint: self.endpoint.clone(),
+            inner: crate::auth::grpc::AuthGrpcService::new(
+                self.endpoint.connect_lazy(),
+                self.tokens.clone(),
+            ),
+        }
+    }
+}
+
+use tonic::{body::BoxBody, client::GrpcService, transport::Channel};
+impl<C> GrpcService<BoxBody> for NewChannelService<C>
+where
+    C: Clone + hyper::client::connect::Connect + Send + Sync + 'static,
+{
+    type Error = <AuthGrpcService<Channel, OAuthTokenSource<C>> as GrpcService<BoxBody>>::Error;
+    type Future = <AuthGrpcService<Channel, OAuthTokenSource<C>> as GrpcService<BoxBody>>::Future;
+    type ResponseBody =
+        <AuthGrpcService<Channel, OAuthTokenSource<C>> as GrpcService<BoxBody>>::ResponseBody;
+
+    fn poll_ready(
+        &mut self,
+        cx: &mut std::task::Context,
+    ) -> std::task::Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, request: http::Request<BoxBody>) -> Self::Future {
+        self.inner.call(request)
+    }
+}
+
 /// A client through which pubsub messages are sent, and topics are managed. Created
 /// from the [`build_pubsub_publisher`](crate::builder::ClientBuilder::build_pubsub_publisher)
 /// function.
@@ -44,9 +89,7 @@ pub mod api {
 /// to provide more ergonomic functionality
 #[derive(Debug, Clone)]
 pub struct PublisherClient<C = crate::DefaultConnector> {
-    inner: api::publisher_client::PublisherClient<
-        AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
-    >,
+    inner: api::publisher_client::PublisherClient<NewChannelService<C>>,
 }
 
 impl<C> PublisherClient<C>
@@ -72,9 +115,7 @@ where
 }
 
 impl<C> std::ops::Deref for PublisherClient<C> {
-    type Target = api::publisher_client::PublisherClient<
-        AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
-    >;
+    type Target = api::publisher_client::PublisherClient<NewChannelService<C>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner

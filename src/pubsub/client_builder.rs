@@ -112,11 +112,28 @@ where
         &self,
         config: PubSubConfig,
     ) -> Result<PublisherClient<C>, BuildError> {
+        let endpoint = tonic::transport::Endpoint::new(config.endpoint.clone())?;
+        let endpoint = config.endpoint_config.clone().apply(endpoint);
+        let endpoint = std::sync::Arc::new(endpoint);
+
+        let tokens = match self.auth.clone() {
+            Some(auth) => Some(crate::auth::grpc::OAuthTokenSource::new(
+                auth,
+                config.auth_scopes,
+            )),
+            None => None,
+        };
+
         // the crate's client will wrap the raw grpc client to add features/functions/ergonomics
         Ok(PublisherClient {
-            inner: api::publisher_client::PublisherClient::new(
-                self.pubsub_authed_service(config).await?,
-            ),
+            inner: api::publisher_client::PublisherClient::new(super::NewChannelService {
+                inner: crate::auth::grpc::AuthGrpcService::new(
+                    endpoint.connect_lazy(),
+                    tokens.clone(),
+                ),
+                tokens,
+                endpoint,
+            }),
         })
     }
 

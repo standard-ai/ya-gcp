@@ -46,6 +46,15 @@ pub struct OAuthTokenSource<C = crate::builder::DefaultConnector> {
     scopes: Arc<[String]>,
 }
 
+impl<C> OAuthTokenSource<C> {
+    pub(crate) fn new(oauth: crate::Auth<C>, scopes: impl Into<Arc<[String]>>) -> Self {
+        OAuthTokenSource {
+            oauth,
+            scopes: scopes.into(),
+        }
+    }
+}
+
 impl<C> std::fmt::Debug for OAuthTokenSource<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         f.debug_struct("OAuthTokenSource")
@@ -82,10 +91,7 @@ pub(crate) fn oauth_grpc<C>(
 where
     C: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
 {
-    let token_fn = oauth.map(move |oauth| OAuthTokenSource {
-        oauth,
-        scopes: Arc::from(scopes),
-    });
+    let token_fn = oauth.map(move |oauth| OAuthTokenSource::new(oauth, scopes));
 
     AuthGrpcService {
         inner: channel,
@@ -138,14 +144,7 @@ pub struct AuthGrpcService<Service, TokenFn> {
 
 impl<Service, TokenFn> AuthGrpcService<Service, TokenFn> {
     /// Wrap the given service to add authorization headers to each request
-    pub fn new<ReqBody>(service: Service, token_fn: Option<TokenFn>) -> Self
-    where
-        // Generic bounds included on the constructor because having them only on the trait impl
-        // doesn't produce good compiler diagnostics
-        Service: GrpcService<ReqBody> + Clone + 'static,
-        Service::Error: std::error::Error + Send + Sync + 'static,
-        TokenFn: TokenSource,
-    {
+    pub fn new(service: Service, token_fn: Option<TokenFn>) -> Self {
         Self {
             inner: service,
             token_fn,

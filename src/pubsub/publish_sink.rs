@@ -1,8 +1,5 @@
 use super::{api, ProjectTopicName, PubSubRetryCheck};
-use crate::{
-    auth::grpc::{AuthGrpcService, OAuthTokenSource},
-    retry_policy::{exponential_backoff, ExponentialBackoff, RetryOperation, RetryPolicy},
-};
+use crate::retry_policy::{exponential_backoff, ExponentialBackoff, RetryOperation, RetryPolicy};
 use futures::{future::BoxFuture, ready, stream, Sink, SinkExt, TryFutureExt};
 use pin_project::pin_project;
 use prost::Message;
@@ -28,9 +25,7 @@ const MAX_MESSAGES_PER_PUBLISH: usize = 1000;
 const MAX_DATA_FIELD_BYTES: usize = 10 * MB;
 const MAX_PUBLISH_REQUEST_BYTES: usize = 10 * MB;
 
-type ApiPublisherClient<C> = api::publisher_client::PublisherClient<
-    AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
->;
+type ApiPublisherClient<C> = api::publisher_client::PublisherClient<super::NewChannelService<C>>;
 type Drain = futures::sink::Drain<api::PubsubMessage>;
 type FlushOutput<Si, E> = (Si, Result<(), SinkError<E>>);
 
@@ -735,14 +730,16 @@ mod test {
     }
 
     fn dummy_client() -> ApiPublisherClient<crate::DefaultConnector> {
+        let endpoint = tonic::transport::channel::Endpoint::from_static("https://localhost");
+
         // by connecting to the endpoint lazily, this client will only work until the first request
         // is made (then it will error). That's good enough for testing certain functionality
         // that doesn't require the requests themselves, like validity checking
-        ApiPublisherClient::new(crate::auth::grpc::oauth_grpc(
-            tonic::transport::channel::Endpoint::from_static("https://localhost").connect_lazy(),
-            None,
-            vec![],
-        ))
+        ApiPublisherClient::new(super::super::NewChannelService {
+            tokens: None,
+            endpoint: std::sync::Arc::new(endpoint.clone()),
+            inner: crate::auth::grpc::oauth_grpc(endpoint.connect_lazy(), None, vec![]),
+        })
     }
 
     fn dummy_sink() -> PublishTopicSink {
