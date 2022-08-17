@@ -38,6 +38,10 @@ pub enum AuthFlow {
     /// Load credentials for a service account
     ServiceAccount(ServiceAccountAuth),
 
+    /// Load credentials from an authorized user secret, such as the one created when
+    /// running `gcloud auth application-default login`
+    UserAccount(PathBuf),
+
     /// Skip authentication.
     ///
     /// Requests will not include any authorization header. This can be useful for tests
@@ -69,6 +73,10 @@ pub enum CreateBuilderError {
     /// An error in loading service account credentials from file
     #[error("failed to read service account key {}", _1.display())]
     ReadServiceAccountKey(#[source] std::io::Error, PathBuf),
+
+    /// An error in loading user account credentials from file
+    #[error("failed to read user account secrets {}", _1.display())]
+    ReadUserSecrets(#[source] std::io::Error, PathBuf),
 
     /// An error in reading an environment variable
     #[error(
@@ -167,7 +175,7 @@ impl<C> ClientBuilder<C> {
     where
         C: crate::Connect + Clone + Send + Sync + 'static,
     {
-        use AuthFlow::{NoAuth, ServiceAccount};
+        use AuthFlow::{NoAuth, ServiceAccount, UserAccount};
 
         let client = hyper::client::Client::builder().build(connector.clone());
 
@@ -184,6 +192,9 @@ impl<C> ClientBuilder<C> {
                 )
                 .await?,
             ),
+            UserAccount(path) => {
+                Some(create_user_auth(path.into_os_string(), client.clone()).await?)
+            }
         };
 
         Ok(Self {
@@ -214,6 +225,25 @@ where
 
     yup_oauth2::ServiceAccountAuthenticator::builder(service_account_key)
         .hyper_client(client)
+        .build()
+        .await
+        .map_err(CreateBuilderError::Authenticator)
+}
+
+async fn create_user_auth<C>(
+    user_secrets_path: impl AsRef<std::path::Path>,
+    client: Client<C>,
+) -> Result<Auth<C>, CreateBuilderError>
+where
+    C: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
+{
+    let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
+        .await
+        .map_err(|e| {
+            CreateBuilderError::ReadUserSecrets(e, user_secrets_path.as_ref().to_owned())
+        })?;
+
+    yup_oauth2::AuthorizedUserAuthenticator::with_client(user_secret, client)
         .build()
         .await
         .map_err(CreateBuilderError::Authenticator)
