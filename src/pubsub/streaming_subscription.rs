@@ -94,6 +94,7 @@ pub enum ModifyAcknowledgeError {
 pub struct AcknowledgeToken {
     id: String,
     channel: mpmc::Sender<UserAck>,
+    delivery_attempt: i32,
 }
 
 impl AcknowledgeToken {
@@ -153,6 +154,14 @@ impl AcknowledgeToken {
             .await
             .map_err(|err| ModifyAcknowledgeError::Modify(AcknowledgeError::from_send_err(err)))?;
         Ok(())
+    }
+
+    /// The approximate number of times that Cloud Pub/Sub has attempted to deliver the associated
+    /// message to a subscriber.
+    ///
+    /// See [`delivery_attempt`](api::ReceivedMessage::delivery_attempt)
+    pub fn delivery_attempt(&self) -> i32 {
+        self.delivery_attempt
     }
 }
 
@@ -482,7 +491,8 @@ where
                             for message in response.received_messages {
                                 let ack_token = AcknowledgeToken {
                                     id: message.ack_id,
-                                    channel: sender.clone()
+                                    channel: sender.clone(),
+                                    delivery_attempt: message.delivery_attempt,
                                 };
                                 let message = match message.message {
                                     Some(msg) => msg,

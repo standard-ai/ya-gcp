@@ -760,14 +760,36 @@ mod pubsub_client_tests {
             .unwrap();
 
         // Create a subscription to query. Must be created before messages are published.
-        create_dummy_subscription(
+        let subscription = create_dummy_subscription(
             &mut subscription_client,
             emulator.project(),
             subscription_name,
             topic_name,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .into_inner();
+
+        // update the subscription with a DeadLetterPolicy so that the delivery counter engages
+        subscription_client
+            .update_subscription(pubsub::api::UpdateSubscriptionRequest {
+                subscription: Some(pubsub::api::Subscription {
+                    dead_letter_policy: Some(pubsub::api::DeadLetterPolicy {
+                        dead_letter_topic: format!(
+                            "projects/{}/topics/{}",
+                            emulator.project(),
+                            topic_name
+                        ),
+                        max_delivery_attempts: 5,
+                    }),
+                    ..subscription
+                }),
+                update_mask: Some(pubsub::api::FieldMask {
+                    paths: vec!["dead_letter_policy".into()],
+                }),
+            })
+            .await
+            .unwrap();
 
         // send 1 message to the publisher. this should be delivered again after a nack
         publish_client
@@ -793,6 +815,7 @@ mod pubsub_client_tests {
         let (ack_token, message) = subscription_stream.next().await.unwrap().unwrap();
 
         assert_eq!(message.data, "foobar");
+        assert_eq!(ack_token.delivery_attempt(), 1);
 
         // there should be no other messages available
         assert!(futures::poll!(subscription_stream.next()).is_pending());
@@ -800,9 +823,10 @@ mod pubsub_client_tests {
         // nack the message to permit re-delivery
         assert_eq!(Ok(()), ack_token.nack().await);
 
-        let (_, message) = subscription_stream.next().await.unwrap().unwrap();
+        let (ack_token, message) = subscription_stream.next().await.unwrap().unwrap();
         // get the same message again
         assert_eq!(message.data, "foobar");
+        assert_eq!(ack_token.delivery_attempt(), 2);
     }
 
     /// An extended message should be redelivered after its modified deadline
@@ -833,14 +857,36 @@ mod pubsub_client_tests {
             .unwrap();
 
         // Create a subscription to query. Must be created before messages are published.
-        create_dummy_subscription(
+        let subscription = create_dummy_subscription(
             &mut subscription_client,
             emulator.project(),
             subscription_name,
             topic_name,
         )
         .await
-        .unwrap();
+        .unwrap()
+        .into_inner();
+
+        // update the subscription with a DeadLetterPolicy so that the delivery counter engages
+        subscription_client
+            .update_subscription(pubsub::api::UpdateSubscriptionRequest {
+                subscription: Some(pubsub::api::Subscription {
+                    dead_letter_policy: Some(pubsub::api::DeadLetterPolicy {
+                        dead_letter_topic: format!(
+                            "projects/{}/topics/{}",
+                            emulator.project(),
+                            topic_name
+                        ),
+                        max_delivery_attempts: 5,
+                    }),
+                    ..subscription
+                }),
+                update_mask: Some(pubsub::api::FieldMask {
+                    paths: vec!["dead_letter_policy".into()],
+                }),
+            })
+            .await
+            .unwrap();
 
         // send 1 message to the publisher. this should be delivered again after its deadline
         publish_client
@@ -866,6 +912,7 @@ mod pubsub_client_tests {
         let (mut ack_token, message) = subscription_stream.next().await.unwrap().unwrap();
 
         assert_eq!(message.data, "foobar");
+        assert_eq!(ack_token.delivery_attempt(), 1);
 
         // there should be no other messages available
         assert!(futures::poll!(subscription_stream.next()).is_pending());
@@ -875,9 +922,10 @@ mod pubsub_client_tests {
 
         tokio::time::sleep(Duration::from_secs(1)).await;
 
-        let (_, message) = subscription_stream.next().await.unwrap().unwrap();
+        let (ack_token, message) = subscription_stream.next().await.unwrap().unwrap();
         // get the same message again
         assert_eq!(message.data, "foobar");
+        assert_eq!(ack_token.delivery_attempt(), 2);
     }
 
     /// 1) Modifying a deadline with too great a deadline should be an error
