@@ -21,7 +21,10 @@ pub enum ServiceAccountAuth {
 
     /// Specifies that the service account credentials should be read from the given path
     Path(PathBuf),
-    // TODO environment provided service account, consider https://crates.io/crates/gcp_auth
+
+    /// Use the Application Default Service Account, which is often attached to a specific
+    /// compute instance via metadata
+    ApplicationDefault,
 }
 
 impl Default for ServiceAccountAuth {
@@ -184,9 +187,12 @@ impl<C> ClientBuilder<C> {
             ServiceAccount(service_config) => Some(
                 create_service_auth(
                     match service_config {
-                        ServiceAccountAuth::Path(path) => path.into_os_string(),
-                        ServiceAccountAuth::EnvVar => std::env::var_os(SERVICE_ACCOUNT_ENV_VAR)
-                            .ok_or(CreateBuilderError::CredentialsVarMissing)?,
+                        ServiceAccountAuth::Path(path) => Some(path.into_os_string()),
+                        ServiceAccountAuth::EnvVar => Some(
+                            std::env::var_os(SERVICE_ACCOUNT_ENV_VAR)
+                                .ok_or(CreateBuilderError::CredentialsVarMissing)?,
+                        ),
+                        _ => None,
                     },
                     client.clone(),
                 )
@@ -207,27 +213,49 @@ impl<C> ClientBuilder<C> {
 
 /// Convenience method to create an Authorization for the oauth ServiceFlow.
 async fn create_service_auth<C>(
-    service_account_key_path: impl AsRef<std::path::Path>,
+    service_account_key_path: Option<impl AsRef<std::path::Path>>,
     client: Client<C>,
 ) -> Result<Auth<C>, CreateBuilderError>
 where
     C: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
 {
-    let service_account_key =
-        yup_oauth2::read_service_account_key(service_account_key_path.as_ref())
-            .await
-            .map_err(|e| {
-                CreateBuilderError::ReadServiceAccountKey(
-                    e,
-                    service_account_key_path.as_ref().to_owned(),
-                )
-            })?;
+    match service_account_key_path {
+        Some(service_account_key_path) => {
+            let service_account_key =
+                yup_oauth2::read_service_account_key(service_account_key_path.as_ref())
+                    .await
+                    .map_err(|e| {
+                        CreateBuilderError::ReadServiceAccountKey(
+                            e,
+                            service_account_key_path.as_ref().to_owned(),
+                        )
+                    })?;
 
-    yup_oauth2::ServiceAccountAuthenticator::builder(service_account_key)
-        .hyper_client(client)
-        .build()
+            yup_oauth2::ServiceAccountAuthenticator::builder(service_account_key)
+                .hyper_client(client)
+                .build()
+                .await
+                .map_err(CreateBuilderError::Authenticator)
+        }
+        _ => match yup_oauth2::ApplicationDefaultCredentialsAuthenticator::with_client(
+            yup_oauth2::ApplicationDefaultCredentialsFlowOpts::default(),
+            client,
+        )
         .await
-        .map_err(CreateBuilderError::Authenticator)
+        {
+            yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::ServiceAccount(auth) => {
+                auth.build()
+                    .await
+                    .map_err(CreateBuilderError::Authenticator)
+            }
+            yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::InstanceMetadata(
+                auth,
+            ) => auth
+                .build()
+                .await
+                .map_err(CreateBuilderError::Authenticator),
+        },
+    }
 }
 
 async fn create_user_auth<C>(
