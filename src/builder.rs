@@ -192,7 +192,7 @@ impl<C> ClientBuilder<C> {
                             std::env::var_os(SERVICE_ACCOUNT_ENV_VAR)
                                 .ok_or(CreateBuilderError::CredentialsVarMissing)?,
                         ),
-                        _ => None,
+                        ServiceAccountAuth::ApplicationDefault => None,
                     },
                     client.clone(),
                 )
@@ -237,7 +237,7 @@ where
                 .await
                 .map_err(CreateBuilderError::Authenticator)
         }
-        _ => match yup_oauth2::ApplicationDefaultCredentialsAuthenticator::with_client(
+        None => match yup_oauth2::ApplicationDefaultCredentialsAuthenticator::with_client(
             yup_oauth2::ApplicationDefaultCredentialsFlowOpts::default(),
             client,
         )
