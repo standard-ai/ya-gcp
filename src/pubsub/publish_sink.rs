@@ -16,6 +16,7 @@ use std::{
     task::{Context, Poll},
     time::Duration,
 };
+use tracing::debug_span;
 
 const MB: usize = 1000 * 1000;
 
@@ -278,6 +279,8 @@ where
     type Error = SinkError<ResponseSink::Error>;
 
     fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        let span = debug_span!("sink_flush");
+        let _guard = span.enter();
         self.project().poll_flush_projected(cx, false)
     }
 
@@ -290,11 +293,15 @@ where
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        let span = debug_span!("sink_flush");
+        let _guard = span.enter();
         self.project().poll_flush_projected(cx, true)
     }
 
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         // first flush ourselves, then close the user's sink
+        let span = debug_span!("sink_flush");
+        let _guard = span.enter();
         ready!(self.as_mut().poll_flush(cx))?;
 
         match self.project().flush_state.project() {
@@ -416,6 +423,8 @@ where
         async move {
             // send the request, with some potential retries
             let response = loop {
+                let span = debug_span!("publish_request");
+                let _guard = span.enter();
                 // the request unfortunately has to be cloned -- tonic can't take references
                 // because it requires 'static payloads (probably for spawning?), and we need the
                 // original to reuse for retries/errors/responses. On the bright side, message

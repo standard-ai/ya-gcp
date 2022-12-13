@@ -2,6 +2,8 @@
 
 use futures::StreamExt;
 use structopt::StructOpt;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Registry};
+use tracing_tree::HierarchicalLayer;
 
 use ya_gcp::{pubsub, AuthFlow, ClientBuilder, ClientBuilderConfig, ServiceAccountAuth};
 
@@ -19,6 +21,15 @@ struct Args {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::from_args();
+
+    Registry::default()
+        .with(EnvFilter::from_default_env())
+        .with(
+            HierarchicalLayer::new(2)
+                .with_targets(true)
+                .with_bracketed_fields(true),
+        )
+        .init();
 
     println!("Building PubSub clients");
 
