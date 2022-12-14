@@ -16,6 +16,10 @@ struct Args {
     /// The name of the pubsub project
     #[structopt(long)]
     project_name: String,
+
+    /// The topic to create
+    #[structopt(long)]
+    topic: String,
 }
 
 #[tokio::main]
@@ -48,9 +52,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut subscriber = builder.build_pubsub_subscriber(pubsub_config).await?;
 
     // Make up topic and subscription names
-    let topic_name = pubsub::ProjectTopicName::new(&args.project_name, "pubsub_stream_example");
-    let subscription_name =
-        pubsub::ProjectSubscriptionName::new(&args.project_name, "pubsub_stream_example");
+    let topic_name = pubsub::ProjectTopicName::new(&args.project_name, &args.topic);
+    let subscription_name = pubsub::ProjectSubscriptionName::new(&args.project_name, &args.topic);
 
     println!("Creating topic {}", &topic_name);
 

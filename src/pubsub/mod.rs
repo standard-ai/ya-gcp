@@ -8,6 +8,7 @@ use crate::{
     retry_policy::RetryPredicate,
 };
 use std::fmt::Display;
+use tracing::debug_span;
 
 // alias Status as this module's error type
 pub use ::tonic::Status as Error;
@@ -113,6 +114,9 @@ where
         subscription: ProjectSubscriptionName,
         config: StreamSubscriptionConfig,
     ) -> StreamSubscription<C> {
+        let sub_name: String = subscription.clone().into();
+        let span = debug_span!("create_subscription", topic = sub_name);
+        let _guard = span.enter();
         StreamSubscription::new(self.inner.clone(), subscription.into(), config)
     }
 }

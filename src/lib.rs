@@ -5,7 +5,7 @@
     unsafe_code,
     unreachable_pub
 )]
-// #![cfg_attr(not(test), deny(unused))]
+#![cfg_attr(not(test), deny(unused))]
 #![cfg_attr(docsrs, feature(doc_cfg))]
 // nest cfg_attr to save old compilers from failing to parse `doc = macro!()`
 #![cfg_attr(docsrs, feature(extended_key_value_attributes), cfg_attr(docsrs, doc = include_str!("../README.md")))]

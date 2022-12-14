@@ -303,10 +303,10 @@ impl<C> StreamSubscription<C> {
         subscription: String,
         config: StreamSubscriptionConfig,
     ) -> Self {
-        let sub = StreamSubscription {
+        StreamSubscription {
             state: StreamState::Initialized {
                 client,
-                subscription: subscription.clone(),
+                subscription: subscription,
                 config,
                 retry_policy: ExponentialBackoff::new(
                     PubSubRetryCheck::default(),
@@ -314,9 +314,7 @@ impl<C> StreamSubscription<C> {
                 ),
             },
             _p: std::marker::PhantomPinned,
-        };
-        debug!("Created subscription for topic: {}", subscription);
-        sub
+        }
     }
 
     /// The default configuration values used for retrying connections to the PubSub streaming pull

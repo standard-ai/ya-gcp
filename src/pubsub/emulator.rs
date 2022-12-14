@@ -58,7 +58,10 @@ impl EmulatorClient {
     pub async fn with_project(project_name: impl Into<String>) -> Result<Self, BoxError> {
         // Create a tmp dir where pubsub can store its data. Removed when EmulatorClient drops
         let temp = tempdir::TempDir::new("pubsub_emulator")?;
-        debug!("Created emulator data directory: {}", temp);
+        debug!(
+            path = temp.as_ref().to_str(),
+            "Created emulator data directory"
+        );
 
         let project_name = project_name.into();
 
@@ -129,7 +132,7 @@ impl EmulatorClient {
                 ..pubsub::api::Topic::default()
             })
             .await?;
-        debug!("Created topic: {}", topic_name);
+        debug!(topic = topic_name.as_ref(), "Emulator created topic");
         Ok(())
     }
 }

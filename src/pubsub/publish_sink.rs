@@ -279,8 +279,6 @@ where
     type Error = SinkError<ResponseSink::Error>;
 
     fn poll_ready(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        let span = debug_span!("sink_flush");
-        let _guard = span.enter();
         self.project().poll_flush_projected(cx, false)
     }
 
@@ -293,14 +291,14 @@ where
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        let span = debug_span!("sink_flush");
+        let span = debug_span!("sink_poll_flush");
         let _guard = span.enter();
         self.project().poll_flush_projected(cx, true)
     }
 
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         // first flush ourselves, then close the user's sink
-        let span = debug_span!("sink_flush");
+        let span = debug_span!("sink_poll_close");
         let _guard = span.enter();
         ready!(self.as_mut().poll_flush(cx))?;
 
