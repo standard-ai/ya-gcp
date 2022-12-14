@@ -13,7 +13,7 @@ use futures::{
 };
 use pin_project::pin_project;
 use tonic::metadata::MetadataValue;
-use tracing::debug;
+use tracing::{debug, debug_span};
 
 use crate::{
     auth::grpc::{AuthGrpcService, OAuthTokenSource},
@@ -306,7 +306,7 @@ impl<C> StreamSubscription<C> {
         StreamSubscription {
             state: StreamState::Initialized {
                 client,
-                subscription,
+                subscription: subscription,
                 config,
                 retry_policy: ExponentialBackoff::new(
                     PubSubRetryCheck::default(),
@@ -468,6 +468,8 @@ where
             {
                 Err(err) => err,
                 Ok(mut message_stream) => 'read: loop {
+                    let read_span = debug_span!("sub_stream_pull");
+                    let _guard = read_span.enter();
                     match message_stream.next().await {
                         // If the stream is out of elements, some connection must have been closed.
                         // However PubSub docs say StreamingPull always terminates with an error,
@@ -508,6 +510,7 @@ where
                     }
                 }
             };
+            debug!("Stream ended");
 
             // if either the streaming connection or a stream element produces an error,
             // the error will arrive here.
@@ -521,6 +524,8 @@ where
                 // if the retry policy determines a retry is possible, sleep for the
                 // given backoff and then try reconnecting
                 Some(backoff_sleep) => {
+                    let span = debug_span!("backoff_sleep");
+                    let _guard = span.enter();
                     backoff_sleep.await;
                     continue 'reconnect;
                 }

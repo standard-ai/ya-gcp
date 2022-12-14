@@ -75,6 +75,8 @@ quickcheck_macros = "1"
 serde_json = "1"
 structopt = "0.3" # for examples
 tokio = { version = "1.4.0", features = ["rt-multi-thread", "time", "test-util"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-tree = "0.2"
 
 [package.metadata.cargo-udeps.ignore]
 # hyper-openssl is only used (and thus detected) if the feature "openssl" is

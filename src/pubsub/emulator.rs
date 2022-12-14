@@ -22,6 +22,7 @@ use crate::{
 };
 use rand::{self, Rng};
 use std::path::Path;
+use tracing::debug;
 
 type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
@@ -57,10 +58,15 @@ impl EmulatorClient {
     pub async fn with_project(project_name: impl Into<String>) -> Result<Self, BoxError> {
         // Create a tmp dir where pubsub can store its data. Removed when EmulatorClient drops
         let temp = tempdir::TempDir::new("pubsub_emulator")?;
+        debug!(
+            path = temp.as_ref().to_str(),
+            "Created emulator data directory"
+        );
 
         let project_name = project_name.into();
 
         let (child, port) = start_emulator(temp.path(), &project_name).await?;
+        debug!("Started emulator");
 
         // Give the server some time (5s) to come up.
         let mut err: Option<tonic::transport::Error> = None;
@@ -126,6 +132,7 @@ impl EmulatorClient {
                 ..pubsub::api::Topic::default()
             })
             .await?;
+        debug!(topic = topic_name.as_ref(), "Emulator created topic");
         Ok(())
     }
 }

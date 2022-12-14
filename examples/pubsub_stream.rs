@@ -2,6 +2,8 @@
 
 use futures::StreamExt;
 use structopt::StructOpt;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter, Registry};
+use tracing_tree::HierarchicalLayer;
 
 use ya_gcp::{pubsub, AuthFlow, ClientBuilder, ClientBuilderConfig, ServiceAccountAuth};
 
@@ -14,11 +16,24 @@ struct Args {
     /// The name of the pubsub project
     #[structopt(long)]
     project_name: String,
+
+    /// The topic to create
+    #[structopt(long)]
+    topic: String,
 }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = Args::from_args();
+
+    Registry::default()
+        .with(EnvFilter::from_default_env())
+        .with(
+            HierarchicalLayer::new(2)
+                .with_targets(true)
+                .with_bracketed_fields(true),
+        )
+        .init();
 
     println!("Building PubSub clients");
 
@@ -37,9 +52,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut subscriber = builder.build_pubsub_subscriber(pubsub_config).await?;
 
     // Make up topic and subscription names
-    let topic_name = pubsub::ProjectTopicName::new(&args.project_name, "pubsub_stream_example");
-    let subscription_name =
-        pubsub::ProjectSubscriptionName::new(&args.project_name, "pubsub_stream_example");
+    let topic_name = pubsub::ProjectTopicName::new(&args.project_name, &args.topic);
+    let subscription_name = pubsub::ProjectSubscriptionName::new(&args.project_name, &args.topic);
 
     println!("Creating topic {}", &topic_name);
 
