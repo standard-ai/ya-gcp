@@ -43,6 +43,17 @@ fn main() -> Result<(), Error> {
     // the wire
     prost_config.bytes(&["."]);
 
+    // The bigtable docs have doc comments that trigger test failures.
+    // (TODO: in newer versions of prost-build, the `format` option might be enough for this)
+    prost_config.disable_comments(&[
+        "bigtable.v2.RowFilter.Interleave.filters",
+        "bigtable.v2.RowFilter.sink",
+        "iam.v1.Policy",
+        "iam.v1.AuditConfig",
+        "iam.v1.AuditLogConfig",
+        "type.Expr",
+    ]);
+
     // the attributes map tend to have a small number of string keys, which are faster to access
     // using a btree than a hashmap. See the crate's benchmarks
     prost_config.btree_map(&["PubsubMessage.attributes"]);
@@ -54,11 +65,15 @@ fn main() -> Result<(), Error> {
         .out_dir(&args.output_dir)
         .compile_with_config(
             prost_config,
-            ["google/pubsub/v1/pubsub.proto"]
-                .iter()
-                .map(|src| google_protos.join(src))
-                .collect::<Vec<_>>()
-                .as_ref(),
+            [
+                "google/pubsub/v1/pubsub.proto",
+                "google/bigtable/v2/bigtable.proto",
+                "google/bigtable/admin/v2/bigtable_table_admin.proto",
+            ]
+            .iter()
+            .map(|src| google_protos.join(src))
+            .collect::<Vec<_>>()
+            .as_ref(),
             &[google_protos],
         )
         .context("failed to generate rust sources")?;
