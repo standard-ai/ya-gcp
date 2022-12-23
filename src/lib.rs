@@ -107,6 +107,10 @@ pub mod auth;
 #[cfg_attr(docsrs, doc(cfg(feature = "bigtable")))]
 pub mod bigtable;
 
+#[cfg(feature = "emulators")]
+#[cfg_attr(docsrs, doc(cfg(feature = "emulators")))]
+pub(crate) mod emulator;
+
 #[cfg(feature = "grpc")]
 #[cfg_attr(docsrs, doc(cfg(any(feature = "pubsub", feature = "grpc"))))]
 pub mod grpc;
