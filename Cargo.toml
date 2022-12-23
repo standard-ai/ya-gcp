@@ -24,6 +24,11 @@ name = "storage_get_object"
 path = "examples/storage_get_object.rs"
 required-features = ["storage"]
 
+[[example]]
+name = "bigtable"
+path = "examples/bigtable.rs"
+required-features = ["bigtable"]
+
 [features]
 default = ["rustls", "tokio"]
 
@@ -33,6 +38,7 @@ openssl = ["hyper-openssl"] # TODO maybe should be native-tls instead?
 # an internal feature used by services running grpc
 grpc = ["tonic", "prost", "prost-types", "tower", "derive_more"]
 
+bigtable = ["async-stream", "grpc", "prost", "tower"]
 pubsub = ["grpc", "uuid", "async-stream", "pin-project", "async-channel", "tokio", "tokio/time"]
 storage = ["tame-gcs"]
 

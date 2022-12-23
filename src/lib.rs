@@ -103,6 +103,10 @@ macro_rules! config_default {
 
 pub mod auth;
 
+#[cfg(feature = "bigtable")]
+#[cfg_attr(docsrs, doc(cfg(feature = "bigtable")))]
+pub mod bigtable;
+
 #[cfg(feature = "grpc")]
 #[cfg_attr(docsrs, doc(cfg(any(feature = "pubsub", feature = "grpc"))))]
 pub mod grpc;
