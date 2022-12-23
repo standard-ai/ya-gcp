@@ -23,6 +23,10 @@ pub mod mutation;
 pub use client_builder::BigtableConfig;
 pub use mutation::{MutateRowRequest, MutateRowsError, MutateRowsRequest};
 
+#[cfg(feature = "emulators")]
+#[cfg_attr(docsrs, doc(cfg(feature = "emulators")))]
+pub mod emulator;
+
 #[allow(rustdoc::broken_intra_doc_links, rustdoc::bare_urls, missing_docs)]
 pub mod api {
     pub mod rpc {
