@@ -21,8 +21,8 @@ jobs:
     steps:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
-      - name: Install PubSub Emulator
-        run: gcloud components install beta pubsub-emulator
+      - name: Install Emulators
+        run: gcloud components install beta pubsub-emulator bigtable
       - uses: actions/checkout@v2
       - uses: actions-rs/toolchain@v1
         with:
