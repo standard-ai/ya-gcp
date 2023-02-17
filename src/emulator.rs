@@ -1,7 +1,8 @@
-//! Testing infra to make use of the pubsub emulator.
+//! Testing infra to make use of GCP emulators.
 //! <https://cloud.google.com/pubsub/docs/emulator>
+//! <https://cloud.google.com/bigtable/docs/emulator>
 //!
-//! Follow installation directions from link above to set up your local development. Once setup,
+//! Follow installation directions from links above to set up your local development. Once setup,
 //! you should be able to run the pubsub emulator driven tests.
 //!
 //! For a new test, create a new instance of [`EmulatorClient`]. Under the hood, this will find an

@@ -87,6 +87,9 @@ impl RowRange {
     fn restrict_to_after(&mut self, key: &Bytes) -> bool {
         use v2::row_range::{EndKey, StartKey};
         match &self.end_key {
+            // (key, b) and (key, b] are both empty if and only if b <= k, so the non-strict
+            // comparison is correct for both cases. (These are byte strings, not integers, so `b`
+            // cannot be the smallest thing that's strictly bigger than `key`.)
             Some(EndKey::EndKeyOpen(b)) | Some(EndKey::EndKeyClosed(b)) if b <= key => {
                 return false
             }
@@ -283,14 +286,15 @@ impl ReadInProgress {
 
         if let Some(row_status) = chunk.row_status {
             let row = self.finish_row();
-            if matches!(
-                row_status,
-                v2::read_rows_response::cell_chunk::RowStatus::CommitRow(_),
-            ) {
-                return Some(row);
+            match row_status {
+                v2::read_rows_response::cell_chunk::RowStatus::CommitRow(_) => Some(row),
+                // We've already reset our state to an empty row, so to "reset" we just
+                // return None.
+                v2::read_rows_response::cell_chunk::RowStatus::ResetRow(_) => None,
             }
+        } else {
+            None
         }
-        None
     }
 }
 
@@ -326,55 +330,57 @@ where
     ) -> impl Stream<Item = Result<Row, tonic::Status>> + '_ {
         async_stream::stream! {
             let mut retry = self.retry.new_operation();
-            let mut state = ReadInProgress::default();
 
-            // Keep track of the last returned (and/or last scanned) key, so that we won't
-            // request it again if we need to retry.
-            let mut last_key: Option<Bytes> = None;
+            'retry: loop {
+                // Keep track of the last returned (and/or last scanned) key, so that we won't
+                // request it again if we need to retry.
+                let mut last_key: Option<Bytes> = None;
 
-            let mut response = self.inner.read_rows(request.clone()).await?.into_inner();
-            let result = loop {
-                let message = match response.next().await {
-                    Some(m) => m,
-                    None => break Ok(()),
-                };
+                let mut state = ReadInProgress::default();
+                let mut response = self.inner.read_rows(request.clone()).await?.into_inner();
+                let result = 'response_part: loop {
+                    let message = match response.next().await {
+                        Some(m) => m,
+                        None => break 'response_part Ok(()),
+                    };
 
-                let message = match message {
-                    Ok(m) => m,
-                    Err(e) => break Err(e),
-                };
+                    let message = match message {
+                        Ok(m) => m,
+                        Err(e) => break 'response_part Err(e),
+                    };
 
-                last_key = Some(
-                    last_key
-                        .unwrap_or_default()
-                        .max(message.last_scanned_row_key),
-                );
+                    last_key = Some(
+                        last_key
+                            .unwrap_or_default()
+                            .max(message.last_scanned_row_key),
+                    );
 
-                for chunk in message.chunks {
-                    if let Some(row) = state.process_chunk(chunk) {
-                        last_key = Some(last_key.unwrap_or_default().max(row.key.clone()));
-                        yield Ok(row);
+                    for chunk in message.chunks {
+                        if let Some(row) = state.process_chunk(chunk) {
+                            last_key = Some(last_key.unwrap_or_default().max(row.key.clone()));
+                            yield Ok(row);
+                        }
                     }
-                }
-            };
+                };
 
-            if let Err(e) = result {
-                if let Some(sleep) = retry.check_retry(&(), &e) {
-                    sleep.await;
+                if let Err(e) = result {
+                    if let Some(sleep) = retry.check_retry(&(), &e) {
+                        sleep.await;
+                        // Loop back and retry the request again, but
+                        // first modify the request to avoid re-requesting
+                        // previously-returned data.
+                        if let Some(key) = last_key {
+                            if let Some(rows) = request.rows.as_mut() {
+                                rows.restrict_to_after(key);
+                            }
+                        }
+                        continue 'retry;
+                    } else {
+                        yield Err(e.into());
+                        return;
+                    }
                 } else {
-                    yield Err(e.into());
                     return;
-                }
-            } else {
-                return;
-            }
-
-            // If we get to this point, there was a retry-able error. We'll loop back and retry the
-            // request again, but first let's modify the request to avoid re-requesting previously-returned
-            // data.
-            if let Some(key) = last_key {
-                if let Some(rows) = request.rows.as_mut() {
-                    rows.restrict_to_after(key);
                 }
             }
         }
