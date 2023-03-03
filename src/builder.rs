@@ -45,6 +45,14 @@ pub enum AuthFlow {
     /// running `gcloud auth application-default login`
     UserAccount(PathBuf),
 
+    /// Impersonate a service account from a user account
+    ServiceAccountImpersonation {
+        /// Path to the user credentials
+        user: PathBuf,
+        /// Email address of the service account
+        email: String,
+    },
+
     /// Skip authentication.
     ///
     /// Requests will not include any authorization header. This can be useful for tests
@@ -186,7 +194,7 @@ impl<C> ClientBuilder<C> {
         C::Future: Send + Unpin + 'static,
         C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     {
-        use AuthFlow::{NoAuth, ServiceAccount, UserAccount};
+        use AuthFlow::{NoAuth, ServiceAccount, ServiceAccountImpersonation, UserAccount};
 
         let client = hyper::client::Client::builder().build(connector.clone());
 
@@ -205,6 +213,10 @@ impl<C> ClientBuilder<C> {
                     client.clone(),
                 )
                 .await?,
+            ),
+            ServiceAccountImpersonation { user, email } => Some(
+                create_service_impersonation_auth(user.into_os_string(), email, client.clone())
+                    .await?,
             ),
             UserAccount(path) => {
                 Some(create_user_auth(path.into_os_string(), client.clone()).await?)
@@ -320,6 +332,34 @@ where
         })?;
 
     yup_oauth2::AuthorizedUserAuthenticator::with_client(user_secret, client)
+        .build()
+        .await
+        .map_err(CreateBuilderError::Authenticator)
+}
+
+async fn create_service_impersonation_auth<C>(
+    user_secrets_path: impl AsRef<std::path::Path>,
+    email: String,
+    client: Client<C>,
+) -> Result<Auth<C>, CreateBuilderError>
+where
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+{
+    let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
+        .await
+        .map_err(|e| {
+            CreateBuilderError::ReadUserSecrets(e, user_secrets_path.as_ref().to_owned())
+        })?;
+
+    yup_oauth2::ServiceAccountImpersonationAuthenticator::with_client(user_secret, &email, client)
         .build()
         .await
         .map_err(CreateBuilderError::Authenticator)
