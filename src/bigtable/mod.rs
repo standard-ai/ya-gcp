@@ -168,11 +168,11 @@ pub struct CellRef<'a> {
     /// The column family name
     pub family_name: &'a str,
     /// The column qualifier
-    pub column_qualifier: &'a prost::bytes::Bytes,
+    pub column_qualifier: &'a [u8],
     /// The cell's timestamp, in microseconds since the epoch
     pub timestamp_micros: i64,
     /// The cell's contents
-    pub value: &'a prost::bytes::Bytes,
+    pub value: &'a [u8],
 }
 
 impl Row {
