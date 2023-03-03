@@ -127,7 +127,7 @@ mod bigtable_client_tests {
         assert_eq!(1, row.families[0].columns[0].cells.len());
         assert_eq!("data2", row.families[0].columns[0].cells[0].value);
         assert_eq!(
-            vec!["data2"],
+            vec!["data2".as_bytes()],
             row.most_recent_cells().map(|c| c.value).collect::<Vec<_>>()
         );
 
@@ -146,7 +146,7 @@ mod bigtable_client_tests {
         dbg!(row);
         assert_eq!(2, row.families[0].columns[0].cells.len());
         assert_eq!(
-            vec!["data2"],
+            vec!["data2".as_bytes()],
             row.most_recent_cells().map(|c| c.value).collect::<Vec<_>>()
         );
     }
