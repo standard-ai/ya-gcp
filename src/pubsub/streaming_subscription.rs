@@ -16,7 +16,7 @@ use tonic::metadata::MetadataValue;
 use tracing::{debug, trace_span, Instrument};
 
 use crate::{
-    auth::grpc::{AuthGrpcService, OAuthTokenSource},
+    auth::grpc::AuthGrpcService,
     pubsub::{api, PubSubRetryCheck},
     retry_policy::{exponential_backoff, ExponentialBackoff, RetryOperation, RetryPolicy},
 };
@@ -281,9 +281,8 @@ pub struct StreamSubscription<C = crate::DefaultConnector, R = ExponentialBackof
 /// could be called after streaming
 enum StreamState<C, R> {
     Initialized {
-        client: api::subscriber_client::SubscriberClient<
-            AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
-        >,
+        client:
+            api::subscriber_client::SubscriberClient<AuthGrpcService<tonic::transport::Channel, C>>,
         subscription: String,
         config: StreamSubscriptionConfig,
         retry_policy: R,
@@ -298,7 +297,7 @@ enum StreamState<C, R> {
 impl<C> StreamSubscription<C> {
     pub(super) fn new(
         client: api::subscriber_client::SubscriberClient<
-            AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
+            AuthGrpcService<tonic::transport::Channel, C>,
         >,
         subscription: String,
         config: StreamSubscriptionConfig,
@@ -306,7 +305,7 @@ impl<C> StreamSubscription<C> {
         StreamSubscription {
             state: StreamState::Initialized {
                 client,
-                subscription: subscription,
+                subscription,
                 config,
                 retry_policy: ExponentialBackoff::new(
                     PubSubRetryCheck::default(),
@@ -420,7 +419,7 @@ where
 /// error is retriable
 fn stream_from_client<C, R>(
     mut client: api::subscriber_client::SubscriberClient<
-        AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
+        AuthGrpcService<tonic::transport::Channel, C>,
     >,
     subscription: String,
     config: StreamSubscriptionConfig,

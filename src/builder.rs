@@ -209,6 +209,26 @@ impl<C> ClientBuilder<C> {
             auth,
         })
     }
+
+    /// Create a new client builder with the given connector and auth builder.
+    pub async fn with_connector_and_auth_builder<F>(
+        connector: C,
+        auth_builder: impl FnOnce(Client<C>) -> F,
+    ) -> Result<Self, CreateBuilderError>
+    where
+        C: crate::Connect + Clone + Send + Sync + 'static,
+        F: futures::Future<Output = std::io::Result<Auth<C>>>,
+    {
+        let client = hyper::client::Client::builder().build(connector.clone());
+
+        let auth = Some(auth_builder(client.clone()).await.map_err(CreateBuilderError::Authenticator)?);
+
+        Ok(Self {
+            connector,
+            client,
+            auth,
+        })
+    }
 }
 
 /// Convenience method to create an Authorization for the oauth ServiceFlow.

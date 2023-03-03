@@ -1,7 +1,7 @@
 //! An API for administering bigtable.
 
 use crate::{
-    auth::grpc::{self, AuthGrpcService, OAuthTokenSource},
+    auth::grpc::{self, AuthGrpcService},
     builder,
 };
 
@@ -31,7 +31,7 @@ config_default! {
 #[derive(Clone)]
 pub struct BigtableTableAdminClient<C = crate::DefaultConnector> {
     pub(crate) inner: admin::v2::bigtable_table_admin_client::BigtableTableAdminClient<
-        AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
+        AuthGrpcService<tonic::transport::Channel, C>,
     >,
     // A string of the form projects/{project}/instances/{instance}
     pub(crate) table_prefix: String,
@@ -159,7 +159,7 @@ where
         let table_prefix = format!("projects/{}/instances/{}", project, instance_name);
 
         let inner = admin::v2::bigtable_table_admin_client::BigtableTableAdminClient::new(
-            grpc::oauth_grpc(connection, self.auth.clone(), scopes),
+            grpc::AuthGrpcService::new(connection, self.auth.clone(), scopes),
         );
 
         Ok(BigtableTableAdminClient {

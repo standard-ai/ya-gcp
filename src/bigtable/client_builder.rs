@@ -69,11 +69,9 @@ where
             .await?;
         let table_prefix = format!("projects/{}/instances/{}/tables/", project, instance_name);
 
-        let inner = api::bigtable::v2::bigtable_client::BigtableClient::new(grpc::oauth_grpc(
-            connection,
-            self.auth.clone(),
-            scopes,
-        ));
+        let inner = api::bigtable::v2::bigtable_client::BigtableClient::new(
+            grpc::AuthGrpcService::new(connection, self.auth.clone(), scopes),
+        );
 
         Ok(BigtableClient {
             inner,
