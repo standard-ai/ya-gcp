@@ -16,23 +16,23 @@ use tonic::client::GrpcService;
 ///
 /// ```no_run
 /// use ya_gcp::auth::grpc::AuthGrpcService;
-/// # #[derive(Copy, Clone)] struct TokenMachine;
-/// # impl TokenMachine { async fn get_token(self) -> Result<&'static str, std::io::Error> { Ok("") } }
-///
-/// // have some source of authorization tokens
-/// let token_machine = // ...
-/// # TokenMachine;
 ///
 /// # async {
+/// // have some source of authorization tokens
+/// let oauth = // ...
+/// # yup_oauth2::AccessTokenAuthenticator::builder("token".to_owned()).build().await.unwrap();
+///
 /// // initialize a gRPC connection to the desired end point
 /// let connection = tonic::transport::Endpoint::new("https://my.service.endpoint.com")?
 ///     .connect()
 ///     .await?;
 ///
 /// // wrap the connection in the auth service with the given token source
-/// let service = AuthGrpcService::new(connection, Some(move || {
-///     token_machine.get_token()
-/// }));
+/// let service = AuthGrpcService::new(
+///     connection,
+///     Some(oauth),
+///     vec![],  // Scopes
+/// );
 ///
 /// # struct MyGrpcClient;
 /// # impl MyGrpcClient { fn new(_: impl tonic::client::GrpcService<tonic::body::BoxBody>) { } }
@@ -80,6 +80,10 @@ where
     #[error("Failed to get authorization token")]
     Auth(#[source] TokenErr),
 
+    /// The token generator didn't produce any token
+    #[error("Auth did not generate a token")]
+    MissingToken,
+
     /// The given auth token was not valid for an HTTP header
     #[error("Auth token formed invalid HTTP header: {1}")]
     InvalidToken(#[source] http::header::InvalidHeaderValue, String),
@@ -94,7 +98,15 @@ where
     Service: GrpcService<ReqBody> + Clone + Send + 'static,
     Service::Error: std::error::Error + Send + Sync + 'static,
     Service::Future: Send,
-    C: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     ReqBody: Send + 'static,
 {
     type Error = AuthGrpcError<Service::Error, yup_oauth2::Error>;
@@ -127,9 +139,10 @@ where
         Box::pin(async move {
             if let Some(token_fut) = token_fut {
                 let token = token_fut.await.map_err(AuthGrpcError::Auth)?;
+                let token = token.token().ok_or(AuthGrpcError::MissingToken)?;
 
                 crate::auth::add_auth_token(&mut request, &token)
-                    .map_err(|e| AuthGrpcError::InvalidToken(e, token.as_ref().to_owned()))?;
+                    .map_err(|e| AuthGrpcError::InvalidToken(e, token.to_owned()))?;
             }
 
             inner.call(request).await.map_err(AuthGrpcError::Grpc)
@@ -137,8 +150,6 @@ where
     }
 }
 
-// FIXME turn tests back on lol
-/*
 #[cfg(test)]
 mod test {
     use super::*;
@@ -177,7 +188,12 @@ mod test {
 
         let mut auth_service = AuthGrpcService::new(
             AssertionService,
-            Some(|| async { Ok::<_, std::io::Error>(TOKEN) }),
+            Some(
+                yup_oauth2::AccessTokenAuthenticator::builder(TOKEN.to_owned())
+                    .build()
+                    .await?,
+            ),
+            vec![],
         );
 
         assert!(auth_service
@@ -191,20 +207,28 @@ mod test {
     /// Check that errors fetching a token are propagated
     #[tokio::test]
     async fn auth_token_failed_fetch() -> Result<(), Box<dyn std::error::Error>> {
-        #[derive(Debug, thiserror::Error)]
-        #[error("this is a test error")]
-        struct InjectedError;
-
         let mut auth_service = AuthGrpcService::new(
             tonic::transport::Endpoint::from_static("localhost").connect_lazy(),
-            Some(|| async { Err::<String, _>(InjectedError) }),
+            Some(
+                yup_oauth2::AuthorizedUserAuthenticator::builder(
+                    yup_oauth2::authorized_user::AuthorizedUserSecret {
+                        client_id: String::new(),
+                        client_secret: String::new(),
+                        refresh_token: String::new(),
+                        key_type: String::new(),
+                    },
+                )
+                .build()
+                .await?,
+            ),
+            vec![],
         );
 
         assert!(matches!(
             auth_service
                 .call(http::request::Request::new(tonic::body::empty_body()))
                 .await,
-            Err(AuthGrpcError::Auth(InjectedError))
+            Err(AuthGrpcError::Auth(yup_oauth2::Error::AuthError(_)))
         ));
 
         Ok(())
@@ -213,13 +237,14 @@ mod test {
     /// Check that errors adding a token as a header are propagated
     #[tokio::test]
     async fn auth_token_invalid_header() -> Result<(), Box<dyn std::error::Error>> {
-        #[derive(Debug, thiserror::Error)]
-        #[error("this is a test error")]
-        struct InjectedError;
-
         let mut auth_service = AuthGrpcService::new(
             tonic::transport::Endpoint::from_static("localhost").connect_lazy(),
-            Some(|| async { Ok::<_, std::io::Error>("\u{0000}") }),
+            Some(
+                yup_oauth2::AccessTokenAuthenticator::builder("\u{0000}".to_owned())
+                    .build()
+                    .await?,
+            ),
+            vec![],
         );
 
         assert!(matches!(
@@ -238,7 +263,7 @@ mod test {
     /// Check that if no token_fn exists, request does not have an AUTHORIZATION header and
     /// succeeds.
     #[tokio::test]
-    async fn no_auth_token_fn() -> Result<(), Box<dyn std::error::Error>> {
+    async fn no_auth() -> Result<(), Box<dyn std::error::Error>> {
         #[derive(Clone)]
         struct OkService;
 
@@ -265,10 +290,8 @@ mod test {
             }
         }
 
-        type TokenFn = dyn Fn() -> futures::future::Ready<Result<String, tonic::transport::Error>>;
-        let token_fn: Option<Box<TokenFn>> = None;
-
-        let mut auth_service = AuthGrpcService::new(OkService, token_fn);
+        let mut auth_service =
+            AuthGrpcService::<_, crate::DefaultConnector>::new(OkService, None, vec![]);
 
         let result = auth_service.call(http::request::Request::new(())).await;
 
@@ -277,4 +300,3 @@ mod test {
         Ok(())
     }
 }
-*/

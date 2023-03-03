@@ -47,7 +47,15 @@ pub struct PublisherClient<C = crate::DefaultConnector> {
 
 impl<C> PublisherClient<C>
 where
-    C: crate::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
 {
     /// Create a sink which will publish [messages](api::PubsubMessage) to the given topic.
     ///
@@ -95,7 +103,15 @@ pub struct SubscriberClient<C = crate::DefaultConnector> {
 
 impl<C> SubscriberClient<C>
 where
-    C: crate::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
 {
     /// Start a streaming subscription with the pubsub service.
     ///

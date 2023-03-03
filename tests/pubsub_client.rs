@@ -7,20 +7,28 @@ mod pubsub_client_tests {
         task::{Context, Poll},
         time::Duration,
     };
-    use ya_gcp::{
-        pubsub::{
-            self, api::PubsubMessage, emulator::EmulatorClient, ProjectSubscriptionName,
-            ProjectTopicName, PublisherClient, SinkError, StreamSubscriptionConfig,
-        },
-        Connect,
+    use ya_gcp::pubsub::{
+        self, api::PubsubMessage, emulator::EmulatorClient, ProjectSubscriptionName,
+        ProjectTopicName, PublisherClient, SinkError, StreamSubscriptionConfig,
     };
 
     /// Helper to create a new topic request.
-    async fn create_dummy_topic(
-        client: &mut PublisherClient<impl Connect + Clone + Send + Sync + 'static>,
+    async fn create_dummy_topic<C>(
+        client: &mut PublisherClient<C>,
         project_name: &str,
         topic: &str,
-    ) -> Result<tonic::Response<pubsub::api::Topic>, tonic::Status> {
+    ) -> Result<tonic::Response<pubsub::api::Topic>, tonic::Status>
+    where
+        C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+        C::Response: hyper::client::connect::Connection
+            + tokio::io::AsyncRead
+            + tokio::io::AsyncWrite
+            + Send
+            + Unpin
+            + 'static,
+        C::Future: Send + Unpin + 'static,
+        C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    {
         let request = pubsub::api::Topic {
             name: format!("projects/{}/topics/{}", project_name, topic),
             ..pubsub::api::Topic::default()
@@ -53,12 +61,23 @@ mod pubsub_client_tests {
         client.create_subscription(request).await
     }
 
-    async fn publish_data(
-        client: &mut PublisherClient<impl Connect + Clone + Send + Sync + 'static>,
+    async fn publish_data<C>(
+        client: &mut PublisherClient<C>,
         project_name: &str,
         topic_name: &str,
         messages: impl IntoIterator<Item = (Vec<u8>, BTreeMap<String, String>)>,
-    ) -> Result<Vec<pubsub::api::PubsubMessage>, tonic::Status> {
+    ) -> Result<Vec<pubsub::api::PubsubMessage>, tonic::Status>
+    where
+        C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+        C::Response: hyper::client::connect::Connection
+            + tokio::io::AsyncRead
+            + tokio::io::AsyncWrite
+            + Send
+            + Unpin
+            + 'static,
+        C::Future: Send + Unpin + 'static,
+        C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    {
         let messages = messages
             .into_iter()
             .map(|(data, attributes)| pubsub::api::PubsubMessage {

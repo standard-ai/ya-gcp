@@ -268,7 +268,15 @@ impl<C, Retry, ResponseSink: Sink<api::PubsubMessage>> PublishTopicSink<C, Retry
 
 impl<C, Retry, ResponseSink> Sink<api::PubsubMessage> for PublishTopicSink<C, Retry, ResponseSink>
 where
-    C: crate::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     // TODO(type_alias_impl_trait) remove most of these 'static (and Send?) bounds
     Retry: RetryPolicy<api::PublishRequest, tonic::Status> + 'static,
     Retry::RetryOp: Send + 'static,
@@ -314,7 +322,15 @@ where
 // borrowing/pinning in callers easier
 impl<'pin, C, Retry, ResponseSink> PublishTopicSinkProjection<'pin, C, Retry, ResponseSink>
 where
-    C: crate::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     Retry: RetryPolicy<api::PublishRequest, tonic::Status> + 'static,
     Retry::RetryOp: Send + 'static,
     <Retry::RetryOp as RetryOperation<api::PublishRequest, tonic::Status>>::Sleep: Send + 'static,
