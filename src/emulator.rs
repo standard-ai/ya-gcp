@@ -12,8 +12,8 @@
 //! Cleanup:
 //! When the test ends (in success or failure) the Drop trait implementation of [`EmulatorClient`]
 //! ensures the system cleans up after itself. To verify the system cleaned up after itself run
-//! `ps aux | grep pubsub`. If there are open pubsub servers, run `pkill -f pubsub` to remove them
-//! all.
+//! `ps aux | grep pubsub`. If there are open pubsub/bigtable servers, run `pkill -f $service`
+//! (where `$service` is one of either `pubsub` or `bigtable`) to remove them all.
 
 use std::{ffi::OsString, ops::Range};
 
