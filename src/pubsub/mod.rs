@@ -3,10 +3,7 @@
 //! Publishing and topic management is done through the [`PublisherClient`], while reading data and
 //! subscription management is done through the [`SubscriberClient`].
 
-use crate::{
-    auth::grpc::{AuthGrpcService, OAuthTokenSource},
-    retry_policy::RetryPredicate,
-};
+use crate::{auth::grpc::AuthGrpcService, retry_policy::RetryPredicate};
 use std::fmt::Display;
 use tracing::debug_span;
 
@@ -43,11 +40,9 @@ pub mod api {
 ///
 /// This builds on top of the raw [gRPC publisher API](api::publisher_client::PublisherClient)
 /// to provide more ergonomic functionality
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct PublisherClient<C = crate::DefaultConnector> {
-    inner: api::publisher_client::PublisherClient<
-        AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
-    >,
+    inner: api::publisher_client::PublisherClient<AuthGrpcService<tonic::transport::Channel, C>>,
 }
 
 impl<C> PublisherClient<C>
@@ -73,9 +68,8 @@ where
 }
 
 impl<C> std::ops::Deref for PublisherClient<C> {
-    type Target = api::publisher_client::PublisherClient<
-        AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
-    >;
+    type Target =
+        api::publisher_client::PublisherClient<AuthGrpcService<tonic::transport::Channel, C>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
@@ -94,11 +88,9 @@ impl<C> std::ops::DerefMut for PublisherClient<C> {
 ///
 /// This is an interface built on top of the raw [gRPC subscriber
 /// API](api::subscriber_client::SubscriberClient) which provides more ergonomic functionality
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct SubscriberClient<C = crate::DefaultConnector> {
-    inner: api::subscriber_client::SubscriberClient<
-        AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
-    >,
+    inner: api::subscriber_client::SubscriberClient<AuthGrpcService<tonic::transport::Channel, C>>,
 }
 
 impl<C> SubscriberClient<C>
@@ -122,9 +114,8 @@ where
 }
 
 impl<C> std::ops::Deref for SubscriberClient<C> {
-    type Target = api::subscriber_client::SubscriberClient<
-        AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
-    >;
+    type Target =
+        api::subscriber_client::SubscriberClient<AuthGrpcService<tonic::transport::Channel, C>>;
 
     fn deref(&self) -> &Self::Target {
         &self.inner
