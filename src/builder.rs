@@ -176,7 +176,15 @@ impl<C> ClientBuilder<C> {
         connector: C,
     ) -> Result<Self, CreateBuilderError>
     where
-        C: crate::Connect + Clone + Send + Sync + 'static,
+        C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+        C::Response: hyper::client::connect::Connection
+            + tokio::io::AsyncRead
+            + tokio::io::AsyncWrite
+            + Send
+            + Unpin
+            + 'static,
+        C::Future: Send + Unpin + 'static,
+        C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     {
         use AuthFlow::{NoAuth, ServiceAccount, UserAccount};
 
@@ -221,7 +229,11 @@ impl<C> ClientBuilder<C> {
     {
         let client = hyper::client::Client::builder().build(connector.clone());
 
-        let auth = Some(auth_builder(client.clone()).await.map_err(CreateBuilderError::Authenticator)?);
+        let auth = Some(
+            auth_builder(client.clone())
+                .await
+                .map_err(CreateBuilderError::Authenticator)?,
+        );
 
         Ok(Self {
             connector,
@@ -237,7 +249,15 @@ async fn create_service_auth<C>(
     client: Client<C>,
 ) -> Result<Auth<C>, CreateBuilderError>
 where
-    C: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
 {
     match service_account_key_path {
         Some(service_account_key_path) => {
@@ -283,7 +303,15 @@ async fn create_user_auth<C>(
     client: Client<C>,
 ) -> Result<Auth<C>, CreateBuilderError>
 where
-    C: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
 {
     let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
         .await

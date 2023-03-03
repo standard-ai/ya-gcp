@@ -32,9 +32,15 @@ pub struct BuildError(#[from] tonic::transport::Error);
 
 impl<C> builder::ClientBuilder<C>
 where
-    C: MakeConnection<Uri> + crate::Connect + Clone + Send + Sync + 'static,
-    C::Connection: Unpin + Send + 'static,
-    C::Future: Send + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     Box<dyn std::error::Error + Send + Sync + 'static>: From<C::Error>,
 {
     async fn pubsub_authed_service(

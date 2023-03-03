@@ -368,7 +368,15 @@ impl<C, OldR> StreamSubscription<C, OldR> {
 
 impl<C, R> Stream for StreamSubscription<C, R>
 where
-    C: crate::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     R: RetryPolicy<(), tonic::Status> + Send + 'static,
     R::RetryOp: Send + 'static,
     <R::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,
@@ -426,7 +434,15 @@ fn stream_from_client<C, R>(
     mut retry_policy: R,
 ) -> impl Stream<Item = Result<(AcknowledgeToken, api::PubsubMessage), tonic::Status>> + Send + 'static
 where
-    C: crate::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     R: RetryPolicy<(), tonic::Status> + Send + 'static,
     R::RetryOp: Send + 'static,
     <R::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,
