@@ -150,7 +150,6 @@ impl BigtableRetryCheck {
 impl RetryPredicate<tonic::Status> for BigtableRetryCheck {
     fn is_retriable(&self, error: &tonic::Status) -> bool {
         use tonic::Code;
-
         // this error code check is based on the ones used in the Go bigtable client lib:
         // https://github.com/googleapis/google-cloud-go/blob/66e8e2717b2593f4e5640ecb97344bb1d5e5fc0b/bigtable/bigtable.go#L107
 
@@ -192,6 +191,21 @@ impl Row {
     }
 }
 
+/// A consistency error when streaming chunks in response to a read request.
+/// The best way to recover from these is likely to retry the whole request.
+#[derive(Debug, thiserror::Error)]
+pub enum ReadInProgressError {
+    /// Expected a last cell to exist, but didn't find one.
+    #[error("no last cell")]
+    NoLastCell,
+    /// Expected a last column family to exist, but didn't find one.
+    #[error("no last family")]
+    NoLastFamily,
+    /// Expected a last column to exist, but didn't find one.
+    #[error("no last column")]
+    NoLastColumn,
+}
+
 #[derive(Default)]
 struct ReadInProgress {
     row: Row,
@@ -199,27 +213,33 @@ struct ReadInProgress {
 }
 
 impl ReadInProgress {
-    fn flush_bytes_in_progress(&mut self) {
-        if !self.value.is_empty() {
+    fn flush_bytes_in_progress(&mut self) -> Result<(), ReadInProgressError> {
+        if self.value.is_empty() {
+            Ok(())
+        } else {
             let value = self.value.split().freeze();
             if let Some(cell) = self.last_cell_mut() {
                 cell.value = value;
+                Ok(())
+            } else {
+                Err(ReadInProgressError::NoLastCell)
             }
         }
     }
 
-    fn new_family(&mut self, name: String) {
-        self.flush_bytes_in_progress();
+    fn new_family(&mut self, name: String) -> Result<(), ReadInProgressError> {
+        self.flush_bytes_in_progress()?;
         if self.row.families.last().map(|fam| &fam.name) != Some(&name) {
             self.row.families.push(Family {
                 name,
                 ..Default::default()
             });
         }
+        Ok(())
     }
 
-    fn new_column(&mut self, qualifier: Bytes) {
-        self.flush_bytes_in_progress();
+    fn new_column(&mut self, qualifier: Bytes) -> Result<(), ReadInProgressError> {
+        self.flush_bytes_in_progress()?;
         if let Some(family) = self.row.families.last_mut() {
             if family.columns.last().map(|col| &col.qualifier) != Some(&qualifier) {
                 family.columns.push(Column {
@@ -227,6 +247,9 @@ impl ReadInProgress {
                     ..Default::default()
                 });
             }
+            Ok(())
+        } else {
+            Err(ReadInProgressError::NoLastFamily)
         }
     }
 
@@ -237,14 +260,21 @@ impl ReadInProgress {
             .and_then(|family| family.columns.last_mut())
     }
 
-    fn new_cell(&mut self, timestamp_micros: i64, value_size: i32) {
-        self.flush_bytes_in_progress();
+    fn new_cell(
+        &mut self,
+        timestamp_micros: i64,
+        value_size: i32,
+    ) -> Result<(), ReadInProgressError> {
+        self.flush_bytes_in_progress()?;
         if let Some(col) = self.last_column_mut() {
             col.cells.push(Cell {
                 timestamp_micros,
                 ..Default::default()
             });
             self.value = BytesMut::with_capacity(value_size as usize);
+            Ok(())
+        } else {
+            Err(ReadInProgressError::NoLastCell)
         }
     }
 
@@ -252,16 +282,19 @@ impl ReadInProgress {
         self.last_column_mut().and_then(|col| col.cells.last_mut())
     }
 
-    fn finish_row(&mut self) -> Row {
-        self.flush_bytes_in_progress();
-        std::mem::replace(&mut self.row, Default::default())
+    fn finish_row(&mut self) -> Result<Row, ReadInProgressError> {
+        self.flush_bytes_in_progress()?;
+        Ok(std::mem::replace(&mut self.row, Default::default()))
     }
 
     // Process a chunk, and return a row if one was completed.
     //
     // Bigtable responds in chunks, where a row can be split across chunks (but every chunk
     // contains at most one row).
-    fn process_chunk(&mut self, chunk: v2::read_rows_response::CellChunk) -> Option<Row> {
+    fn process_chunk(
+        &mut self,
+        chunk: v2::read_rows_response::CellChunk,
+    ) -> Result<Option<Row>, ReadInProgressError> {
         if !chunk.row_key.is_empty() {
             // We don't need to check if there's an existing row to store, because
             // RowStatus tells us when to do that.
@@ -269,15 +302,15 @@ impl ReadInProgress {
         }
 
         if let Some(family_name) = chunk.family_name {
-            self.new_family(family_name);
+            self.new_family(family_name)?;
         }
 
         if let Some(qualifier) = chunk.qualifier {
-            self.new_column(qualifier.into());
+            self.new_column(qualifier.into())?;
         }
 
         if Some(chunk.timestamp_micros) != self.last_cell_mut().map(|cell| cell.timestamp_micros) {
-            self.new_cell(chunk.timestamp_micros, chunk.value_size);
+            self.new_cell(chunk.timestamp_micros, chunk.value_size)?;
         }
 
         // TODO: in the (presumably reasonably common case that the buffer comes
@@ -287,14 +320,39 @@ impl ReadInProgress {
         if let Some(row_status) = chunk.row_status {
             let row = self.finish_row();
             match row_status {
-                v2::read_rows_response::cell_chunk::RowStatus::CommitRow(_) => Some(row),
+                v2::read_rows_response::cell_chunk::RowStatus::CommitRow(_) => row.map(|r| Some(r)),
                 // We've already reset our state to an empty row, so to "reset" we just
                 // return None.
-                v2::read_rows_response::cell_chunk::RowStatus::ResetRow(_) => None,
+                v2::read_rows_response::cell_chunk::RowStatus::ResetRow(_) => Ok(None),
             }
         } else {
-            None
+            Ok(None)
         }
+    }
+}
+
+/// The error returned from a row read request.
+#[derive(Debug, thiserror::Error)]
+#[non_exhaustive]
+pub enum ReadRowsError {
+    /// A gRPC error.
+    #[error("gRPC error: {0}")]
+    Tonic(tonic::Status),
+
+    /// A consistency error when streaming a row read.
+    #[error("row read error")]
+    ReadInProgress(ReadInProgressError),
+}
+
+impl From<tonic::Status> for ReadRowsError {
+    fn from(s: tonic::Status) -> Self {
+        Self::Tonic(s)
+    }
+}
+
+impl From<ReadInProgressError> for ReadRowsError {
+    fn from(e: ReadInProgressError) -> Self {
+        Self::ReadInProgress(e)
     }
 }
 
@@ -327,7 +385,7 @@ where
     pub fn read_rows(
         &mut self,
         mut request: ReadRowsRequest,
-    ) -> impl Stream<Item = Result<Row, tonic::Status>> + '_ {
+    ) -> impl Stream<Item = Result<Row, ReadRowsError>> + '_ {
         async_stream::stream! {
             let mut retry = self.retry.new_operation();
 
@@ -356,7 +414,7 @@ where
                     );
 
                     for chunk in message.chunks {
-                        if let Some(row) = state.process_chunk(chunk) {
+                        if let Some(row) = state.process_chunk(chunk)? {
                             last_key = Some(last_key.unwrap_or_default().max(row.key.clone()));
                             yield Ok(row);
                         }
@@ -392,7 +450,7 @@ where
         table_name: &str,
         range: impl RangeBounds<Bytes>,
         rows_limit: Option<i64>,
-    ) -> impl Stream<Item = Result<Bytes, tonic::Status>> + '_ {
+    ) -> impl Stream<Item = Result<Bytes, ReadRowsError>> + '_ {
         use filters::{Chain, Filter};
         let table_name = format!("{}{}", self.table_prefix, table_name);
         let req = ReadRowsRequest {
@@ -421,7 +479,7 @@ where
         table_name: &str,
         range: impl RangeBounds<Bytes>,
         rows_limit: Option<i64>,
-    ) -> impl Stream<Item = Result<Row, tonic::Status>> + '_ {
+    ) -> impl Stream<Item = Result<Row, ReadRowsError>> + '_ {
         let table_name = format!("{}{}", self.table_prefix, table_name);
         let req = ReadRowsRequest {
             table_name,
@@ -438,7 +496,7 @@ where
         &mut self,
         table_name: &str,
         row_key: impl Into<Bytes>,
-    ) -> Result<Option<Row>, tonic::Status> {
+    ) -> Result<Option<Row>, ReadRowsError> {
         let table_name = format!("{}{}", self.table_prefix, table_name);
         let req = ReadRowsRequest {
             table_name,
