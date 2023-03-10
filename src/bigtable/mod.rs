@@ -80,6 +80,12 @@ fn bound_to_end_key(bound: Bound<&Bytes>) -> Option<v2::row_range::EndKey> {
     }
 }
 
+/// Returns true if `y` is the smallest `Bytes` that's strictly bigger than `x`.
+fn is_succ(x: &Bytes, y: &Bytes) -> bool {
+    // The smallest word strictly after "foo" is "fooa".
+    y.len() == x.len() + 1 && x[..] == y[..x.len()] && y[x.len()] == 0
+}
+
 impl RowRange {
     // Take just the part of this range that's strictly after `key`, returning true if the resulting
     // range is non-empty. (This API is a little weird; the point is that you're supposed to use
@@ -87,12 +93,11 @@ impl RowRange {
     fn restrict_to_after(&mut self, key: &Bytes) -> bool {
         use v2::row_range::{EndKey, StartKey};
         match &self.end_key {
-            // (key, b) and (key, b] are both empty if and only if b <= k, so the non-strict
-            // comparison is correct for both cases. (These are byte strings, not integers, so `b`
-            // cannot be the smallest thing that's strictly bigger than `key`.)
-            Some(EndKey::EndKeyOpen(b)) | Some(EndKey::EndKeyClosed(b)) if b <= key => {
-                return false
-            }
+            // (key, b] is non-empty if and only if b > key
+            Some(EndKey::EndKeyClosed(b)) if b <= key => return false,
+            // (key, b) is non-empty if and only if b > succ(key).
+            // The negation of this is `b <= key or b == succ(key)`
+            Some(EndKey::EndKeyOpen(b)) if b <= key || is_succ(key, b) => return false,
             _ => {}
         }
 
