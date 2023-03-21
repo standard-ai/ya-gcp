@@ -14,6 +14,7 @@ Platform (GCP)](https://cloud.google.com/) services.
 
 **Alpha maturity**:
 - Google Cloud Storage
+- Bigtable
 
 Different service APIs can be accessed through modules enabled with
 compile-time features. See the list of supported features below. Service
@@ -26,6 +27,7 @@ The following flags can be enabled to change what code is included
 Services:
 - `pubsub` enables the PubSub API
 - `storage` enables the GCS API
+- `bigtable` enables the Bigtable API
 
 Miscellaneous:
 - `rustls` use Rustls for TLS support, enabled by default
