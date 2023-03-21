@@ -433,9 +433,23 @@ where
                         // first modify the request to avoid re-requesting
                         // previously-returned data.
                         if let Some(key) = last_key {
-                            if let Some(rows) = request.rows.as_mut() {
-                                rows.restrict_to_after(key);
-                            }
+                            match request.rows.as_mut() {
+                                Some(r) => r.restrict_to_after(key),
+                                // If the request had no rows then we were trying to read a whole table.
+                                // Since we have a `last_key` we limit the retry to everything *after*
+                                // that key, in order to avoid re-reading rows we've already covered.
+                                None => {
+                                    request.rows = Some(RowSet {
+                                        row_ranges: vec![
+                                            RowRange {
+                                                start_key: Some(v2::row_range::StartKey::StartKeyOpen(key)),
+                                                end_key: None
+                                            }
+                                        ],
+                                        ..Default::default()
+                                    })
+                                },
+                            };
                         }
                         continue 'retry;
                     } else {
