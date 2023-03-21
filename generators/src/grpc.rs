@@ -1,5 +1,8 @@
 use anyhow::{Context, Error};
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 use structopt::StructOpt;
 
 /// An application used to fetch gRPC schemas and generate rust code for `ya-gcp`
@@ -14,9 +17,39 @@ struct Args {
     #[structopt(long)]
     google_protos: Option<PathBuf>,
 
+    #[structopt(long, case_insensitive = true, default_value = "client")]
+    mode: Mode,
+
     /// A path to the directory where the generated files will be written
     #[structopt(long)]
     output_dir: PathBuf,
+}
+
+enum Mode {
+    Client,
+    Server,
+}
+
+impl FromStr for Mode {
+    type Err = &'static str;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "client" => Ok(Self::Client),
+            "server" => Ok(Self::Server),
+            _ => Err("possible values are 'client' or 'server'"),
+        }
+    }
+}
+
+impl Mode {
+    fn should_build_client(&self) -> bool {
+        matches!(self, Self::Client)
+    }
+
+    fn should_build_server(&self) -> bool {
+        matches!(self, Self::Server)
+    }
 }
 
 fn main() -> Result<(), Error> {
@@ -60,8 +93,8 @@ fn main() -> Result<(), Error> {
     prost_config.btree_map(&["PubsubMessage.attributes"]);
 
     tonic_build::configure()
-        .build_client(true)
-        .build_server(false)
+        .build_client(args.mode.should_build_client())
+        .build_server(args.mode.should_build_server())
         .out_dir(&args.output_dir)
         .compile_with_config(
             prost_config,
