@@ -20,6 +20,9 @@ struct Args {
     #[structopt(long, case_insensitive = true, default_value = "client")]
     mode: Mode,
 
+    #[structopt(long)]
+    include_serde_impls: bool,
+
     /// A path to the directory where the generated files will be written
     #[structopt(long)]
     output_dir: PathBuf,
@@ -67,6 +70,8 @@ fn main() -> Result<(), Error> {
         }
     };
 
+    let descriptor_path = args.output_dir.clone().join("proto_descriptor.bin");
+
     std::fs::create_dir_all(&args.output_dir).context("failed to create output directory")?;
 
     println!("generating interfaces in {}", args.output_dir.display());
@@ -76,6 +81,13 @@ fn main() -> Result<(), Error> {
     // use Bytes instead of Vec<u8> when possible in order to reduce copies when receiving data off
     // the wire
     prost_config.bytes(&["."]);
+
+    if args.include_serde_impls {
+        prost_config
+            .file_descriptor_set_path(&descriptor_path)
+            .compile_well_known_types()
+            .extern_path(".google.protobuf", "::pbjson_types");
+    }
 
     // The bigtable docs have doc comments that trigger test failures.
     // (TODO: in newer versions of prost-build, the `format` option might be enough for this)
@@ -110,6 +122,14 @@ fn main() -> Result<(), Error> {
             &[google_protos],
         )
         .context("failed to generate rust sources")?;
+
+    if args.include_serde_impls {
+        let descriptor_set = std::fs::read(descriptor_path)?;
+        pbjson_build::Builder::new()
+            .out_dir(&args.output_dir)
+            .register_descriptors(&descriptor_set)?
+            .build(&[".google.bigtable.v2", ".google.rpc"])?;
+    }
 
     Ok(())
 }
