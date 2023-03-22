@@ -617,7 +617,7 @@ pub struct RequestLatencyStats {
     /// for results from nodes, and finally sending results from nodes back to the
     /// caller.
     #[prost(message, optional, tag = "1")]
-    pub frontend_server_latency: ::core::option::Option<::prost_types::Duration>,
+    pub frontend_server_latency: ::core::option::Option<::pbjson_types::Duration>,
 }
 /// FullReadStatsView captures all known information about a read.
 #[allow(clippy::derive_partial_eq_without_eq)]
@@ -802,14 +802,14 @@ pub mod read_rows_response {
         /// explicitly for the presence of this message, not just for
         /// `family_name.value` being non-empty.
         #[prost(message, optional, tag = "2")]
-        pub family_name: ::core::option::Option<::prost::alloc::string::String>,
+        pub family_name: ::core::option::Option<::pbjson_types::StringValue>,
         /// The column qualifier for this chunk of data.  If this message
         /// is not present, this CellChunk is a continuation of the same column
         /// as the previous CellChunk.  Column qualifiers may be empty so
         /// clients must check for the presence of this message, not just
         /// for `qualifier.value` being non-empty.
         #[prost(message, optional, tag = "3")]
-        pub qualifier: ::core::option::Option<::prost::alloc::vec::Vec<u8>>,
+        pub qualifier: ::core::option::Option<::pbjson_types::BytesValue>,
         /// The cell's stored timestamp, which also uniquely identifies it
         /// within its column.  Values are always expressed in
         /// microseconds, but individual tables may set a coarser
@@ -1126,11 +1126,11 @@ pub struct ReadChangeStreamRequest {
     /// this time. Otherwise, changes will be continuously delivered on the stream.
     /// This value is inclusive and will be truncated to microsecond granularity.
     #[prost(message, optional, tag = "5")]
-    pub end_time: ::core::option::Option<::prost_types::Timestamp>,
+    pub end_time: ::core::option::Option<::pbjson_types::Timestamp>,
     /// If specified, the duration between `Heartbeat` messages on the stream.
     /// Otherwise, defaults to 5 seconds.
     #[prost(message, optional, tag = "7")]
-    pub heartbeat_duration: ::core::option::Option<::prost_types::Duration>,
+    pub heartbeat_duration: ::core::option::Option<::pbjson_types::Duration>,
     /// Options for describing where we want to start reading from the stream.
     #[prost(oneof = "read_change_stream_request::StartFrom", tags = "4, 6")]
     pub start_from: ::core::option::Option<read_change_stream_request::StartFrom>,
@@ -1146,7 +1146,7 @@ pub mod read_change_stream_request {
         /// current time, and after change stream creation, whichever is greater.
         /// This value is inclusive and will be truncated to microsecond granularity.
         #[prost(message, tag = "4")]
-        StartTime(::prost_types::Timestamp),
+        StartTime(::pbjson_types::Timestamp),
         /// Tokens that describe how to resume reading a stream where reading
         /// previously left off. If specified, changes will be read starting at the
         /// the position. Tokens are delivered on the stream as part of `Heartbeat`
@@ -1229,7 +1229,7 @@ pub mod read_change_stream_response {
         pub row_key: ::prost::bytes::Bytes,
         /// The timestamp at which the mutation was applied on the Bigtable server.
         #[prost(message, optional, tag = "4")]
-        pub commit_timestamp: ::core::option::Option<::prost_types::Timestamp>,
+        pub commit_timestamp: ::core::option::Option<::pbjson_types::Timestamp>,
         /// A value that lets stream consumers reconstruct Bigtable's
         /// conflict resolution semantics.
         /// <https://cloud.google.com/bigtable/docs/writes#conflict-resolution>
@@ -1259,7 +1259,7 @@ pub mod read_change_stream_response {
         /// an example usage see
         /// <https://beam.apache.org/documentation/basics/#watermarks>
         #[prost(message, optional, tag = "10")]
-        pub estimated_low_watermark: ::core::option::Option<::prost_types::Timestamp>,
+        pub estimated_low_watermark: ::core::option::Option<::pbjson_types::Timestamp>,
     }
     /// Nested message and enum types in `DataChange`.
     pub mod data_change {
@@ -1328,7 +1328,7 @@ pub mod read_change_stream_response {
         /// an example usage see
         /// <https://beam.apache.org/documentation/basics/#watermarks>
         #[prost(message, optional, tag = "2")]
-        pub estimated_low_watermark: ::core::option::Option<::prost_types::Timestamp>,
+        pub estimated_low_watermark: ::core::option::Option<::pbjson_types::Timestamp>,
     }
     /// A message indicating that the client should stop reading from the stream.
     /// If status is OK and `continuation_tokens` & `new_partitions` are empty, the

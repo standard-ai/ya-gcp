@@ -6,11 +6,13 @@ use futures::{stream, Stream, StreamExt};
 pub mod api {
     pub mod rpc {
         include!("generated/google.rpc.rs");
+        include!("generated/google.rpc.serde.rs");
     }
 
     pub mod bigtable {
         pub mod v2 {
             include!("generated/google.bigtable.v2.rs");
+            include!("generated/google.bigtable.v2.serde.rs");
         }
     }
 }
