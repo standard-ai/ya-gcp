@@ -1,3 +1,4 @@
+use std::net::SocketAddr;
 use std::pin::Pin;
 
 use futures::{stream, Stream, StreamExt};
@@ -19,6 +20,8 @@ pub mod api {
 
 use api::bigtable::v2 as bigtable;
 use api::bigtable::v2::bigtable_server;
+use tokio::sync::oneshot;
+use tokio::task::JoinHandle;
 
 #[derive(Clone)]
 pub struct StreamStub<Item> {
@@ -43,7 +46,7 @@ impl<Item> Stream for StreamStub<Item> {
     }
 }
 
-type StubBigtableStream<T> = StreamStub<Result<T, tonic::Status>>;
+pub type StubBigtableStream<T> = StreamStub<Result<T, tonic::Status>>;
 
 pub struct StubBigtableServer {
     read_rows_stub: Option<StubBigtableStream<bigtable::ReadRowsResponse>>,
@@ -61,6 +64,38 @@ impl StubBigtableServer {
         stub: StreamStub<Result<bigtable::ReadRowsResponse, tonic::Status>>,
     ) {
         self.read_rows_stub = Some(stub);
+    }
+
+    pub async fn run_with_chunks(
+        addr: SocketAddr,
+        chunks: &[bigtable::read_rows_response::CellChunk],
+    ) -> JoinHandle<()> {
+        // We want to block until the server is actually able to take requests,
+        // so send a message on this channel when the `serve` method finishes
+        // but before we `await` the result, and then we `await` that message
+        // before returning from this method.
+        let (tx, rx) = oneshot::channel();
+
+        let server = tonic::transport::Server::builder().add_service({
+            let mut srv = Self::new();
+            srv.stub_read_rows(StubBigtableStream::new(vec![Ok(
+                bigtable::ReadRowsResponse {
+                    chunks: chunks.iter().cloned().collect(),
+                    ..Default::default()
+                },
+            )]));
+            bigtable_server::BigtableServer::new(srv)
+        });
+
+        let server_task = tokio::spawn(async move {
+            let server = server.serve(addr);
+            let _ = tx.send(());
+            server.await.expect("Server failed")
+        });
+
+        let _ = rx.await;
+
+        server_task
     }
 }
 
