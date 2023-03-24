@@ -184,7 +184,7 @@ impl<C> ClientBuilder<C> {
         connector: C,
     ) -> Result<Self, CreateBuilderError>
     where
-        C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+        C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
         C::Response: hyper::client::connect::Connection
             + tokio::io::AsyncRead
             + tokio::io::AsyncWrite
@@ -261,7 +261,7 @@ async fn create_service_auth<C>(
     client: Client<C>,
 ) -> Result<Auth<C>, CreateBuilderError>
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
     C::Response: hyper::client::connect::Connection
         + tokio::io::AsyncRead
         + tokio::io::AsyncWrite
@@ -315,7 +315,7 @@ async fn create_user_auth<C>(
     client: Client<C>,
 ) -> Result<Auth<C>, CreateBuilderError>
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
     C::Response: hyper::client::connect::Connection
         + tokio::io::AsyncRead
         + tokio::io::AsyncWrite
@@ -343,7 +343,7 @@ async fn create_service_impersonation_auth<C>(
     client: Client<C>,
 ) -> Result<Auth<C>, CreateBuilderError>
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
     C::Response: hyper::client::connect::Connection
         + tokio::io::AsyncRead
         + tokio::io::AsyncWrite
