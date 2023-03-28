@@ -10,6 +10,9 @@ on:
 jobs:
   test:
     runs-on: ${{ matrix.os }}
+    # Need to run tests in a container for the Pub/Sub emulator to work:
+    # https://stackoverflow.com/a/74341376
+    container: ubuntu
     strategy:
       fail-fast: false
       matrix:
@@ -19,6 +22,17 @@ jobs:
         test_flags: ["", "--no-default-features", "--all-features"]
     timeout-minutes: 8
     steps:
+      - name: Install sudo package
+        run: apt update && apt install sudo
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get -y install git default-jre curl clang pkg-config libssl-dev
+      # Fix for:
+      # - https://github.com/actions/checkout/issues/363
+      # - https://github.com/actions/checkout/issues/766
+      - name: Make workspace a safe git directory
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v0
       - name: Install Emulators
@@ -33,8 +47,7 @@ jobs:
         with:
           toolchain: ${{ matrix.rust_toolchain }}
           command: test
-          # TODO figure out why emulator tests fail to connect in CI
-          args: ${{ matrix.test_flags }} -- --skip message_responses_in_order --skip user_sink_closed_with_flush --skip pubsub_client_tests
+          args: ${{ matrix.test_flags }} -- --test-threads 1
         env:
           RUSTFLAGS: -Cdebuginfo=0
 
