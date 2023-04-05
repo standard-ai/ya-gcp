@@ -16,7 +16,7 @@ use std::{
     task::{Context, Poll},
     time::Duration,
 };
-use tracing::debug_span;
+use tracing::{trace_span, Instrument};
 
 const MB: usize = 1000 * 1000;
 
@@ -291,14 +291,14 @@ where
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        let span = debug_span!("sink_poll_flush");
+        let span = trace_span!("sink_poll_flush");
         let _guard = span.enter();
         self.project().poll_flush_projected(cx, true)
     }
 
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         // first flush ourselves, then close the user's sink
-        let span = debug_span!("sink_poll_close");
+        let span = trace_span!("sink_poll_close");
         let _guard = span.enter();
         ready!(self.as_mut().poll_flush(cx))?;
 
@@ -418,11 +418,11 @@ where
         // start a new potential retry operation for the publish
         let mut retry = retry_policy.new_operation();
 
+        let flush_span = trace_span!("publish_flush");
+
         async move {
             // send the request, with some potential retries
             let response = loop {
-                let span = debug_span!("publish_request");
-                let _guard = span.enter();
                 // the request unfortunately has to be cloned -- tonic can't take references
                 // because it requires 'static payloads (probably for spawning?), and we need the
                 // original to reuse for retries/errors/responses. On the bright side, message
@@ -435,11 +435,11 @@ where
                 let publish = client.publish(tonic_request);
 
                 // apply a timeout to the publish
-                let publish_fut = tokio::time::timeout(timeout, publish).map_err(
-                    |tokio::time::error::Elapsed { .. }| {
+                let publish_fut = tokio::time::timeout(timeout, publish)
+                    .map_err(|tokio::time::error::Elapsed { .. }| {
                         tonic::Status::deadline_exceeded("publish attempt timed out")
-                    },
-                );
+                    })
+                    .instrument(trace_span!("publish_request"));
 
                 break match publish_fut.await {
                     Ok(Ok(response)) => Ok(response.into_inner()),
@@ -495,11 +495,13 @@ where
             // send the batch of newly id-ed messages out to the response sink
             let response_result = response_sink
                 .send_all(&mut stream::iter(request.messages.into_iter().map(Ok)))
+                .instrument(trace_span!("publish_response"))
                 .await
                 .map_err(SinkError::Response);
 
             (response_sink, response_result)
         }
+        .instrument(flush_span)
     }
 }
 
