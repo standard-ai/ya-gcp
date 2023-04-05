@@ -13,7 +13,7 @@ use futures::{
 };
 use pin_project::pin_project;
 use tonic::metadata::MetadataValue;
-use tracing::{debug, debug_span};
+use tracing::{debug, trace_span, Instrument};
 
 use crate::{
     auth::grpc::{AuthGrpcService, OAuthTokenSource},
@@ -468,9 +468,7 @@ where
             {
                 Err(err) => err,
                 Ok(mut message_stream) => 'read: loop {
-                    let read_span = debug_span!("sub_stream_pull");
-                    let _guard = read_span.enter();
-                    match message_stream.next().await {
+                    match message_stream.next().instrument(trace_span!("sub_stream_pull")).await {
                         // If the stream is out of elements, some connection must have been closed.
                         // However PubSub docs say StreamingPull always terminates with an error,
                         // so this normal end-of-stream shouldn't happen, and instead should fall
@@ -524,9 +522,7 @@ where
                 // if the retry policy determines a retry is possible, sleep for the
                 // given backoff and then try reconnecting
                 Some(backoff_sleep) => {
-                    let span = debug_span!("backoff_sleep");
-                    let _guard = span.enter();
-                    backoff_sleep.await;
+                    backoff_sleep.instrument(trace_span!("backoff_sleep")).await;
                     continue 'reconnect;
                 }
                 // if the policy does not provide a sleep, then it determined that the
