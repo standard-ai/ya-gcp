@@ -143,36 +143,19 @@ pub trait Sleeper {
     fn sleep(&self, time: Duration) -> Self::Sleep;
 }
 
-cfg_if::cfg_if! {
-    if #[cfg(feature = "tokio")] {
-        /// The default [`Sleeper`] implementation based on enabled features
-        pub type DefaultSleeper = TokioSleeper;
+/// The default [`Sleeper`] implementation based on enabled features
+pub type DefaultSleeper = TokioSleeper;
 
-        /// A [`Sleeper`] which uses tokio's timers to sleep
-        #[derive(Debug, Clone, Default)]
-        #[cfg_attr(docsrs, doc(cfg(feature = "tokio/time")))]
-        pub struct TokioSleeper {
-            _priv: ()
-        }
+/// A [`Sleeper`] which uses tokio's timers to sleep
+#[derive(Debug, Clone, Default)]
+pub struct TokioSleeper {
+    _priv: (),
+}
 
-        impl Sleeper for TokioSleeper {
-            type Sleep = tokio::time::Sleep;
+impl Sleeper for TokioSleeper {
+    type Sleep = tokio::time::Sleep;
 
-            fn sleep(&self, time: Duration) -> Self::Sleep {
-                tokio::time::sleep(time)
-            }
-        }
-    } else {
-        /// The default [`Sleeper`] implementation based on enabled features
-        // If tokio is not enabled, the default sleeper will not implement `Sleeper` and thus
-        // structs which use it as a generic default will have to be created by some constructor
-        // with a user-supplied sleeper
-        pub type DefaultSleeper = NoDefaultSleeper;
-
-        #[derive(Debug, Clone, Default)]
-        #[doc(hidden)]
-        pub struct NoDefaultSleeper {
-            _priv: ()
-        }
+    fn sleep(&self, time: Duration) -> Self::Sleep {
+        tokio::time::sleep(time)
     }
 }
