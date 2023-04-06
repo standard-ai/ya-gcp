@@ -1,7 +1,7 @@
 //! An API for administering bigtable.
 
 use crate::{
-    auth::grpc::{self, AuthGrpcService, OAuthTokenSource},
+    auth::grpc::{self, AuthGrpcService},
     builder,
 };
 
@@ -31,15 +31,13 @@ config_default! {
 #[derive(Clone)]
 pub struct BigtableTableAdminClient<C = crate::DefaultConnector> {
     pub(crate) inner: admin::v2::bigtable_table_admin_client::BigtableTableAdminClient<
-        AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
+        AuthGrpcService<tonic::transport::Channel, C>,
     >,
     // A string of the form projects/{project}/instances/{instance}
     pub(crate) table_prefix: String,
 }
 
 pub use admin::v2::gc_rule::Rule;
-use http::Uri;
-use tower::make::MakeConnection;
 
 impl Rule {
     /// Take the union of this rule with `other`.
@@ -77,7 +75,15 @@ impl From<Rule> for admin::v2::GcRule {
 
 impl<C> BigtableTableAdminClient<C>
 where
-    C: crate::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
 {
     /// Create a new table.
     pub async fn create_table<Fams>(
@@ -138,9 +144,15 @@ pub struct BuildError(#[from] tonic::transport::Error);
 
 impl<C> builder::ClientBuilder<C>
 where
-    C: MakeConnection<Uri> + crate::Connect + Clone + Send + Sync + 'static,
-    C::Connection: Unpin + Send + 'static,
-    C::Future: Send + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     Box<dyn std::error::Error + Send + Sync + 'static>: From<C::Error>,
 {
     /// Create a client for administering bigtable tables.
@@ -159,7 +171,7 @@ where
         let table_prefix = format!("projects/{}/instances/{}", project, instance_name);
 
         let inner = admin::v2::bigtable_table_admin_client::BigtableTableAdminClient::new(
-            grpc::oauth_grpc(connection, self.auth.clone(), scopes),
+            grpc::AuthGrpcService::new(connection, self.auth.clone(), scopes),
         );
 
         Ok(BigtableTableAdminClient {

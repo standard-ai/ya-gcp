@@ -8,7 +8,7 @@ use prost::bytes::BytesMut;
 use std::ops::{Bound, RangeBounds};
 
 use crate::{
-    auth::grpc::{AuthGrpcService, OAuthTokenSource},
+    auth::grpc::AuthGrpcService,
     retry_policy::{ExponentialBackoff, RetryOperation, RetryPolicy, RetryPredicate},
 };
 
@@ -370,7 +370,7 @@ pub struct BigtableClient<
     Retry = ExponentialBackoff<BigtableRetryCheck>,
 > {
     inner: api::bigtable::v2::bigtable_client::BigtableClient<
-        AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
+        AuthGrpcService<tonic::transport::Channel, C>,
     >,
     retry: Retry,
     table_prefix: String,
@@ -378,7 +378,15 @@ pub struct BigtableClient<
 
 impl<C, Retry> BigtableClient<C, Retry>
 where
-    C: crate::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     Retry: RetryPolicy<(), tonic::Status> + 'static,
     Retry::RetryOp: Send + 'static,
     <Retry::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,

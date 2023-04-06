@@ -63,12 +63,13 @@ pub enum AuthError {
     #[error("error in fetching auth token")]
     Fetch(#[source] yup_oauth2::Error),
 
+    /// The token generator didn't produce any token
+    #[error("Auth did not generate a token")]
+    MissingToken,
+
     /// An error in validating a received auth token
-    #[error("token does not form a valid HTTP header value: {}", _1.as_str())]
-    InvalidToken(
-        #[source] http::header::InvalidHeaderValue,
-        yup_oauth2::AccessToken,
-    ),
+    #[error("token does not form a valid HTTP header value: {}", _1)]
+    InvalidToken(#[source] http::header::InvalidHeaderValue, String),
 }
 
 /// Errors that could be encountered when reading or writing objects to storage
@@ -108,7 +109,15 @@ pub struct StorageClient<C = builder::DefaultConnector> {
 
 impl<C> StorageClient<C>
 where
-    C: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
 {
     /// Add authentication to the request and send it, awaiting the response. The response will be
     /// collected into a single memory allocation (not a streamed body)
@@ -117,13 +126,14 @@ where
         mut request: http::Request<hyper::Body>,
     ) -> Result<http::Response<Bytes>, ObjectError> {
         if let Some(auth) = &self.auth {
-            let auth_token = auth
+            let token = auth
                 .token(&[READ_WRITE_SCOPE])
                 .await
                 .map_err(AuthError::Fetch)?;
+            let token = token.token().ok_or(AuthError::MissingToken)?;
 
-            crate::auth::add_auth_token(&mut request, &auth_token)
-                .map_err(|e| AuthError::InvalidToken(e, auth_token))?;
+            crate::auth::add_auth_token(&mut request, &token)
+                .map_err(|e| AuthError::InvalidToken(e, token.to_owned()))?;
         }
 
         let response = self

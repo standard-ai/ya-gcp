@@ -45,6 +45,14 @@ pub enum AuthFlow {
     /// running `gcloud auth application-default login`
     UserAccount(PathBuf),
 
+    /// Impersonate a service account from a user account
+    ServiceAccountImpersonation {
+        /// Path to the user credentials
+        user: PathBuf,
+        /// Email address of the service account
+        email: String,
+    },
+
     /// Skip authentication.
     ///
     /// Requests will not include any authorization header. This can be useful for tests
@@ -176,9 +184,17 @@ impl<C> ClientBuilder<C> {
         connector: C,
     ) -> Result<Self, CreateBuilderError>
     where
-        C: crate::Connect + Clone + Send + Sync + 'static,
+        C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
+        C::Response: hyper::client::connect::Connection
+            + tokio::io::AsyncRead
+            + tokio::io::AsyncWrite
+            + Send
+            + Unpin
+            + 'static,
+        C::Future: Send + Unpin + 'static,
+        C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     {
-        use AuthFlow::{NoAuth, ServiceAccount, UserAccount};
+        use AuthFlow::{NoAuth, ServiceAccount, ServiceAccountImpersonation, UserAccount};
 
         let client = hyper::client::Client::builder().build(connector.clone());
 
@@ -198,10 +214,38 @@ impl<C> ClientBuilder<C> {
                 )
                 .await?,
             ),
+            ServiceAccountImpersonation { user, email } => Some(
+                create_service_impersonation_auth(user.into_os_string(), email, client.clone())
+                    .await?,
+            ),
             UserAccount(path) => {
                 Some(create_user_auth(path.into_os_string(), client.clone()).await?)
             }
         };
+
+        Ok(Self {
+            connector,
+            client,
+            auth,
+        })
+    }
+
+    /// Create a new client builder with the given connector and auth builder.
+    pub async fn with_connector_and_auth_builder<F>(
+        connector: C,
+        auth_builder: impl FnOnce(Client<C>) -> F,
+    ) -> Result<Self, CreateBuilderError>
+    where
+        C: crate::Connect + Clone + Send + Sync + 'static,
+        F: futures::Future<Output = std::io::Result<Auth<C>>>,
+    {
+        let client = hyper::client::Client::builder().build(connector.clone());
+
+        let auth = Some(
+            auth_builder(client.clone())
+                .await
+                .map_err(CreateBuilderError::Authenticator)?,
+        );
 
         Ok(Self {
             connector,
@@ -217,7 +261,15 @@ async fn create_service_auth<C>(
     client: Client<C>,
 ) -> Result<Auth<C>, CreateBuilderError>
 where
-    C: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
+    C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
 {
     match service_account_key_path {
         Some(service_account_key_path) => {
@@ -263,7 +315,15 @@ async fn create_user_auth<C>(
     client: Client<C>,
 ) -> Result<Auth<C>, CreateBuilderError>
 where
-    C: hyper::client::connect::Connect + Clone + Send + Sync + 'static,
+    C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
 {
     let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
         .await
@@ -272,6 +332,34 @@ where
         })?;
 
     yup_oauth2::AuthorizedUserAuthenticator::with_client(user_secret, client)
+        .build()
+        .await
+        .map_err(CreateBuilderError::Authenticator)
+}
+
+async fn create_service_impersonation_auth<C>(
+    user_secrets_path: impl AsRef<std::path::Path>,
+    email: String,
+    client: Client<C>,
+) -> Result<Auth<C>, CreateBuilderError>
+where
+    C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+{
+    let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
+        .await
+        .map_err(|e| {
+            CreateBuilderError::ReadUserSecrets(e, user_secrets_path.as_ref().to_owned())
+        })?;
+
+    yup_oauth2::ServiceAccountImpersonationAuthenticator::with_client(user_secret, &email, client)
         .build()
         .await
         .map_err(CreateBuilderError::Authenticator)

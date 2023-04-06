@@ -1,6 +1,6 @@
 use super::{api, ProjectTopicName, PubSubRetryCheck};
 use crate::{
-    auth::grpc::{AuthGrpcService, OAuthTokenSource},
+    auth::grpc::AuthGrpcService,
     retry_policy::{exponential_backoff, ExponentialBackoff, RetryOperation, RetryPolicy},
 };
 use futures::{future::BoxFuture, ready, stream, Sink, SinkExt, TryFutureExt};
@@ -29,9 +29,8 @@ const MAX_MESSAGES_PER_PUBLISH: usize = 1000;
 const MAX_DATA_FIELD_BYTES: usize = 10 * MB;
 const MAX_PUBLISH_REQUEST_BYTES: usize = 10 * MB;
 
-type ApiPublisherClient<C> = api::publisher_client::PublisherClient<
-    AuthGrpcService<tonic::transport::Channel, OAuthTokenSource<C>>,
->;
+type ApiPublisherClient<C> =
+    api::publisher_client::PublisherClient<AuthGrpcService<tonic::transport::Channel, C>>;
 type Drain = futures::sink::Drain<api::PubsubMessage>;
 type FlushOutput<Si, E> = (Si, Result<(), SinkError<E>>);
 
@@ -269,7 +268,15 @@ impl<C, Retry, ResponseSink: Sink<api::PubsubMessage>> PublishTopicSink<C, Retry
 
 impl<C, Retry, ResponseSink> Sink<api::PubsubMessage> for PublishTopicSink<C, Retry, ResponseSink>
 where
-    C: crate::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     // TODO(type_alias_impl_trait) remove most of these 'static (and Send?) bounds
     Retry: RetryPolicy<api::PublishRequest, tonic::Status> + 'static,
     Retry::RetryOp: Send + 'static,
@@ -315,7 +322,15 @@ where
 // borrowing/pinning in callers easier
 impl<'pin, C, Retry, ResponseSink> PublishTopicSinkProjection<'pin, C, Retry, ResponseSink>
 where
-    C: crate::Connect + Clone + Send + Sync + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     Retry: RetryPolicy<api::PublishRequest, tonic::Status> + 'static,
     Retry::RetryOp: Send + 'static,
     <Retry::RetryOp as RetryOperation<api::PublishRequest, tonic::Status>>::Sleep: Send + 'static,
@@ -747,7 +762,7 @@ mod test {
         // by connecting to the endpoint lazily, this client will only work until the first request
         // is made (then it will error). That's good enough for testing certain functionality
         // that doesn't require the requests themselves, like validity checking
-        ApiPublisherClient::new(crate::auth::grpc::oauth_grpc(
+        ApiPublisherClient::new(crate::auth::grpc::AuthGrpcService::new(
             tonic::transport::channel::Endpoint::from_static("https://localhost").connect_lazy(),
             None,
             vec![],

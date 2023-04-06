@@ -58,7 +58,7 @@ jobs:
       matrix:
         rust_toolchain: [""] # "" = rust-toolchain version
         os: [windows-latest, macOS-latest]
-        test_flags: ["--features pubsub,storage,tokio"]
+        test_flags: ["--features pubsub,storage"]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v2

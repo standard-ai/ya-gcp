@@ -30,7 +30,7 @@ path = "examples/bigtable.rs"
 required-features = ["bigtable"]
 
 [features]
-default = ["rustls", "tokio"]
+default = ["rustls"]
 
 rustls = ["hyper-rustls"]
 openssl = ["hyper-openssl"] # TODO maybe should be native-tls instead?
@@ -39,11 +39,11 @@ openssl = ["hyper-openssl"] # TODO maybe should be native-tls instead?
 grpc = ["tonic", "prost", "prost-types", "tower", "derive_more"]
 
 bigtable = ["async-stream", "grpc", "prost", "tower"]
-pubsub = ["grpc", "uuid", "async-stream", "pin-project", "async-channel", "tokio", "tokio/time"]
+pubsub = ["grpc", "uuid", "async-stream", "pin-project", "async-channel", "tokio/time"]
 storage = ["tame-gcs"]
 
 # whether to include service emulator implementations. useful for testing
-emulators = ["tempdir", "tokio", "tokio/process"]
+emulators = ["tempdir", "tokio/process"]
 
 [dependencies]
 cfg-if = "1"
@@ -55,8 +55,9 @@ paste = "1"
 rand = "0.8"
 serde = { version = "1", features = ["derive"] }
 thiserror = "1"
+tokio = { version = "1", features = ["time"] }
 tracing = "0.1"
-yup-oauth2 = "6.7"
+yup-oauth2 = "8.1"
 
 async-stream = { version = "0.3", optional = true }
 async-channel = { version = "1", optional = true }
@@ -68,7 +69,6 @@ prost = { version = "0.9", optional = true }
 prost-types = { version = "0.9", optional = true }
 tame-gcs = { version = "0.10.0", optional = true }
 tempdir = { version = "0.3", optional = true }
-tokio = { version = "1", features = ["time"], optional = true }
 tonic = { version = "0.6.2", optional = true }
 tower = { version = "0.4", features = ["make"], optional = true }
 uuid = { version = "0.8.1", features = ["v4"], optional = true }

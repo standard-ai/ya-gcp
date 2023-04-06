@@ -49,9 +49,15 @@ use super::BigtableRetryCheck;
 
 impl<C> builder::ClientBuilder<C>
 where
-    C: MakeConnection<Uri> + crate::Connect + Clone + Send + Sync + 'static,
-    C::Connection: Unpin + Send + 'static,
-    C::Future: Send + 'static,
+    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
+    C::Response: hyper::client::connect::Connection
+        + tokio::io::AsyncRead
+        + tokio::io::AsyncWrite
+        + Send
+        + Unpin
+        + 'static,
+    C::Future: Send + Unpin + 'static,
+    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     Box<dyn std::error::Error + Send + Sync + 'static>: From<C::Error>,
 {
     /// Create a client for connecting to bigtable
@@ -69,11 +75,9 @@ where
             .await?;
         let table_prefix = format!("projects/{}/instances/{}/tables/", project, instance_name);
 
-        let inner = api::bigtable::v2::bigtable_client::BigtableClient::new(grpc::oauth_grpc(
-            connection,
-            self.auth.clone(),
-            scopes,
-        ));
+        let inner = api::bigtable::v2::bigtable_client::BigtableClient::new(
+            grpc::AuthGrpcService::new(connection, self.auth.clone(), scopes),
+        );
 
         Ok(BigtableClient {
             inner,
