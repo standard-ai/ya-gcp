@@ -39,12 +39,6 @@ impl BigtableConfig {
 #[error(transparent)]
 pub struct BuildError(#[from] tonic::transport::Error);
 
-// re-export traits and types necessary for the bounds on public functions
-#[allow(unreachable_pub)] // the reachability lint seems faulty with parent module re-exports
-pub use http::Uri;
-#[allow(unreachable_pub)]
-pub use tower::make::MakeConnection;
-
 use super::BigtableRetryCheck;
 
 impl<C> builder::ClientBuilder<C>

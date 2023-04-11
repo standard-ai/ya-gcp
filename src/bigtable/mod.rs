@@ -20,7 +20,7 @@ mod client_builder;
 pub mod filters;
 pub mod mutation;
 
-pub use client_builder::BigtableConfig;
+pub use client_builder::{BigtableConfig, BuildError};
 pub use mutation::{MutateRowRequest, MutateRowsError, MutateRowsRequest};
 
 #[cfg(feature = "emulators")]
