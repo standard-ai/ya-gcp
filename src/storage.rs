@@ -37,19 +37,98 @@ async fn collect_body(
 pub enum InvalidNameError {
     /// The given name did not have a valid bucket
     #[error("error validating bucket name {1}")]
-    Bucket(#[source] api::Error, String),
+    Bucket(#[source] BucketNameError, String),
 
     /// The given name did not have a valid object
     #[error("error validating object name {1}")]
     Object(#[source] api::Error, String),
 }
 
+/// An error indicating that a given bucket name was invalid
+#[derive(Debug, thiserror::Error)]
+pub enum BucketNameError {
+    /// The name was too long or too short.
+    #[error("invalid character count {len}")]
+    InvalidCharacterCount {
+        /// The number of characters in the name.
+        len: usize,
+        /// The number of characters must be at least this.
+        min: usize,
+        /// The number of characters must be at most this.
+        max: usize,
+    },
+
+    /// The name contained an invalid character.
+    #[error("invalid character {1} at offset {0}")]
+    InvalidCharacter(usize, char),
+
+    /// The name started with an invalid prefix.
+    #[error("invalid prefix {0}")]
+    InvalidPrefix(&'static str),
+
+    /// The name contained an invalid substring.
+    #[error("invalid sequence {0}")]
+    InvalidSequence(&'static str),
+}
+
+// tame-gcs's bucket name verification is overly-strict, because it
+// forbids '.' (see https://github.com/EmbarkStudios/tame-gcs/issues/58).
+// This is mostly a copy of their name verification function, but modified
+// to allow '.'
+fn bucket(name: &str) -> Result<BucketName, BucketNameError> {
+    let count = name.chars().count();
+
+    // Bucket names must contain 3 to 63 characters.
+    if !(3..=63).contains(&count) {
+        return Err(BucketNameError::InvalidCharacterCount {
+            len: count,
+            min: 3,
+            max: 63,
+        });
+    }
+
+    let last = count - 1;
+
+    for (i, c) in name.chars().enumerate() {
+        if c.is_ascii_uppercase() {
+            return Err(BucketNameError::InvalidCharacter(i, c));
+        }
+
+        match c {
+            'a'..='z' | '0'..='9' => {}
+            '-' | '_' | '.' => {
+                // Bucket names must start and end with a number or letter.
+                if i == 0 || i == last {
+                    return Err(BucketNameError::InvalidCharacter(i, c));
+                }
+            }
+            c => {
+                return Err(BucketNameError::InvalidCharacter(i, c));
+            }
+        }
+    }
+
+    // Bucket names cannot begin with the "goog" prefix.
+    if name.starts_with("goog") {
+        return Err(BucketNameError::InvalidPrefix("goog"));
+    }
+
+    // Bucket names cannot contain "google" or close misspellings, such as "g00gle".
+    // They don't really specify what counts as a "close" misspelling, so just check
+    // the ones they say, and let the API deny the rest
+    if name.contains("google") || name.contains("g00gle") {
+        return Err(BucketNameError::InvalidSequence("google"));
+    }
+
+    Ok(BucketName::non_validated(name.into()))
+}
+
 fn names_to_object<'a>(
     bucket_name: &'a str,
     object_name: &'a str,
 ) -> Result<ObjectId<'a>, InvalidNameError> {
-    let bucket = BucketName::try_from(bucket_name)
-        .map_err(|e| InvalidNameError::Bucket(e, bucket_name.to_owned()))?;
+    let bucket =
+        bucket(bucket_name).map_err(|e| InvalidNameError::Bucket(e, bucket_name.to_owned()))?;
     let object = ObjectName::try_from(object_name)
         .map_err(|e| InvalidNameError::Object(e, object_name.to_owned()))?;
 
@@ -247,7 +326,7 @@ where
         metadata: &Metadata,
         data: impl Into<Bytes>,
     ) -> Result<Metadata, ObjectError> {
-        let bucket = BucketName::try_from(bucket_name.as_ref())
+        let bucket = bucket(bucket_name.as_ref())
             .map_err(|e| InvalidNameError::Bucket(e, bucket_name.as_ref().to_owned()))?;
 
         let data: Bytes = data.into();
