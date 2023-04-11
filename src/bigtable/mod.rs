@@ -1,6 +1,7 @@
-//! TODO(docs!)
-
-// Primitives for reading/writing Bigtable tables
+//! An API for interacting with Google's [Bigtable](https://cloud.google.com/bigtable) database.
+//!
+//! The [`BigtableClient`] allows reading and writing to tables, while the [`BigtableTableAdminClient`]
+//! allows for creating and listing tables.
 
 use futures::prelude::*;
 use hyper::body::Bytes;
