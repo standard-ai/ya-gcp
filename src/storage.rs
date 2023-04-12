@@ -211,7 +211,7 @@ where
 
         let request = objects::Object::download(&oid, None).map_err(ObjectError::InvalidRequest)?;
 
-        let response = dbg!(self.send_request(empty_body(request)).await?);
+        let response = self.send_request(empty_body(request)).await?;
 
         Ok(objects::DownloadObjectResponse::try_from_parts(response)
             .map_err(ObjectError::Failure)?
