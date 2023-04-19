@@ -483,9 +483,8 @@ where
         rows_limit: Option<i64>,
     ) -> impl Stream<Item = Result<Bytes, ReadRowsError>> + '_ {
         use filters::{Chain, Filter};
-        let table_name = format!("{}{}", self.table_prefix, table_name);
         let req = ReadRowsRequest {
-            table_name,
+            table_name: self.fully_qualified_table_name(table_name),
             rows_limit: rows_limit.unwrap_or(0),
             rows: Some(v2::RowSet::default().with_range(range)),
             filter: Some(
@@ -511,9 +510,8 @@ where
         range: impl RangeBounds<Bytes>,
         rows_limit: Option<i64>,
     ) -> impl Stream<Item = Result<Row, ReadRowsError>> + '_ {
-        let table_name = format!("{}{}", self.table_prefix, table_name);
         let req = ReadRowsRequest {
-            table_name,
+            table_name: self.fully_qualified_table_name(table_name),
             rows_limit: rows_limit.unwrap_or(0),
             rows: Some(v2::RowSet::default().with_range(range)),
             filter: Some(filters::Filter::CellsPerColumnLimitFilter(1).into()),
@@ -528,9 +526,8 @@ where
         table_name: &str,
         row_key: impl Into<Bytes>,
     ) -> Result<Option<Row>, ReadRowsError> {
-        let table_name = format!("{}{}", self.table_prefix, table_name);
         let req = ReadRowsRequest {
-            table_name,
+            table_name: self.fully_qualified_table_name(table_name),
             rows: Some(v2::RowSet::default().with_key(row_key)),
             filter: Some(filters::Filter::CellsPerColumnLimitFilter(1).into()),
             ..Default::default()
@@ -601,7 +598,7 @@ where
         table_name: &str,
         row_keys: impl IntoIterator<Item = impl Into<Bytes>>,
     ) -> Result<(), MutateRowsError> {
-        let table_name = format!("{}{}", self.table_prefix, table_name);
+        let table_name = self.fully_qualified_table_name(table_name);
         let req =
             MutateRowsRequest::new(table_name).with_entries(row_keys.into_iter().map(|row_key| {
                 mutation::Entry::new(row_key.into()).with_mutation(mutation::DeleteFromRow {})
@@ -645,7 +642,7 @@ where
         CellData: Into<Bytes>,
         RowData: IntoIterator<Item = (ColName, CellData)>,
     {
-        let table_name = format!("{}{}", self.table_prefix, table_name);
+        let table_name = self.fully_qualified_table_name(table_name);
         let req = MutateRowsRequest::new(table_name).with_entries(data.into_iter().map(
             |(row_key, row_data)| {
                 mutation::Entry::new(row_key.into()).with_mutations(row_data.into_iter().map(
@@ -682,7 +679,7 @@ where
         CellData: Into<Bytes>,
         RowData: IntoIterator<Item = (ColName, CellData)>,
     {
-        let table_name = format!("{}{}", self.table_prefix, table_name);
+        let table_name = self.fully_qualified_table_name(table_name);
         let req = MutateRowRequest::new(table_name, row_key.into()).with_mutations(
             data.into_iter().map(|(col_name, cell_data)| {
                 mutation::SetCell::new(family_name.clone(), col_name.into(), cell_data.into())
