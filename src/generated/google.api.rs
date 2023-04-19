@@ -1,6 +1,7 @@
 /// Defines the HTTP configuration for an API service. It contains a list of
 /// \[HttpRule][google.api.HttpRule\], each specifying the mapping of an RPC method
 /// to one or more HTTP REST API methods.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Http {
     /// A list of HTTP configuration rules that apply to individual API methods.
@@ -42,19 +43,19 @@ pub struct Http {
 ///
 /// Example:
 ///
-///     service Messaging {
-///       rpc GetMessage(GetMessageRequest) returns (Message) {
-///         option (google.api.http) = {
-///             get: "/v1/{name=messages/*}"
-///         };
-///       }
-///     }
-///     message GetMessageRequest {
-///       string name = 1; // Mapped to URL path.
-///     }
-///     message Message {
-///       string text = 1; // The resource content.
-///     }
+///      service Messaging {
+///        rpc GetMessage(GetMessageRequest) returns (Message) {
+///          option (google.api.http) = {
+///              get: "/v1/{name=messages/*}"
+///          };
+///        }
+///      }
+///      message GetMessageRequest {
+///        string name = 1; // Mapped to URL path.
+///      }
+///      message Message {
+///        string text = 1; // The resource content.
+///      }
 ///
 /// This enables an HTTP REST to gRPC mapping as below:
 ///
@@ -66,21 +67,21 @@ pub struct Http {
 /// automatically become HTTP query parameters if there is no HTTP request body.
 /// For example:
 ///
-///     service Messaging {
-///       rpc GetMessage(GetMessageRequest) returns (Message) {
-///         option (google.api.http) = {
-///             get:"/v1/messages/{message_id}"
-///         };
-///       }
-///     }
-///     message GetMessageRequest {
-///       message SubMessage {
-///         string subfield = 1;
-///       }
-///       string message_id = 1; // Mapped to URL path.
-///       int64 revision = 2;    // Mapped to URL query parameter `revision`.
-///       SubMessage sub = 3;    // Mapped to URL query parameter `sub.subfield`.
-///     }
+///      service Messaging {
+///        rpc GetMessage(GetMessageRequest) returns (Message) {
+///          option (google.api.http) = {
+///              get:"/v1/messages/{message_id}"
+///          };
+///        }
+///      }
+///      message GetMessageRequest {
+///        message SubMessage {
+///          string subfield = 1;
+///        }
+///        string message_id = 1; // Mapped to URL path.
+///        int64 revision = 2;    // Mapped to URL query parameter `revision`.
+///        SubMessage sub = 3;    // Mapped to URL query parameter `sub.subfield`.
+///      }
 ///
 /// This enables a HTTP JSON to RPC mapping as below:
 ///
@@ -101,18 +102,18 @@ pub struct Http {
 /// specifies the mapping. Consider a REST update method on the
 /// message resource collection:
 ///
-///     service Messaging {
-///       rpc UpdateMessage(UpdateMessageRequest) returns (Message) {
-///         option (google.api.http) = {
-///           patch: "/v1/messages/{message_id}"
-///           body: "message"
-///         };
-///       }
-///     }
-///     message UpdateMessageRequest {
-///       string message_id = 1; // mapped to the URL
-///       Message message = 2;   // mapped to the body
-///     }
+///      service Messaging {
+///        rpc UpdateMessage(UpdateMessageRequest) returns (Message) {
+///          option (google.api.http) = {
+///            patch: "/v1/messages/{message_id}"
+///            body: "message"
+///          };
+///        }
+///      }
+///      message UpdateMessageRequest {
+///        string message_id = 1; // mapped to the URL
+///        Message message = 2;   // mapped to the body
+///      }
 ///
 /// The following HTTP JSON to RPC mapping is enabled, where the
 /// representation of the JSON in the request body is determined by
@@ -128,18 +129,18 @@ pub struct Http {
 /// request body.  This enables the following alternative definition of
 /// the update method:
 ///
-///     service Messaging {
-///       rpc UpdateMessage(Message) returns (Message) {
-///         option (google.api.http) = {
-///           patch: "/v1/messages/{message_id}"
-///           body: "*"
-///         };
-///       }
-///     }
-///     message Message {
-///       string message_id = 1;
-///       string text = 2;
-///     }
+///      service Messaging {
+///        rpc UpdateMessage(Message) returns (Message) {
+///          option (google.api.http) = {
+///            patch: "/v1/messages/{message_id}"
+///            body: "*"
+///          };
+///        }
+///      }
+///      message Message {
+///        string message_id = 1;
+///        string text = 2;
+///      }
 ///
 ///
 /// The following HTTP JSON to RPC mapping is enabled:
@@ -158,20 +159,20 @@ pub struct Http {
 /// It is possible to define multiple HTTP methods for one RPC by using
 /// the `additional_bindings` option. Example:
 ///
-///     service Messaging {
-///       rpc GetMessage(GetMessageRequest) returns (Message) {
-///         option (google.api.http) = {
-///           get: "/v1/messages/{message_id}"
-///           additional_bindings {
-///             get: "/v1/users/{user_id}/messages/{message_id}"
-///           }
-///         };
-///       }
-///     }
-///     message GetMessageRequest {
-///       string message_id = 1;
-///       string user_id = 2;
-///     }
+///      service Messaging {
+///        rpc GetMessage(GetMessageRequest) returns (Message) {
+///          option (google.api.http) = {
+///            get: "/v1/messages/{message_id}"
+///            additional_bindings {
+///              get: "/v1/users/{user_id}/messages/{message_id}"
+///            }
+///          };
+///        }
+///      }
+///      message GetMessageRequest {
+///        string message_id = 1;
+///        string user_id = 2;
+///      }
 ///
 /// This enables the following two alternative HTTP JSON to RPC mappings:
 ///
@@ -184,27 +185,30 @@ pub struct Http {
 /// ## Rules for HTTP mapping
 ///
 /// 1. Leaf request fields (recursive expansion nested messages in the request
-///    message) are classified into three categories:
-///    - Fields referred by the path template. They are passed via the URL path.
-///    - Fields referred by the \[HttpRule.body][google.api.HttpRule.body\]. They are passed via the HTTP
-///      request body.
-///    - All other fields are passed via the URL query parameters, and the
-///      parameter name is the field path in the request message. A repeated
-///      field can be represented as multiple query parameters under the same
-///      name.
-///  2. If \[HttpRule.body][google.api.HttpRule.body\] is "*", there is no URL query parameter, all fields
-///     are passed via URL path and HTTP request body.
-///  3. If \[HttpRule.body][google.api.HttpRule.body\] is omitted, there is no HTTP request body, all
-///     fields are passed via URL path and URL query parameters.
+///     message) are classified into three categories:
+///     - Fields referred by the path template. They are passed via the URL path.
+///     - Fields referred by the \[HttpRule.body][google.api.HttpRule.body\]. They
+///     are passed via the HTTP
+///       request body.
+///     - All other fields are passed via the URL query parameters, and the
+///       parameter name is the field path in the request message. A repeated
+///       field can be represented as multiple query parameters under the same
+///       name.
+///   2. If \[HttpRule.body][google.api.HttpRule.body\] is "*", there is no URL
+///   query parameter, all fields
+///      are passed via URL path and HTTP request body.
+///   3. If \[HttpRule.body][google.api.HttpRule.body\] is omitted, there is no HTTP
+///   request body, all
+///      fields are passed via URL path and URL query parameters.
 ///
 /// ### Path template syntax
 ///
-///     Template = "/" Segments [ Verb ] ;
-///     Segments = Segment { "/" Segment } ;
-///     Segment  = "*" | "**" | LITERAL | Variable ;
-///     Variable = "{" FieldPath [ "=" Segments ] "}" ;
-///     FieldPath = IDENT { "." IDENT } ;
-///     Verb     = ":" LITERAL ;
+///      Template = "/" Segments [ Verb ] ;
+///      Segments = Segment { "/" Segment } ;
+///      Segment  = "*" | "**" | LITERAL | Variable ;
+///      Variable = "{" FieldPath [ "=" Segments ] "}" ;
+///      FieldPath = IDENT { "." IDENT } ;
+///      Verb     = ":" LITERAL ;
 ///
 /// The syntax `*` matches a single URL path segment. The syntax `**` matches
 /// zero or more URL path segments, which must be the last part of the URL path
@@ -253,11 +257,11 @@ pub struct Http {
 ///
 /// Example:
 ///
-///     http:
-///       rules:
-///         # Selects a gRPC method and applies HttpRule to it.
-///         - selector: example.v1.Messaging.GetMessage
-///           get: /v1/messages/{message_id}/{sub.subfield}
+///      http:
+///        rules:
+///          # Selects a gRPC method and applies HttpRule to it.
+///          - selector: example.v1.Messaging.GetMessage
+///            get: /v1/messages/{message_id}/{sub.subfield}
 ///
 /// ## Special notes
 ///
@@ -286,11 +290,13 @@ pub struct Http {
 /// If an API needs to use a JSON array for request or response body, it can map
 /// the request or response body to a repeated field. However, some gRPC
 /// Transcoding implementations may not support this feature.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HttpRule {
     /// Selects a method to which this rule applies.
     ///
-    /// Refer to \[selector][google.api.DocumentationRule.selector\] for syntax details.
+    /// Refer to \[selector][google.api.DocumentationRule.selector\] for syntax
+    /// details.
     #[prost(string, tag = "1")]
     pub selector: ::prost::alloc::string::String,
     /// The name of the request field whose value is mapped to the HTTP request
@@ -325,6 +331,7 @@ pub mod http_rule {
     /// Determines the URL pattern is matched by this rules. This pattern can be
     /// used with any of the {get|put|post|delete|patch} methods. A custom method
     /// can be defined using the 'custom' field.
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Pattern {
         /// Maps to HTTP GET. Used for listing and getting information about
@@ -352,6 +359,7 @@ pub mod http_rule {
     }
 }
 /// A custom pattern is used for defining custom HTTP verb.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CustomHttpPattern {
     /// The name of this custom HTTP verb.
@@ -404,11 +412,45 @@ pub enum LaunchStage {
     /// Policy](<https://cloud.google.com/terms/deprecation>) documentation.
     Deprecated = 5,
 }
+impl LaunchStage {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            LaunchStage::Unspecified => "LAUNCH_STAGE_UNSPECIFIED",
+            LaunchStage::Unimplemented => "UNIMPLEMENTED",
+            LaunchStage::Prelaunch => "PRELAUNCH",
+            LaunchStage::EarlyAccess => "EARLY_ACCESS",
+            LaunchStage::Alpha => "ALPHA",
+            LaunchStage::Beta => "BETA",
+            LaunchStage::Ga => "GA",
+            LaunchStage::Deprecated => "DEPRECATED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "LAUNCH_STAGE_UNSPECIFIED" => Some(Self::Unspecified),
+            "UNIMPLEMENTED" => Some(Self::Unimplemented),
+            "PRELAUNCH" => Some(Self::Prelaunch),
+            "EARLY_ACCESS" => Some(Self::EarlyAccess),
+            "ALPHA" => Some(Self::Alpha),
+            "BETA" => Some(Self::Beta),
+            "GA" => Some(Self::Ga),
+            "DEPRECATED" => Some(Self::Deprecated),
+            _ => None,
+        }
+    }
+}
 /// Required information for every language.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CommonLanguageSettings {
     /// Link to automatically generated reference documentation.  Example:
     /// <https://cloud.google.com/nodejs/docs/reference/asset/latest>
+    #[deprecated]
     #[prost(string, tag = "1")]
     pub reference_docs_uri: ::prost::alloc::string::String,
     /// The destination where API teams want this client library to be published.
@@ -416,9 +458,12 @@ pub struct CommonLanguageSettings {
     pub destinations: ::prost::alloc::vec::Vec<i32>,
 }
 /// Details about how and where to publish client libraries.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ClientLibrarySettings {
-    /// Version of the API to apply these settings to.
+    /// Version of the API to apply these settings to. This is the full protobuf
+    /// package for the API, ending in the version element.
+    /// Examples: "google.cloud.speech.v1" and "google.spanner.admin.database.v1".
     #[prost(string, tag = "1")]
     pub version: ::prost::alloc::string::String,
     /// Launch stage of this version of the API.
@@ -456,6 +501,7 @@ pub struct ClientLibrarySettings {
 /// This message configures the settings for publishing [Google Cloud Client
 /// libraries](<https://cloud.google.com/apis/docs/cloud-client-libraries>)
 /// generated from the service config.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Publishing {
     /// A list of API method settings, e.g. the behavior for methods that use the
@@ -494,8 +540,13 @@ pub struct Publishing {
     /// settings with the same version string are discarded.
     #[prost(message, repeated, tag = "109")]
     pub library_settings: ::prost::alloc::vec::Vec<ClientLibrarySettings>,
+    /// Optional link to proto reference documentation.  Example:
+    /// <https://cloud.google.com/pubsub/lite/docs/reference/rpc>
+    #[prost(string, tag = "110")]
+    pub proto_reference_documentation_uri: ::prost::alloc::string::String,
 }
 /// Settings for Java client libraries.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct JavaSettings {
     /// The package name to use in Java. Clobbers the java_package option
@@ -506,9 +557,9 @@ pub struct JavaSettings {
     ///
     /// Example of a YAML configuration::
     ///
-    ///  publishing:
-    ///    java_settings:
-    ///      library_package: com.google.cloud.pubsub.v1
+    ///   publishing:
+    ///     java_settings:
+    ///       library_package: com.google.cloud.pubsub.v1
     #[prost(string, tag = "1")]
     pub library_package: ::prost::alloc::string::String,
     /// Configure the Java class name to use instead of the service's for its
@@ -520,19 +571,22 @@ pub struct JavaSettings {
     ///
     /// Example of a YAML configuration::
     ///
-    ///  publishing:
-    ///    java_settings:
-    ///      service_class_names:
-    ///        - google.pubsub.v1.Publisher: TopicAdmin
-    ///        - google.pubsub.v1.Subscriber: SubscriptionAdmin
+    ///   publishing:
+    ///     java_settings:
+    ///       service_class_names:
+    ///         - google.pubsub.v1.Publisher: TopicAdmin
+    ///         - google.pubsub.v1.Subscriber: SubscriptionAdmin
     #[prost(map = "string, string", tag = "2")]
-    pub service_class_names:
-        ::std::collections::HashMap<::prost::alloc::string::String, ::prost::alloc::string::String>,
+    pub service_class_names: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
     /// Some settings.
     #[prost(message, optional, tag = "3")]
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for C++ client libraries.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CppSettings {
     /// Some settings.
@@ -540,6 +594,7 @@ pub struct CppSettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for Php client libraries.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PhpSettings {
     /// Some settings.
@@ -547,6 +602,7 @@ pub struct PhpSettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for Python client libraries.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PythonSettings {
     /// Some settings.
@@ -554,6 +610,7 @@ pub struct PythonSettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for Node client libraries.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NodeSettings {
     /// Some settings.
@@ -561,13 +618,53 @@ pub struct NodeSettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for Dotnet client libraries.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DotnetSettings {
     /// Some settings.
     #[prost(message, optional, tag = "1")]
     pub common: ::core::option::Option<CommonLanguageSettings>,
+    /// Map from original service names to renamed versions.
+    /// This is used when the default generated types
+    /// would cause a naming conflict. (Neither name is
+    /// fully-qualified.)
+    /// Example: Subscriber to SubscriberServiceApi.
+    #[prost(map = "string, string", tag = "2")]
+    pub renamed_services: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    /// Map from full resource types to the effective short name
+    /// for the resource. This is used when otherwise resource
+    /// named from different services would cause naming collisions.
+    /// Example entry:
+    /// "datalabeling.googleapis.com/Dataset": "DataLabelingDataset"
+    #[prost(map = "string, string", tag = "3")]
+    pub renamed_resources: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ::prost::alloc::string::String,
+    >,
+    /// List of full resource types to ignore during generation.
+    /// This is typically used for API-specific Location resources,
+    /// which should be handled by the generator as if they were actually
+    /// the common Location resources.
+    /// Example entry: "documentai.googleapis.com/Location"
+    #[prost(string, repeated, tag = "4")]
+    pub ignored_resources: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+    /// Namespaces which must be aliased in snippets due to
+    /// a known (but non-generator-predictable) naming collision
+    #[prost(string, repeated, tag = "5")]
+    pub forced_namespace_aliases: ::prost::alloc::vec::Vec<
+        ::prost::alloc::string::String,
+    >,
+    /// Method signatures (in the form "service.method(signature)")
+    /// which are provided separately, so shouldn't be generated.
+    /// Snippets *calling* these methods are still generated, however.
+    #[prost(string, repeated, tag = "6")]
+    pub handwritten_signatures: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// Settings for Ruby client libraries.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RubySettings {
     /// Some settings.
@@ -575,6 +672,7 @@ pub struct RubySettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for Go client libraries.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GoSettings {
     /// Some settings.
@@ -582,6 +680,7 @@ pub struct GoSettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Describes the generator configuration for a method.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MethodSettings {
     /// The fully qualified name of the method, for which the options below apply.
@@ -594,17 +693,17 @@ pub struct MethodSettings {
     ///
     /// Example of a YAML configuration::
     ///
-    ///  publishing:
-    ///    method_behavior:
-    ///      - selector: CreateAdDomain
-    ///        long_running:
-    ///          initial_poll_delay:
-    ///            seconds: 60 # 1 minute
-    ///          poll_delay_multiplier: 1.5
-    ///          max_poll_delay:
-    ///            seconds: 360 # 6 minutes
-    ///          total_poll_timeout:
-    ///             seconds: 54000 # 90 minutes
+    ///   publishing:
+    ///     method_settings:
+    ///       - selector: google.cloud.speech.v2.Speech.BatchRecognize
+    ///         long_running:
+    ///           initial_poll_delay:
+    ///             seconds: 60 # 1 minute
+    ///           poll_delay_multiplier: 1.5
+    ///           max_poll_delay:
+    ///             seconds: 360 # 6 minutes
+    ///           total_poll_timeout:
+    ///              seconds: 54000 # 90 minutes
     #[prost(message, optional, tag = "2")]
     pub long_running: ::core::option::Option<method_settings::LongRunning>,
 }
@@ -615,6 +714,7 @@ pub mod method_settings {
     /// All default values below are from those used in the client library
     /// generators (e.g.
     /// \[Java\](<https://github.com/googleapis/gapic-generator-java/blob/04c2faa191a9b5a10b92392fe8482279c4404803/src/main/java/com/google/api/generator/gapic/composer/common/RetrySettingsComposer.java>)).
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct LongRunning {
         /// Initial delay after which the first poll request will be made.
@@ -652,6 +752,34 @@ pub enum ClientLibraryOrganization {
     /// Street View Org.
     StreetView = 4,
 }
+impl ClientLibraryOrganization {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            ClientLibraryOrganization::Unspecified => {
+                "CLIENT_LIBRARY_ORGANIZATION_UNSPECIFIED"
+            }
+            ClientLibraryOrganization::Cloud => "CLOUD",
+            ClientLibraryOrganization::Ads => "ADS",
+            ClientLibraryOrganization::Photos => "PHOTOS",
+            ClientLibraryOrganization::StreetView => "STREET_VIEW",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CLIENT_LIBRARY_ORGANIZATION_UNSPECIFIED" => Some(Self::Unspecified),
+            "CLOUD" => Some(Self::Cloud),
+            "ADS" => Some(Self::Ads),
+            "PHOTOS" => Some(Self::Photos),
+            "STREET_VIEW" => Some(Self::StreetView),
+            _ => None,
+        }
+    }
+}
 /// To where should client libraries be published?
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -664,6 +792,30 @@ pub enum ClientLibraryDestination {
     Github = 10,
     /// Publish the library to package managers like nuget.org and npmjs.com.
     PackageManager = 20,
+}
+impl ClientLibraryDestination {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            ClientLibraryDestination::Unspecified => {
+                "CLIENT_LIBRARY_DESTINATION_UNSPECIFIED"
+            }
+            ClientLibraryDestination::Github => "GITHUB",
+            ClientLibraryDestination::PackageManager => "PACKAGE_MANAGER",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "CLIENT_LIBRARY_DESTINATION_UNSPECIFIED" => Some(Self::Unspecified),
+            "GITHUB" => Some(Self::Github),
+            "PACKAGE_MANAGER" => Some(Self::PackageManager),
+            _ => None,
+        }
+    }
 }
 /// An indicator of the behavior of a given field (for example, that a field
 /// is required in requests, or given as output but ignored as input).
@@ -708,6 +860,38 @@ pub enum FieldBehavior {
     /// non-empty value to expect.
     NonEmptyDefault = 7,
 }
+impl FieldBehavior {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            FieldBehavior::Unspecified => "FIELD_BEHAVIOR_UNSPECIFIED",
+            FieldBehavior::Optional => "OPTIONAL",
+            FieldBehavior::Required => "REQUIRED",
+            FieldBehavior::OutputOnly => "OUTPUT_ONLY",
+            FieldBehavior::InputOnly => "INPUT_ONLY",
+            FieldBehavior::Immutable => "IMMUTABLE",
+            FieldBehavior::UnorderedList => "UNORDERED_LIST",
+            FieldBehavior::NonEmptyDefault => "NON_EMPTY_DEFAULT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "FIELD_BEHAVIOR_UNSPECIFIED" => Some(Self::Unspecified),
+            "OPTIONAL" => Some(Self::Optional),
+            "REQUIRED" => Some(Self::Required),
+            "OUTPUT_ONLY" => Some(Self::OutputOnly),
+            "INPUT_ONLY" => Some(Self::InputOnly),
+            "IMMUTABLE" => Some(Self::Immutable),
+            "UNORDERED_LIST" => Some(Self::UnorderedList),
+            "NON_EMPTY_DEFAULT" => Some(Self::NonEmptyDefault),
+            _ => None,
+        }
+    }
+}
 /// A simple descriptor of a resource type.
 ///
 /// ResourceDescriptor annotates a resource message (either by means of a
@@ -716,45 +900,46 @@ pub enum FieldBehavior {
 ///
 /// Example:
 ///
-///     message Topic {
-///       // Indicates this message defines a resource schema.
-///       // Declares the resource type in the format of {service}/{kind}.
-///       // For Kubernetes resources, the format is {api group}/{kind}.
-///       option (google.api.resource) = {
-///         type: "pubsub.googleapis.com/Topic"
-///         pattern: "projects/{project}/topics/{topic}"
-///       };
-///     }
+///      message Topic {
+///        // Indicates this message defines a resource schema.
+///        // Declares the resource type in the format of {service}/{kind}.
+///        // For Kubernetes resources, the format is {api group}/{kind}.
+///        option (google.api.resource) = {
+///          type: "pubsub.googleapis.com/Topic"
+///          pattern: "projects/{project}/topics/{topic}"
+///        };
+///      }
 ///
 /// The ResourceDescriptor Yaml config will look like:
 ///
-///     resources:
-///     - type: "pubsub.googleapis.com/Topic"
-///       pattern: "projects/{project}/topics/{topic}"
+///      resources:
+///      - type: "pubsub.googleapis.com/Topic"
+///        pattern: "projects/{project}/topics/{topic}"
 ///
 /// Sometimes, resources have multiple patterns, typically because they can
 /// live under multiple parents.
 ///
 /// Example:
 ///
-///     message LogEntry {
-///       option (google.api.resource) = {
-///         type: "logging.googleapis.com/LogEntry"
-///         pattern: "projects/{project}/logs/{log}"
-///         pattern: "folders/{folder}/logs/{log}"
-///         pattern: "organizations/{organization}/logs/{log}"
-///         pattern: "billingAccounts/{billing_account}/logs/{log}"
-///       };
-///     }
+///      message LogEntry {
+///        option (google.api.resource) = {
+///          type: "logging.googleapis.com/LogEntry"
+///          pattern: "projects/{project}/logs/{log}"
+///          pattern: "folders/{folder}/logs/{log}"
+///          pattern: "organizations/{organization}/logs/{log}"
+///          pattern: "billingAccounts/{billing_account}/logs/{log}"
+///        };
+///      }
 ///
 /// The ResourceDescriptor Yaml config will look like:
 ///
-///     resources:
-///     - type: 'logging.googleapis.com/LogEntry'
-///       pattern: "projects/{project}/logs/{log}"
-///       pattern: "folders/{folder}/logs/{log}"
-///       pattern: "organizations/{organization}/logs/{log}"
-///       pattern: "billingAccounts/{billing_account}/logs/{log}"
+///      resources:
+///      - type: 'logging.googleapis.com/LogEntry'
+///        pattern: "projects/{project}/logs/{log}"
+///        pattern: "folders/{folder}/logs/{log}"
+///        pattern: "organizations/{organization}/logs/{log}"
+///        pattern: "billingAccounts/{billing_account}/logs/{log}"
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResourceDescriptor {
     /// The resource type. It must be in the format of
@@ -775,14 +960,14 @@ pub struct ResourceDescriptor {
     /// The path pattern must follow the syntax, which aligns with HTTP binding
     /// syntax:
     ///
-    ///     Template = Segment { "/" Segment } ;
-    ///     Segment = LITERAL | Variable ;
-    ///     Variable = "{" LITERAL "}" ;
+    ///      Template = Segment { "/" Segment } ;
+    ///      Segment = LITERAL | Variable ;
+    ///      Variable = "{" LITERAL "}" ;
     ///
     /// Examples:
     ///
-    ///     - "projects/{project}/topics/{topic}"
-    ///     - "projects/{project}/knowledgeBases/{knowledge_base}"
+    ///      - "projects/{project}/topics/{topic}"
+    ///      - "projects/{project}/knowledgeBases/{knowledge_base}"
     ///
     /// The components in braces correspond to the IDs for each resource in the
     /// hierarchy. It is expected that, if multiple patterns are provided,
@@ -798,17 +983,17 @@ pub struct ResourceDescriptor {
     ///
     /// Example:
     ///
-    ///     // The InspectTemplate message originally only supported resource
-    ///     // names with organization, and project was added later.
-    ///     message InspectTemplate {
-    ///       option (google.api.resource) = {
-    ///         type: "dlp.googleapis.com/InspectTemplate"
-    ///         pattern:
-    ///         "organizations/{organization}/inspectTemplates/{inspect_template}"
-    ///         pattern: "projects/{project}/inspectTemplates/{inspect_template}"
-    ///         history: ORIGINALLY_SINGLE_PATTERN
-    ///       };
-    ///     }
+    ///      // The InspectTemplate message originally only supported resource
+    ///      // names with organization, and project was added later.
+    ///      message InspectTemplate {
+    ///        option (google.api.resource) = {
+    ///          type: "dlp.googleapis.com/InspectTemplate"
+    ///          pattern:
+    ///          "organizations/{organization}/inspectTemplates/{inspect_template}"
+    ///          pattern: "projects/{project}/inspectTemplates/{inspect_template}"
+    ///          history: ORIGINALLY_SINGLE_PATTERN
+    ///        };
+    ///      }
     #[prost(enumeration = "resource_descriptor::History", tag = "4")]
     pub history: i32,
     /// The plural name used in the resource name and permission names, such as
@@ -836,7 +1021,17 @@ pub struct ResourceDescriptor {
 pub mod resource_descriptor {
     /// A description of the historical or future-looking state of the
     /// resource pattern.
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
     #[repr(i32)]
     pub enum History {
         /// The "unset" value.
@@ -849,8 +1044,40 @@ pub mod resource_descriptor {
         /// that from being necessary once there are multiple patterns.)
         FutureMultiPattern = 2,
     }
+    impl History {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                History::Unspecified => "HISTORY_UNSPECIFIED",
+                History::OriginallySinglePattern => "ORIGINALLY_SINGLE_PATTERN",
+                History::FutureMultiPattern => "FUTURE_MULTI_PATTERN",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "HISTORY_UNSPECIFIED" => Some(Self::Unspecified),
+                "ORIGINALLY_SINGLE_PATTERN" => Some(Self::OriginallySinglePattern),
+                "FUTURE_MULTI_PATTERN" => Some(Self::FutureMultiPattern),
+                _ => None,
+            }
+        }
+    }
     /// A flag representing a specific style that a resource claims to conform to.
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
     #[repr(i32)]
     pub enum Style {
         /// The unspecified value. Do not use.
@@ -865,31 +1092,52 @@ pub mod resource_descriptor {
         /// additional checks.
         DeclarativeFriendly = 1,
     }
+    impl Style {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                Style::Unspecified => "STYLE_UNSPECIFIED",
+                Style::DeclarativeFriendly => "DECLARATIVE_FRIENDLY",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "STYLE_UNSPECIFIED" => Some(Self::Unspecified),
+                "DECLARATIVE_FRIENDLY" => Some(Self::DeclarativeFriendly),
+                _ => None,
+            }
+        }
+    }
 }
 /// Defines a proto annotation that describes a string field that refers to
 /// an API resource.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResourceReference {
     /// The resource type that the annotated field references.
     ///
     /// Example:
     ///
-    ///     message Subscription {
-    ///       string topic = 2 [(google.api.resource_reference) = {
-    ///         type: "pubsub.googleapis.com/Topic"
-    ///       }];
-    ///     }
+    ///      message Subscription {
+    ///        string topic = 2 [(google.api.resource_reference) = {
+    ///          type: "pubsub.googleapis.com/Topic"
+    ///        }];
+    ///      }
     ///
     /// Occasionally, a field may reference an arbitrary resource. In this case,
     /// APIs use the special value * in their resource reference.
     ///
     /// Example:
     ///
-    ///     message GetIamPolicyRequest {
-    ///       string resource = 2 [(google.api.resource_reference) = {
-    ///         type: "*"
-    ///       }];
-    ///     }
+    ///      message GetIamPolicyRequest {
+    ///        string resource = 2 [(google.api.resource_reference) = {
+    ///          type: "*"
+    ///        }];
+    ///      }
     #[prost(string, tag = "1")]
     pub r#type: ::prost::alloc::string::String,
     /// The resource type of a child collection that the annotated field
@@ -898,11 +1146,11 @@ pub struct ResourceReference {
     ///
     /// Example:
     ///
-    ///     message ListLogEntriesRequest {
-    ///       string parent = 1 [(google.api.resource_reference) = {
-    ///         child_type: "logging.googleapis.com/LogEntry"
-    ///       };
-    ///     }
+    ///      message ListLogEntriesRequest {
+    ///        string parent = 1 [(google.api.resource_reference) = {
+    ///          child_type: "logging.googleapis.com/LogEntry"
+    ///        };
+    ///      }
     #[prost(string, tag = "2")]
     pub child_type: ::prost::alloc::string::String,
 }
@@ -914,27 +1162,27 @@ pub struct ResourceReference {
 ///
 /// Message Definition:
 ///
-///     message Request {
-///       // The name of the Table
-///       // Values can be of the following formats:
-///       // - `projects/<project>/tables/<table>`
-///       // - `projects/<project>/instances/<instance>/tables/<table>`
-///       // - `region/<region>/zones/<zone>/tables/<table>`
-///       string table_name = 1;
+///      message Request {
+///        // The name of the Table
+///        // Values can be of the following formats:
+///        // - `projects/<project>/tables/<table>`
+///        // - `projects/<project>/instances/<instance>/tables/<table>`
+///        // - `region/<region>/zones/<zone>/tables/<table>`
+///        string table_name = 1;
 ///
-///       // This value specifies routing for replication.
-///       // It can be in the following formats:
-///       // - `profiles/<profile_id>`
-///       // - a legacy `profile_id` that can be any string
-///       string app_profile_id = 2;
-///     }
+///        // This value specifies routing for replication.
+///        // It can be in the following formats:
+///        // - `profiles/<profile_id>`
+///        // - a legacy `profile_id` that can be any string
+///        string app_profile_id = 2;
+///      }
 ///
 /// Example message:
 ///
-///     {
-///       table_name: projects/proj_foo/instances/instance_bar/table/table_baz,
-///       app_profile_id: profiles/prof_qux
-///     }
+///      {
+///        table_name: projects/proj_foo/instances/instance_bar/table/table_baz,
+///        app_profile_id: profiles/prof_qux
+///      }
 ///
 /// The routing header consists of one or multiple key-value pairs. Every key
 /// and value must be percent-encoded, and joined together in the format of
@@ -948,16 +1196,16 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // Take the `app_profile_id`.
-///       routing_parameters {
-///         field: "app_profile_id"
-///       }
-///     };
+///      option (google.api.routing) = {
+///        // Take the `app_profile_id`.
+///        routing_parameters {
+///          field: "app_profile_id"
+///        }
+///      };
 ///
 /// result:
 ///
-///     x-goog-request-params: app_profile_id=profiles/prof_qux
+///      x-goog-request-params: app_profile_id=profiles/prof_qux
 ///
 /// Example 2
 ///
@@ -966,17 +1214,17 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // Take the `app_profile_id`, but name it `routing_id` in the header.
-///       routing_parameters {
-///         field: "app_profile_id"
-///         path_template: "{routing_id=**}"
-///       }
-///     };
+///      option (google.api.routing) = {
+///        // Take the `app_profile_id`, but name it `routing_id` in the header.
+///        routing_parameters {
+///          field: "app_profile_id"
+///          path_template: "{routing_id=**}"
+///        }
+///      };
 ///
 /// result:
 ///
-///     x-goog-request-params: routing_id=profiles/prof_qux
+///      x-goog-request-params: routing_id=profiles/prof_qux
 ///
 /// Example 3
 ///
@@ -992,19 +1240,19 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // Take the `table_name`, if it's well-formed (with project-based
-///       // syntax).
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{table_name=projects/*/instances/*/**}"
-///       }
-///     };
+///      option (google.api.routing) = {
+///        // Take the `table_name`, if it's well-formed (with project-based
+///        // syntax).
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{table_name=projects/*/instances/*/**}"
+///        }
+///      };
 ///
 /// result:
 ///
-///     x-goog-request-params:
-///     table_name=projects/proj_foo/instances/instance_bar/table/table_baz
+///      x-goog-request-params:
+///      table_name=projects/proj_foo/instances/instance_bar/table/table_baz
 ///
 /// Sub-example 3b
 ///
@@ -1012,18 +1260,18 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // Take the `table_name`, if it's well-formed (with region-based
-///       // syntax).
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{table_name=regions/*/zones/*/**}"
-///       }
-///     };
+///      option (google.api.routing) = {
+///        // Take the `table_name`, if it's well-formed (with region-based
+///        // syntax).
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{table_name=regions/*/zones/*/**}"
+///        }
+///      };
 ///
 /// result:
 ///
-///     <no routing header will be sent>
+///      <no routing header will be sent>
 ///
 /// Sub-example 3c
 ///
@@ -1032,24 +1280,24 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // Take the `table_name`, if it's well-formed, whether
-///       // using the region- or projects-based syntax.
+///      option (google.api.routing) = {
+///        // Take the `table_name`, if it's well-formed, whether
+///        // using the region- or projects-based syntax.
 ///
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{table_name=regions/*/zones/*/**}"
-///       }
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{table_name=projects/*/instances/*/**}"
-///       }
-///     };
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{table_name=regions/*/zones/*/**}"
+///        }
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{table_name=projects/*/instances/*/**}"
+///        }
+///      };
 ///
 /// result:
 ///
-///     x-goog-request-params:
-///     table_name=projects/proj_foo/instances/instance_bar/table/table_baz
+///      x-goog-request-params:
+///      table_name=projects/proj_foo/instances/instance_bar/table/table_baz
 ///
 /// Example 4
 ///
@@ -1058,17 +1306,17 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // Take just the project id from the `table_name` field.
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{routing_id=projects/*}/**"
-///       }
-///     };
+///      option (google.api.routing) = {
+///        // Take just the project id from the `table_name` field.
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{routing_id=projects/*}/**"
+///        }
+///      };
 ///
 /// result:
 ///
-///     x-goog-request-params: routing_id=projects/proj_foo
+///      x-goog-request-params: routing_id=projects/proj_foo
 ///
 /// Example 5
 ///
@@ -1078,25 +1326,25 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // If the `table_name` does not have instances information,
-///       // take just the project id for routing.
-///       // Otherwise take project + instance.
+///      option (google.api.routing) = {
+///        // If the `table_name` does not have instances information,
+///        // take just the project id for routing.
+///        // Otherwise take project + instance.
 ///
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{routing_id=projects/*}/**"
-///       }
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{routing_id=projects/*/instances/*}/**"
-///       }
-///     };
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{routing_id=projects/*}/**"
+///        }
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{routing_id=projects/*/instances/*}/**"
+///        }
+///      };
 ///
 /// result:
 ///
-///     x-goog-request-params:
-///     routing_id=projects/proj_foo/instances/instance_bar
+///      x-goog-request-params:
+///      routing_id=projects/proj_foo/instances/instance_bar
 ///
 /// Example 6
 ///
@@ -1110,25 +1358,25 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // The routing code needs two keys instead of one composite
-///       // but works only for the tables with the "project-instance" name
-///       // syntax.
+///      option (google.api.routing) = {
+///        // The routing code needs two keys instead of one composite
+///        // but works only for the tables with the "project-instance" name
+///        // syntax.
 ///
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{project_id=projects/*}/instances/*/**"
-///       }
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "projects/*/{instance_id=instances/*}/**"
-///       }
-///     };
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{project_id=projects/*}/instances/*/**"
+///        }
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "projects/*/{instance_id=instances/*}/**"
+///        }
+///      };
 ///
 /// result:
 ///
-///     x-goog-request-params:
-///     project_id=projects/proj_foo&instance_id=instances/instance_bar
+///      x-goog-request-params:
+///      project_id=projects/proj_foo&instance_id=instances/instance_bar
 ///
 /// Sub-example 6b
 ///
@@ -1137,26 +1385,26 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // The routing code wants two keys instead of one composite
-///       // but will work with just the `project_id` for tables without
-///       // an instance in the `table_name`.
+///      option (google.api.routing) = {
+///        // The routing code wants two keys instead of one composite
+///        // but will work with just the `project_id` for tables without
+///        // an instance in the `table_name`.
 ///
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{project_id=projects/*}/**"
-///       }
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "projects/*/{instance_id=instances/*}/**"
-///       }
-///     };
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{project_id=projects/*}/**"
+///        }
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "projects/*/{instance_id=instances/*}/**"
+///        }
+///      };
 ///
 /// result (is the same as 6a for our example message because it has the instance
 /// information):
 ///
-///     x-goog-request-params:
-///     project_id=projects/proj_foo&instance_id=instances/instance_bar
+///      x-goog-request-params:
+///      project_id=projects/proj_foo&instance_id=instances/instance_bar
 ///
 /// Example 7
 ///
@@ -1171,24 +1419,24 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // The routing needs both `project_id` and `routing_id`
-///       // (from the `app_profile_id` field) for routing.
+///      option (google.api.routing) = {
+///        // The routing needs both `project_id` and `routing_id`
+///        // (from the `app_profile_id` field) for routing.
 ///
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{project_id=projects/*}/**"
-///       }
-///       routing_parameters {
-///         field: "app_profile_id"
-///         path_template: "{routing_id=**}"
-///       }
-///     };
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{project_id=projects/*}/**"
+///        }
+///        routing_parameters {
+///          field: "app_profile_id"
+///          path_template: "{routing_id=**}"
+///        }
+///      };
 ///
 /// result:
 ///
-///     x-goog-request-params:
-///     project_id=projects/proj_foo&routing_id=profiles/prof_qux
+///      x-goog-request-params:
+///      project_id=projects/proj_foo&routing_id=profiles/prof_qux
 ///
 /// Example 8
 ///
@@ -1198,28 +1446,28 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // The `routing_id` can be a project id or a region id depending on
-///       // the table name format, but only if the `app_profile_id` is not set.
-///       // If `app_profile_id` is set it should be used instead.
+///      option (google.api.routing) = {
+///        // The `routing_id` can be a project id or a region id depending on
+///        // the table name format, but only if the `app_profile_id` is not set.
+///        // If `app_profile_id` is set it should be used instead.
 ///
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{routing_id=projects/*}/**"
-///       }
-///       routing_parameters {
+///        routing_parameters {
 ///          field: "table_name"
-///          path_template: "{routing_id=regions/*}/**"
-///       }
-///       routing_parameters {
-///         field: "app_profile_id"
-///         path_template: "{routing_id=**}"
-///       }
-///     };
+///          path_template: "{routing_id=projects/*}/**"
+///        }
+///        routing_parameters {
+///           field: "table_name"
+///           path_template: "{routing_id=regions/*}/**"
+///        }
+///        routing_parameters {
+///          field: "app_profile_id"
+///          path_template: "{routing_id=**}"
+///        }
+///      };
 ///
 /// result:
 ///
-///     x-goog-request-params: routing_id=profiles/prof_qux
+///      x-goog-request-params: routing_id=profiles/prof_qux
 ///
 /// Example 9
 ///
@@ -1227,44 +1475,45 @@ pub struct ResourceReference {
 ///
 /// annotation:
 ///
-///     option (google.api.routing) = {
-///       // For routing both `table_location` and a `routing_id` are needed.
-///       //
-///       // table_location can be either an instance id or a region+zone id.
-///       //
-///       // For `routing_id`, take the value of `app_profile_id`
-///       // - If it's in the format `profiles/<profile_id>`, send
-///       // just the `<profile_id>` part.
-///       // - If it's any other literal, send it as is.
-///       // If the `app_profile_id` is empty, and the `table_name` starts with
-///       // the project_id, send that instead.
+///      option (google.api.routing) = {
+///        // For routing both `table_location` and a `routing_id` are needed.
+///        //
+///        // table_location can be either an instance id or a region+zone id.
+///        //
+///        // For `routing_id`, take the value of `app_profile_id`
+///        // - If it's in the format `profiles/<profile_id>`, send
+///        // just the `<profile_id>` part.
+///        // - If it's any other literal, send it as is.
+///        // If the `app_profile_id` is empty, and the `table_name` starts with
+///        // the project_id, send that instead.
 ///
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "projects/*/{table_location=instances/*}/tables/*"
-///       }
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{table_location=regions/*/zones/*}/tables/*"
-///       }
-///       routing_parameters {
-///         field: "table_name"
-///         path_template: "{routing_id=projects/*}/**"
-///       }
-///       routing_parameters {
-///         field: "app_profile_id"
-///         path_template: "{routing_id=**}"
-///       }
-///       routing_parameters {
-///         field: "app_profile_id"
-///         path_template: "profiles/{routing_id=*}"
-///       }
-///     };
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "projects/*/{table_location=instances/*}/tables/*"
+///        }
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{table_location=regions/*/zones/*}/tables/*"
+///        }
+///        routing_parameters {
+///          field: "table_name"
+///          path_template: "{routing_id=projects/*}/**"
+///        }
+///        routing_parameters {
+///          field: "app_profile_id"
+///          path_template: "{routing_id=**}"
+///        }
+///        routing_parameters {
+///          field: "app_profile_id"
+///          path_template: "profiles/{routing_id=*}"
+///        }
+///      };
 ///
 /// result:
 ///
-///     x-goog-request-params:
-///     table_location=instances/instance_bar&routing_id=prof_qux
+///      x-goog-request-params:
+///      table_location=instances/instance_bar&routing_id=prof_qux
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RoutingRule {
     /// A collection of Routing Parameter specifications.
@@ -1277,6 +1526,7 @@ pub struct RoutingRule {
     pub routing_parameters: ::prost::alloc::vec::Vec<RoutingParameter>,
 }
 /// A projection from an input message to the GRPC or REST header.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RoutingParameter {
     /// A request field to extract the header key-value pair from.
@@ -1294,46 +1544,46 @@ pub struct RoutingParameter {
     ///
     /// Example:
     ///
-    ///               -- This is a field in the request message
-    ///              |   that the header value will be extracted from.
-    ///              |
-    ///              |                     -- This is the key name in the
-    ///              |                    |   routing header.
-    ///              V                    |
-    ///     field: "table_name"           v
-    ///     path_template: "projects/*/{table_location=instances/*}/tables/*"
-    ///                                                ^            ^
-    ///                                                |            |
-    ///       In the {} brackets is the pattern that --             |
-    ///       specifies what to extract from the                    |
-    ///       field as a value to be sent.                          |
-    ///                                                             |
-    ///      The string in the field must match the whole pattern --
-    ///      before brackets, inside brackets, after brackets.
+    ///                -- This is a field in the request message
+    ///               |   that the header value will be extracted from.
+    ///               |
+    ///               |                     -- This is the key name in the
+    ///               |                    |   routing header.
+    ///               V                    |
+    ///      field: "table_name"           v
+    ///      path_template: "projects/*/{table_location=instances/*}/tables/*"
+    ///                                                 ^            ^
+    ///                                                 |            |
+    ///        In the {} brackets is the pattern that --             |
+    ///        specifies what to extract from the                    |
+    ///        field as a value to be sent.                          |
+    ///                                                              |
+    ///       The string in the field must match the whole pattern --
+    ///       before brackets, inside brackets, after brackets.
     ///
     /// When looking at this specific example, we can see that:
     /// - A key-value pair with the key `table_location`
-    ///   and the value matching `instances/*` should be added
-    ///   to the x-goog-request-params routing header.
+    ///    and the value matching `instances/*` should be added
+    ///    to the x-goog-request-params routing header.
     /// - The value is extracted from the request message's `table_name` field
-    ///   if it matches the full pattern specified:
-    ///   `projects/*/instances/*/tables/*`.
+    ///    if it matches the full pattern specified:
+    ///    `projects/*/instances/*/tables/*`.
     ///
     /// **NB:** If the `path_template` field is not provided, the key name is
     /// equal to the field name, and the whole field should be sent as a value.
     /// This makes the pattern for the field and the value functionally equivalent
     /// to `**`, and the configuration
     ///
-    ///     {
-    ///       field: "table_name"
-    ///     }
+    ///      {
+    ///        field: "table_name"
+    ///      }
     ///
     /// is a functionally equivalent shorthand to:
     ///
-    ///     {
-    ///       field: "table_name"
-    ///       path_template: "{table_name=**}"
-    ///     }
+    ///      {
+    ///        field: "table_name"
+    ///        path_template: "{table_name=**}"
+    ///      }
     ///
     /// See Example 1 for more details.
     #[prost(string, tag = "2")]

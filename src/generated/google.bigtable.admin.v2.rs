@@ -1,5 +1,6 @@
 /// Encapsulates progress related information for a Cloud Bigtable long
 /// running operation.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OperationProgress {
     /// Percent completion of the operation.
@@ -25,7 +26,30 @@ pub enum StorageType {
     /// Magnetic drive (HDD) storage should be used.
     Hdd = 2,
 }
+impl StorageType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            StorageType::Unspecified => "STORAGE_TYPE_UNSPECIFIED",
+            StorageType::Ssd => "SSD",
+            StorageType::Hdd => "HDD",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "STORAGE_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "SSD" => Some(Self::Ssd),
+            "HDD" => Some(Self::Hdd),
+            _ => None,
+        }
+    }
+}
 /// Information about a table restore.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RestoreInfo {
     /// The type of the restore source.
@@ -38,6 +62,7 @@ pub struct RestoreInfo {
 /// Nested message and enum types in `RestoreInfo`.
 pub mod restore_info {
     /// Information about the source used to restore the table.
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum SourceInfo {
         /// Information about the backup used to restore the table. The backup
@@ -48,6 +73,7 @@ pub mod restore_info {
 }
 /// A collection of user data indexed by row, column, and timestamp.
 /// Each table is served using the resources of its parent cluster.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Table {
     /// The unique name of the table. Values are of the form
@@ -61,12 +87,17 @@ pub struct Table {
     /// there will be an entry for the cluster with UNKNOWN `replication_status`.
     /// Views: `REPLICATION_VIEW`, `ENCRYPTION_VIEW`, `FULL`
     #[prost(map = "string, message", tag = "2")]
-    pub cluster_states:
-        ::std::collections::HashMap<::prost::alloc::string::String, table::ClusterState>,
+    pub cluster_states: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        table::ClusterState,
+    >,
     /// The column families configured for this table, mapped by column family ID.
     /// Views: `SCHEMA_VIEW`, `FULL`
     #[prost(map = "string, message", tag = "3")]
-    pub column_families: ::std::collections::HashMap<::prost::alloc::string::String, ColumnFamily>,
+    pub column_families: ::std::collections::HashMap<
+        ::prost::alloc::string::String,
+        ColumnFamily,
+    >,
     /// Immutable. The granularity (i.e. `MILLIS`) at which timestamps are stored in this
     /// table. Timestamps not matching the granularity will be rejected.
     /// If unspecified at creation time, the value will be set to `MILLIS`.
@@ -79,9 +110,9 @@ pub struct Table {
     pub restore_info: ::core::option::Option<RestoreInfo>,
     /// Set to true to make the table protected against data loss. i.e. deleting
     /// the following resources through Admin APIs are prohibited:
-    ///   - The table.
-    ///   - The column families in the table.
-    ///   - The instance containing the table.
+    ///    - The table.
+    ///    - The column families in the table.
+    ///    - The instance containing the table.
     /// Note one can still delete the data stored in the table through Data APIs.
     #[prost(bool, tag = "9")]
     pub deletion_protection: bool,
@@ -89,6 +120,7 @@ pub struct Table {
 /// Nested message and enum types in `Table`.
 pub mod table {
     /// The state of a table's data in a particular cluster.
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct ClusterState {
         /// Output only. The state of replication for the table in this cluster.
@@ -106,7 +138,15 @@ pub mod table {
     pub mod cluster_state {
         /// Table replication states.
         #[derive(
-            Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration,
+            Clone,
+            Copy,
+            Debug,
+            PartialEq,
+            Eq,
+            Hash,
+            PartialOrd,
+            Ord,
+            ::prost::Enumeration
         )]
         #[repr(i32)]
         pub enum ReplicationState {
@@ -131,10 +171,48 @@ pub mod table {
             /// table will transition to `READY` state.
             ReadyOptimizing = 5,
         }
+        impl ReplicationState {
+            /// String value of the enum field names used in the ProtoBuf definition.
+            ///
+            /// The values are not transformed in any way and thus are considered stable
+            /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+            pub fn as_str_name(&self) -> &'static str {
+                match self {
+                    ReplicationState::StateNotKnown => "STATE_NOT_KNOWN",
+                    ReplicationState::Initializing => "INITIALIZING",
+                    ReplicationState::PlannedMaintenance => "PLANNED_MAINTENANCE",
+                    ReplicationState::UnplannedMaintenance => "UNPLANNED_MAINTENANCE",
+                    ReplicationState::Ready => "READY",
+                    ReplicationState::ReadyOptimizing => "READY_OPTIMIZING",
+                }
+            }
+            /// Creates an enum from field names used in the ProtoBuf definition.
+            pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+                match value {
+                    "STATE_NOT_KNOWN" => Some(Self::StateNotKnown),
+                    "INITIALIZING" => Some(Self::Initializing),
+                    "PLANNED_MAINTENANCE" => Some(Self::PlannedMaintenance),
+                    "UNPLANNED_MAINTENANCE" => Some(Self::UnplannedMaintenance),
+                    "READY" => Some(Self::Ready),
+                    "READY_OPTIMIZING" => Some(Self::ReadyOptimizing),
+                    _ => None,
+                }
+            }
+        }
     }
     /// Possible timestamp granularities to use when keeping multiple versions
     /// of data in a table.
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
     #[repr(i32)]
     pub enum TimestampGranularity {
         /// The user did not specify a granularity. Should not be returned.
@@ -143,8 +221,38 @@ pub mod table {
         /// The table keeps data versioned at a granularity of 1ms.
         Millis = 1,
     }
+    impl TimestampGranularity {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                TimestampGranularity::Unspecified => "TIMESTAMP_GRANULARITY_UNSPECIFIED",
+                TimestampGranularity::Millis => "MILLIS",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "TIMESTAMP_GRANULARITY_UNSPECIFIED" => Some(Self::Unspecified),
+                "MILLIS" => Some(Self::Millis),
+                _ => None,
+            }
+        }
+    }
     /// Defines a view over a table's fields.
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
     #[repr(i32)]
     pub enum View {
         /// Uses the default view for each method as documented in its request.
@@ -161,8 +269,37 @@ pub mod table {
         /// Populates all fields.
         Full = 4,
     }
+    impl View {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                View::Unspecified => "VIEW_UNSPECIFIED",
+                View::NameOnly => "NAME_ONLY",
+                View::SchemaView => "SCHEMA_VIEW",
+                View::ReplicationView => "REPLICATION_VIEW",
+                View::EncryptionView => "ENCRYPTION_VIEW",
+                View::Full => "FULL",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "VIEW_UNSPECIFIED" => Some(Self::Unspecified),
+                "NAME_ONLY" => Some(Self::NameOnly),
+                "SCHEMA_VIEW" => Some(Self::SchemaView),
+                "REPLICATION_VIEW" => Some(Self::ReplicationView),
+                "ENCRYPTION_VIEW" => Some(Self::EncryptionView),
+                "FULL" => Some(Self::Full),
+                _ => None,
+            }
+        }
+    }
 }
 /// A set of columns within a table which share a common configuration.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ColumnFamily {
     /// Garbage collection rule specified as a protobuf.
@@ -175,6 +312,7 @@ pub struct ColumnFamily {
     pub gc_rule: ::core::option::Option<GcRule>,
 }
 /// Rule for determining which cells to delete during garbage collection.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GcRule {
     /// Garbage collection rules.
@@ -184,6 +322,7 @@ pub struct GcRule {
 /// Nested message and enum types in `GcRule`.
 pub mod gc_rule {
     /// A GcRule which deletes cells matching all of the given rules.
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Intersection {
         /// Only delete cells which would be deleted by every element of `rules`.
@@ -191,6 +330,7 @@ pub mod gc_rule {
         pub rules: ::prost::alloc::vec::Vec<super::GcRule>,
     }
     /// A GcRule which deletes cells matching any of the given rules.
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Union {
         /// Delete cells which would be deleted by any element of `rules`.
@@ -198,6 +338,7 @@ pub mod gc_rule {
         pub rules: ::prost::alloc::vec::Vec<super::GcRule>,
     }
     /// Garbage collection rules.
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Rule {
         /// Delete all cells in a column except the most recent N.
@@ -220,6 +361,7 @@ pub mod gc_rule {
 /// If this resource is protected with customer managed encryption, the in-use
 /// Cloud Key Management Service (Cloud KMS) key version is specified along with
 /// its status.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EncryptionInfo {
     /// Output only. The type of encryption used to protect this resource.
@@ -237,7 +379,17 @@ pub struct EncryptionInfo {
 /// Nested message and enum types in `EncryptionInfo`.
 pub mod encryption_info {
     /// Possible encryption types for a resource.
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
     #[repr(i32)]
     pub enum EncryptionType {
         /// Encryption type was not specified, though data at rest remains encrypted.
@@ -255,6 +407,30 @@ pub mod encryption_info {
         /// status is not tracked and is reported as `UNKNOWN`.
         CustomerManagedEncryption = 2,
     }
+    impl EncryptionType {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                EncryptionType::Unspecified => "ENCRYPTION_TYPE_UNSPECIFIED",
+                EncryptionType::GoogleDefaultEncryption => "GOOGLE_DEFAULT_ENCRYPTION",
+                EncryptionType::CustomerManagedEncryption => {
+                    "CUSTOMER_MANAGED_ENCRYPTION"
+                }
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "ENCRYPTION_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+                "GOOGLE_DEFAULT_ENCRYPTION" => Some(Self::GoogleDefaultEncryption),
+                "CUSTOMER_MANAGED_ENCRYPTION" => Some(Self::CustomerManagedEncryption),
+                _ => None,
+            }
+        }
+    }
 }
 /// A snapshot of a table at a particular time. A snapshot can be used as a
 /// checkpoint for data restoration or a data source for a new table.
@@ -263,6 +439,7 @@ pub mod encryption_info {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Snapshot {
     /// Output only. The unique name of the snapshot.
@@ -297,7 +474,17 @@ pub struct Snapshot {
 /// Nested message and enum types in `Snapshot`.
 pub mod snapshot {
     /// Possible states of a snapshot.
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
     #[repr(i32)]
     pub enum State {
         /// The state of the snapshot could not be determined.
@@ -309,14 +496,37 @@ pub mod snapshot {
         /// table while it is being created.
         Creating = 2,
     }
+    impl State {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                State::NotKnown => "STATE_NOT_KNOWN",
+                State::Ready => "READY",
+                State::Creating => "CREATING",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "STATE_NOT_KNOWN" => Some(Self::NotKnown),
+                "READY" => Some(Self::Ready),
+                "CREATING" => Some(Self::Creating),
+                _ => None,
+            }
+        }
+    }
 }
 /// A backup of a Cloud Bigtable table.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Backup {
     /// A globally unique identifier for the backup which cannot be
     /// changed. Values are of the form
     /// `projects/{project}/instances/{instance}/clusters/{cluster}/
-    ///    backups/\[_a-zA-Z0-9][-_.a-zA-Z0-9\]*`
+    ///     backups/\[_a-zA-Z0-9][-_.a-zA-Z0-9\]*`
     /// The final segment of the name must be between 1 and 50 characters
     /// in length.
     ///
@@ -360,7 +570,17 @@ pub struct Backup {
 /// Nested message and enum types in `Backup`.
 pub mod backup {
     /// Indicates the current state of the backup.
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
     #[repr(i32)]
     pub enum State {
         /// Not specified.
@@ -371,8 +591,31 @@ pub mod backup {
         /// The backup is complete and ready for use.
         Ready = 2,
     }
+    impl State {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                State::Unspecified => "STATE_UNSPECIFIED",
+                State::Creating => "CREATING",
+                State::Ready => "READY",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "STATE_UNSPECIFIED" => Some(Self::Unspecified),
+                "CREATING" => Some(Self::Creating),
+                "READY" => Some(Self::Ready),
+                _ => None,
+            }
+        }
+    }
 }
 /// Information about a backup.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BackupInfo {
     /// Output only. Name of the backup.
@@ -399,8 +642,29 @@ pub enum RestoreSourceType {
     /// A backup was used as the source of the restore.
     Backup = 1,
 }
+impl RestoreSourceType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            RestoreSourceType::Unspecified => "RESTORE_SOURCE_TYPE_UNSPECIFIED",
+            RestoreSourceType::Backup => "BACKUP",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "RESTORE_SOURCE_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "BACKUP" => Some(Self::Backup),
+            _ => None,
+        }
+    }
+}
 /// The request for
 /// \[RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RestoreTableRequest {
     /// Required. The name of the instance in which to create the restored
@@ -421,6 +685,7 @@ pub struct RestoreTableRequest {
 /// Nested message and enum types in `RestoreTableRequest`.
 pub mod restore_table_request {
     /// Required. The source from which to restore.
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Source {
         /// Name of the backup from which to restore.  Values are of the form
@@ -431,6 +696,7 @@ pub mod restore_table_request {
 }
 /// Metadata type for the long-running operation returned by
 /// \[RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RestoreTableMetadata {
     /// Name of the table being created and restored to.
@@ -463,6 +729,7 @@ pub struct RestoreTableMetadata {
 pub mod restore_table_metadata {
     /// Information about the source used to restore the table, as specified by
     /// `source` in \[RestoreTableRequest][google.bigtable.admin.v2.RestoreTableRequest\].
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum SourceInfo {
         #[prost(message, tag = "3")]
@@ -473,6 +740,7 @@ pub mod restore_table_metadata {
 /// of optimizations performed on a newly restored table. This long-running
 /// operation is automatically created by the system after the successful
 /// completion of a table restore, and cannot be cancelled.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OptimizeRestoredTableMetadata {
     /// Name of the restored table being optimized.
@@ -484,6 +752,7 @@ pub struct OptimizeRestoredTableMetadata {
 }
 /// Request message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.CreateTable][google.bigtable.admin.v2.BigtableTableAdmin.CreateTable\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateTableRequest {
     /// Required. The unique name of the instance in which to create the table.
@@ -506,20 +775,21 @@ pub struct CreateTableRequest {
     /// Example:
     ///
     /// * Row keys := `["a", "apple", "custom", "customer_1", "customer_2",`
-    ///                `"other", "zz"]`
+    ///                 `"other", "zz"]`
     /// * initial_split_keys := `["apple", "customer_1", "customer_2", "other"]`
     /// * Key assignment:
-    ///     - Tablet 1 `[, apple)                => {"a"}.`
-    ///     - Tablet 2 `[apple, customer_1)      => {"apple", "custom"}.`
-    ///     - Tablet 3 `[customer_1, customer_2) => {"customer_1"}.`
-    ///     - Tablet 4 `[customer_2, other)      => {"customer_2"}.`
-    ///     - Tablet 5 `[other, )                => {"other", "zz"}.`
+    ///      - Tablet 1 `[, apple)                => {"a"}.`
+    ///      - Tablet 2 `[apple, customer_1)      => {"apple", "custom"}.`
+    ///      - Tablet 3 `[customer_1, customer_2) => {"customer_1"}.`
+    ///      - Tablet 4 `[customer_2, other)      => {"customer_2"}.`
+    ///      - Tablet 5 `[other, )                => {"other", "zz"}.`
     #[prost(message, repeated, tag = "4")]
     pub initial_splits: ::prost::alloc::vec::Vec<create_table_request::Split>,
 }
 /// Nested message and enum types in `CreateTableRequest`.
 pub mod create_table_request {
     /// An initial split point for a newly created table.
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Split {
         /// Row key to use as an initial tablet boundary.
@@ -534,6 +804,7 @@ pub mod create_table_request {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateTableFromSnapshotRequest {
     /// Required. The unique name of the instance in which to create the table.
@@ -553,6 +824,7 @@ pub struct CreateTableFromSnapshotRequest {
 }
 /// Request message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange][google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DropRowRangeRequest {
     /// Required. The unique name of the table on which to drop a range of rows.
@@ -567,6 +839,7 @@ pub struct DropRowRangeRequest {
 /// Nested message and enum types in `DropRowRangeRequest`.
 pub mod drop_row_range_request {
     /// Delete all rows or by prefix.
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Target {
         /// Delete all rows that start with this row key prefix. Prefix cannot be
@@ -580,6 +853,7 @@ pub mod drop_row_range_request {
 }
 /// Request message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTablesRequest {
     /// Required. The unique name of the instance for which tables should be listed.
@@ -607,6 +881,7 @@ pub struct ListTablesRequest {
 }
 /// Response message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTablesResponse {
     /// The tables present in the requested instance.
@@ -620,6 +895,7 @@ pub struct ListTablesResponse {
 }
 /// Request message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.GetTable][google.bigtable.admin.v2.BigtableTableAdmin.GetTable\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTableRequest {
     /// Required. The unique name of the requested table.
@@ -634,6 +910,7 @@ pub struct GetTableRequest {
 }
 /// The request for
 /// \[UpdateTable][google.bigtable.admin.v2.BigtableTableAdmin.UpdateTable\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateTableRequest {
     /// Required. The table to update.
@@ -645,7 +922,7 @@ pub struct UpdateTableRequest {
     /// field should be updated. This mask is relative to the `table` field, not to
     /// the request message. The wildcard (*) path is currently not supported.
     /// Currently UpdateTable is only supported for the following field:
-    ///  * `deletion_protection`
+    ///   * `deletion_protection`
     /// If `column_families` is set in `update_mask`, it will return an
     /// UNIMPLEMENTED error.
     #[prost(message, optional, tag = "2")]
@@ -653,6 +930,7 @@ pub struct UpdateTableRequest {
 }
 /// Metadata type for the operation returned by
 /// \[UpdateTable][google.bigtable.admin.v2.BigtableTableAdmin.UpdateTable\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateTableMetadata {
     /// The name of the table being updated.
@@ -667,6 +945,7 @@ pub struct UpdateTableMetadata {
 }
 /// Request message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteTableRequest {
     /// Required. The unique name of the table to be deleted.
@@ -677,6 +956,7 @@ pub struct DeleteTableRequest {
 }
 /// Request message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UndeleteTableRequest {
     /// Required. The unique name of the table to be restored.
@@ -687,6 +967,7 @@ pub struct UndeleteTableRequest {
 }
 /// Metadata type for the operation returned by
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UndeleteTableMetadata {
     /// The name of the table being restored.
@@ -701,6 +982,7 @@ pub struct UndeleteTableMetadata {
 }
 /// Request message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies][google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ModifyColumnFamiliesRequest {
     /// Required. The unique name of the table whose families should be modified.
@@ -713,11 +995,14 @@ pub struct ModifyColumnFamiliesRequest {
     /// masked by later ones (in the case of repeated updates to the same family,
     /// for example).
     #[prost(message, repeated, tag = "2")]
-    pub modifications: ::prost::alloc::vec::Vec<modify_column_families_request::Modification>,
+    pub modifications: ::prost::alloc::vec::Vec<
+        modify_column_families_request::Modification,
+    >,
 }
 /// Nested message and enum types in `ModifyColumnFamiliesRequest`.
 pub mod modify_column_families_request {
     /// A create, update, or delete of a particular column family.
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Modification {
         /// The ID of the column family to be modified.
@@ -730,6 +1015,7 @@ pub mod modify_column_families_request {
     /// Nested message and enum types in `Modification`.
     pub mod modification {
         /// Column family modifications.
+        #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Oneof)]
         pub enum Mod {
             /// Create a new column family with the specified schema, or fail if
@@ -749,6 +1035,7 @@ pub mod modify_column_families_request {
 }
 /// Request message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateConsistencyTokenRequest {
     /// Required. The unique name of the Table for which to create a consistency token.
@@ -759,6 +1046,7 @@ pub struct GenerateConsistencyTokenRequest {
 }
 /// Response message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateConsistencyTokenResponse {
     /// The generated consistency token.
@@ -767,6 +1055,7 @@ pub struct GenerateConsistencyTokenResponse {
 }
 /// Request message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckConsistencyRequest {
     /// Required. The unique name of the Table for which to check replication consistency.
@@ -780,6 +1069,7 @@ pub struct CheckConsistencyRequest {
 }
 /// Response message for
 /// \[google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency\]
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckConsistencyResponse {
     /// True only if the token is consistent. A token is consistent if replication
@@ -794,6 +1084,7 @@ pub struct CheckConsistencyResponse {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SnapshotTableRequest {
     /// Required. The unique name of the table to have the snapshot taken.
@@ -829,6 +1120,7 @@ pub struct SnapshotTableRequest {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSnapshotRequest {
     /// Required. The unique name of the requested snapshot.
@@ -844,6 +1136,7 @@ pub struct GetSnapshotRequest {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSnapshotsRequest {
     /// Required. The unique name of the cluster for which snapshots should be listed.
@@ -868,6 +1161,7 @@ pub struct ListSnapshotsRequest {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSnapshotsResponse {
     /// The snapshots present in the requested cluster.
@@ -886,6 +1180,7 @@ pub struct ListSnapshotsResponse {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteSnapshotRequest {
     /// Required. The unique name of the snapshot to be deleted.
@@ -900,6 +1195,7 @@ pub struct DeleteSnapshotRequest {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SnapshotTableMetadata {
     /// The request that prompted the initiation of this SnapshotTable operation.
@@ -918,6 +1214,7 @@ pub struct SnapshotTableMetadata {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateTableFromSnapshotMetadata {
     /// The request that prompted the initiation of this CreateTableFromSnapshot
@@ -932,6 +1229,7 @@ pub struct CreateTableFromSnapshotMetadata {
     pub finish_time: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// The request for \[CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateBackupRequest {
     /// Required. This must be one of the clusters in the instance in which this
@@ -953,6 +1251,7 @@ pub struct CreateBackupRequest {
 }
 /// Metadata type for the operation returned by
 /// \[CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateBackupMetadata {
     /// The name of the backup being created.
@@ -969,12 +1268,13 @@ pub struct CreateBackupMetadata {
     pub end_time: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// The request for \[UpdateBackup][google.bigtable.admin.v2.BigtableTableAdmin.UpdateBackup\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateBackupRequest {
     /// Required. The backup to update. `backup.name`, and the fields to be updated
     /// as specified by `update_mask` are required. Other fields are ignored.
     /// Update is only supported for the following fields:
-    ///  * `backup.expire_time`.
+    ///   * `backup.expire_time`.
     #[prost(message, optional, tag = "1")]
     pub backup: ::core::option::Option<Backup>,
     /// Required. A mask specifying which fields (e.g. `expire_time`) in the
@@ -986,6 +1286,7 @@ pub struct UpdateBackupRequest {
     pub update_mask: ::core::option::Option<::prost_types::FieldMask>,
 }
 /// The request for \[GetBackup][google.bigtable.admin.v2.BigtableTableAdmin.GetBackup\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBackupRequest {
     /// Required. Name of the backup.
@@ -995,6 +1296,7 @@ pub struct GetBackupRequest {
     pub name: ::prost::alloc::string::String,
 }
 /// The request for \[DeleteBackup][google.bigtable.admin.v2.BigtableTableAdmin.DeleteBackup\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteBackupRequest {
     /// Required. Name of the backup to delete.
@@ -1004,6 +1306,7 @@ pub struct DeleteBackupRequest {
     pub name: ::prost::alloc::string::String,
 }
 /// The request for \[ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListBackupsRequest {
     /// Required. The cluster to list backups from.  Values are of the
@@ -1020,13 +1323,13 @@ pub struct ListBackupsRequest {
     /// roughly synonymous with equality. Filter rules are case insensitive.
     ///
     /// The fields eligible for filtering are:
-    ///   * `name`
-    ///   * `source_table`
-    ///   * `state`
-    ///   * `start_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
-    ///   * `end_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
-    ///   * `expire_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
-    ///   * `size_bytes`
+    ///    * `name`
+    ///    * `source_table`
+    ///    * `state`
+    ///    * `start_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
+    ///    * `end_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
+    ///    * `expire_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
+    ///    * `size_bytes`
     ///
     /// To filter on multiple expressions, provide each separate expression within
     /// parentheses. By default, each expression is an AND expression. However,
@@ -1034,16 +1337,16 @@ pub struct ListBackupsRequest {
     ///
     /// Some examples of using filters are:
     ///
-    ///   * `name:"exact"` --> The backup's name is the string "exact".
-    ///   * `name:howl` --> The backup's name contains the string "howl".
-    ///   * `source_table:prod`
-    ///          --> The source_table's name contains the string "prod".
-    ///   * `state:CREATING` --> The backup is pending creation.
-    ///   * `state:READY` --> The backup is fully created and ready for use.
-    ///   * `(name:howl) AND (start_time < \"2018-03-28T14:50:00Z\")`
-    ///          --> The backup name contains the string "howl" and start_time
-    ///              of the backup is before 2018-03-28T14:50:00Z.
-    ///   * `size_bytes > 10000000000` --> The backup's size is greater than 10GB
+    ///    * `name:"exact"` --> The backup's name is the string "exact".
+    ///    * `name:howl` --> The backup's name contains the string "howl".
+    ///    * `source_table:prod`
+    ///           --> The source_table's name contains the string "prod".
+    ///    * `state:CREATING` --> The backup is pending creation.
+    ///    * `state:READY` --> The backup is fully created and ready for use.
+    ///    * `(name:howl) AND (start_time < \"2018-03-28T14:50:00Z\")`
+    ///           --> The backup name contains the string "howl" and start_time
+    ///               of the backup is before 2018-03-28T14:50:00Z.
+    ///    * `size_bytes > 10000000000` --> The backup's size is greater than 10GB
     #[prost(string, tag = "2")]
     pub filter: ::prost::alloc::string::String,
     /// An expression for specifying the sort order of the results of the request.
@@ -1051,13 +1354,13 @@ pub struct ListBackupsRequest {
     /// syntax is described at <https://aip.dev/132#ordering.>
     ///
     /// Fields supported are:
-    ///    * name
-    ///    * source_table
-    ///    * expire_time
-    ///    * start_time
-    ///    * end_time
-    ///    * size_bytes
-    ///    * state
+    ///     * name
+    ///     * source_table
+    ///     * expire_time
+    ///     * start_time
+    ///     * end_time
+    ///     * size_bytes
+    ///     * state
     ///
     /// For example, "start_time". The default sorting order is ascending.
     /// To specify descending order for the field, a suffix " desc" should
@@ -1080,6 +1383,7 @@ pub struct ListBackupsRequest {
     pub page_token: ::prost::alloc::string::String,
 }
 /// The response for \[ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListBackupsResponse {
     /// The list of matching backups.
@@ -1091,21 +1395,22 @@ pub struct ListBackupsResponse {
     #[prost(string, tag = "2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
-#[doc = r" Generated client implementations."]
+/// Generated client implementations.
 pub mod bigtable_table_admin_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    #[doc = " Service for creating, configuring, and deleting Cloud Bigtable tables."]
-    #[doc = ""]
-    #[doc = ""]
-    #[doc = " Provides access to the table schemas only, not the data stored within"]
-    #[doc = " the tables."]
+    use tonic::codegen::http::Uri;
+    /// Service for creating, configuring, and deleting Cloud Bigtable tables.
+    ///
+    ///
+    /// Provides access to the table schemas only, not the data stored within
+    /// the tables.
     #[derive(Debug, Clone)]
     pub struct BigtableTableAdminClient<T> {
         inner: tonic::client::Grpc<T>,
     }
     impl BigtableTableAdminClient<tonic::transport::Channel> {
-        #[doc = r" Attempt to create a new client by connecting to a given endpoint."]
+        /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
             D: std::convert::TryInto<tonic::transport::Endpoint>,
@@ -1118,12 +1423,16 @@ pub mod bigtable_table_admin_client {
     impl<T> BigtableTableAdminClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::ResponseBody: Body + Send + 'static,
         T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         pub fn new(inner: T) -> Self {
             let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
             Self { inner }
         }
         pub fn with_interceptor<F>(
@@ -1132,57 +1441,64 @@ pub mod bigtable_table_admin_client {
         ) -> BigtableTableAdminClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
             T: tonic::codegen::Service<
                 http::Request<tonic::body::BoxBody>,
                 Response = http::Response<
                     <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
                 >,
             >,
-            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
-                Into<StdError> + Send + Sync,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::BoxBody>,
+            >>::Error: Into<StdError> + Send + Sync,
         {
             BigtableTableAdminClient::new(InterceptedService::new(inner, interceptor))
         }
-        #[doc = r" Compress requests with `gzip`."]
-        #[doc = r""]
-        #[doc = r" This requires the server to support it otherwise it might respond with an"]
-        #[doc = r" error."]
-        pub fn send_gzip(mut self) -> Self {
-            self.inner = self.inner.send_gzip();
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
             self
         }
-        #[doc = r" Enable decompressing responses with `gzip`."]
-        pub fn accept_gzip(mut self) -> Self {
-            self.inner = self.inner.accept_gzip();
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
             self
         }
-        #[doc = " Creates a new table in the specified instance."]
-        #[doc = " The table can be created with a full set of initial column families,"]
-        #[doc = " specified in the request."]
+        /// Creates a new table in the specified instance.
+        /// The table can be created with a full set of initial column families,
+        /// specified in the request.
         pub async fn create_table(
             &mut self,
             request: impl tonic::IntoRequest<super::CreateTableRequest>,
         ) -> Result<tonic::Response<super::Table>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/CreateTable",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Creates a new table from the specified snapshot. The target table must"]
-        #[doc = " not exist. The snapshot and the table must be in the same instance."]
-        #[doc = ""]
-        #[doc = " Note: This is a private alpha release of Cloud Bigtable snapshots. This"]
-        #[doc = " feature is not currently available to most Cloud Bigtable customers. This"]
-        #[doc = " feature might be changed in backward-incompatible ways and is not"]
-        #[doc = " recommended for production use. It is not subject to any SLA or deprecation"]
-        #[doc = " policy."]
+        /// Creates a new table from the specified snapshot. The target table must
+        /// not exist. The snapshot and the table must be in the same instance.
+        ///
+        /// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+        /// feature is not currently available to most Cloud Bigtable customers. This
+        /// feature might be changed in backward-incompatible ways and is not
+        /// recommended for production use. It is not subject to any SLA or deprecation
+        /// policy.
         pub async fn create_table_from_snapshot(
             &mut self,
             request: impl tonic::IntoRequest<super::CreateTableFromSnapshotRequest>,
@@ -1190,53 +1506,62 @@ pub mod bigtable_table_admin_client {
             tonic::Response<super::super::super::super::longrunning::Operation>,
             tonic::Status,
         > {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/CreateTableFromSnapshot",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Lists all tables served from a specified instance."]
+        /// Lists all tables served from a specified instance.
         pub async fn list_tables(
             &mut self,
             request: impl tonic::IntoRequest<super::ListTablesRequest>,
         ) -> Result<tonic::Response<super::ListTablesResponse>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/ListTables",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Gets metadata information about the specified table."]
+        /// Gets metadata information about the specified table.
         pub async fn get_table(
             &mut self,
             request: impl tonic::IntoRequest<super::GetTableRequest>,
         ) -> Result<tonic::Response<super::Table>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/GetTable",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Updates a specified table."]
+        /// Updates a specified table.
         pub async fn update_table(
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateTableRequest>,
@@ -1244,36 +1569,42 @@ pub mod bigtable_table_admin_client {
             tonic::Response<super::super::super::super::longrunning::Operation>,
             tonic::Status,
         > {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/UpdateTable",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Permanently deletes a specified table and all of its data."]
+        /// Permanently deletes a specified table and all of its data.
         pub async fn delete_table(
             &mut self,
             request: impl tonic::IntoRequest<super::DeleteTableRequest>,
         ) -> Result<tonic::Response<()>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/DeleteTable",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Restores a specified table which was accidentally deleted."]
+        /// Restores a specified table which was accidentally deleted.
         pub async fn undelete_table(
             &mut self,
             request: impl tonic::IntoRequest<super::UndeleteTableRequest>,
@@ -1281,105 +1612,122 @@ pub mod bigtable_table_admin_client {
             tonic::Response<super::super::super::super::longrunning::Operation>,
             tonic::Status,
         > {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/UndeleteTable",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Performs a series of column family modifications on the specified table."]
-        #[doc = " Either all or none of the modifications will occur before this method"]
-        #[doc = " returns, but data requests received prior to that point may see a table"]
-        #[doc = " where only some modifications have taken effect."]
+        /// Performs a series of column family modifications on the specified table.
+        /// Either all or none of the modifications will occur before this method
+        /// returns, but data requests received prior to that point may see a table
+        /// where only some modifications have taken effect.
         pub async fn modify_column_families(
             &mut self,
             request: impl tonic::IntoRequest<super::ModifyColumnFamiliesRequest>,
         ) -> Result<tonic::Response<super::Table>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/ModifyColumnFamilies",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Permanently drop/delete a row range from a specified table. The request can"]
-        #[doc = " specify whether to delete all rows in a table, or only those that match a"]
-        #[doc = " particular prefix."]
+        /// Permanently drop/delete a row range from a specified table. The request can
+        /// specify whether to delete all rows in a table, or only those that match a
+        /// particular prefix.
         pub async fn drop_row_range(
             &mut self,
             request: impl tonic::IntoRequest<super::DropRowRangeRequest>,
         ) -> Result<tonic::Response<()>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/DropRowRange",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Generates a consistency token for a Table, which can be used in"]
-        #[doc = " CheckConsistency to check whether mutations to the table that finished"]
-        #[doc = " before this call started have been replicated. The tokens will be available"]
-        #[doc = " for 90 days."]
+        /// Generates a consistency token for a Table, which can be used in
+        /// CheckConsistency to check whether mutations to the table that finished
+        /// before this call started have been replicated. The tokens will be available
+        /// for 90 days.
         pub async fn generate_consistency_token(
             &mut self,
             request: impl tonic::IntoRequest<super::GenerateConsistencyTokenRequest>,
-        ) -> Result<tonic::Response<super::GenerateConsistencyTokenResponse>, tonic::Status>
-        {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+        ) -> Result<
+            tonic::Response<super::GenerateConsistencyTokenResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/GenerateConsistencyToken",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Checks replication consistency based on a consistency token, that is, if"]
-        #[doc = " replication has caught up based on the conditions specified in the token"]
-        #[doc = " and the check request."]
+        /// Checks replication consistency based on a consistency token, that is, if
+        /// replication has caught up based on the conditions specified in the token
+        /// and the check request.
         pub async fn check_consistency(
             &mut self,
             request: impl tonic::IntoRequest<super::CheckConsistencyRequest>,
         ) -> Result<tonic::Response<super::CheckConsistencyResponse>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/CheckConsistency",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Creates a new snapshot in the specified cluster from the specified"]
-        #[doc = " source table. The cluster and the table must be in the same instance."]
-        #[doc = ""]
-        #[doc = " Note: This is a private alpha release of Cloud Bigtable snapshots. This"]
-        #[doc = " feature is not currently available to most Cloud Bigtable customers. This"]
-        #[doc = " feature might be changed in backward-incompatible ways and is not"]
-        #[doc = " recommended for production use. It is not subject to any SLA or deprecation"]
-        #[doc = " policy."]
+        /// Creates a new snapshot in the specified cluster from the specified
+        /// source table. The cluster and the table must be in the same instance.
+        ///
+        /// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+        /// feature is not currently available to most Cloud Bigtable customers. This
+        /// feature might be changed in backward-incompatible ways and is not
+        /// recommended for production use. It is not subject to any SLA or deprecation
+        /// policy.
         pub async fn snapshot_table(
             &mut self,
             request: impl tonic::IntoRequest<super::SnapshotTableRequest>,
@@ -1387,95 +1735,107 @@ pub mod bigtable_table_admin_client {
             tonic::Response<super::super::super::super::longrunning::Operation>,
             tonic::Status,
         > {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/SnapshotTable",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Gets metadata information about the specified snapshot."]
-        #[doc = ""]
-        #[doc = " Note: This is a private alpha release of Cloud Bigtable snapshots. This"]
-        #[doc = " feature is not currently available to most Cloud Bigtable customers. This"]
-        #[doc = " feature might be changed in backward-incompatible ways and is not"]
-        #[doc = " recommended for production use. It is not subject to any SLA or deprecation"]
-        #[doc = " policy."]
+        /// Gets metadata information about the specified snapshot.
+        ///
+        /// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+        /// feature is not currently available to most Cloud Bigtable customers. This
+        /// feature might be changed in backward-incompatible ways and is not
+        /// recommended for production use. It is not subject to any SLA or deprecation
+        /// policy.
         pub async fn get_snapshot(
             &mut self,
             request: impl tonic::IntoRequest<super::GetSnapshotRequest>,
         ) -> Result<tonic::Response<super::Snapshot>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/GetSnapshot",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Lists all snapshots associated with the specified cluster."]
-        #[doc = ""]
-        #[doc = " Note: This is a private alpha release of Cloud Bigtable snapshots. This"]
-        #[doc = " feature is not currently available to most Cloud Bigtable customers. This"]
-        #[doc = " feature might be changed in backward-incompatible ways and is not"]
-        #[doc = " recommended for production use. It is not subject to any SLA or deprecation"]
-        #[doc = " policy."]
+        /// Lists all snapshots associated with the specified cluster.
+        ///
+        /// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+        /// feature is not currently available to most Cloud Bigtable customers. This
+        /// feature might be changed in backward-incompatible ways and is not
+        /// recommended for production use. It is not subject to any SLA or deprecation
+        /// policy.
         pub async fn list_snapshots(
             &mut self,
             request: impl tonic::IntoRequest<super::ListSnapshotsRequest>,
         ) -> Result<tonic::Response<super::ListSnapshotsResponse>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/ListSnapshots",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Permanently deletes the specified snapshot."]
-        #[doc = ""]
-        #[doc = " Note: This is a private alpha release of Cloud Bigtable snapshots. This"]
-        #[doc = " feature is not currently available to most Cloud Bigtable customers. This"]
-        #[doc = " feature might be changed in backward-incompatible ways and is not"]
-        #[doc = " recommended for production use. It is not subject to any SLA or deprecation"]
-        #[doc = " policy."]
+        /// Permanently deletes the specified snapshot.
+        ///
+        /// Note: This is a private alpha release of Cloud Bigtable snapshots. This
+        /// feature is not currently available to most Cloud Bigtable customers. This
+        /// feature might be changed in backward-incompatible ways and is not
+        /// recommended for production use. It is not subject to any SLA or deprecation
+        /// policy.
         pub async fn delete_snapshot(
             &mut self,
             request: impl tonic::IntoRequest<super::DeleteSnapshotRequest>,
         ) -> Result<tonic::Response<()>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/DeleteSnapshot",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Starts creating a new Cloud Bigtable Backup.  The returned backup"]
-        #[doc = " [long-running operation][google.longrunning.Operation] can be used to"]
-        #[doc = " track creation of the backup. The"]
-        #[doc = " [metadata][google.longrunning.Operation.metadata] field type is"]
-        #[doc = " [CreateBackupMetadata][google.bigtable.admin.v2.CreateBackupMetadata]. The"]
-        #[doc = " [response][google.longrunning.Operation.response] field type is"]
-        #[doc = " [Backup][google.bigtable.admin.v2.Backup], if successful. Cancelling the returned operation will stop the"]
-        #[doc = " creation and delete the backup."]
+        /// Starts creating a new Cloud Bigtable Backup.  The returned backup
+        /// [long-running operation][google.longrunning.Operation] can be used to
+        /// track creation of the backup. The
+        /// [metadata][google.longrunning.Operation.metadata] field type is
+        /// [CreateBackupMetadata][google.bigtable.admin.v2.CreateBackupMetadata]. The
+        /// [response][google.longrunning.Operation.response] field type is
+        /// [Backup][google.bigtable.admin.v2.Backup], if successful. Cancelling the returned operation will stop the
+        /// creation and delete the backup.
         pub async fn create_backup(
             &mut self,
             request: impl tonic::IntoRequest<super::CreateBackupRequest>,
@@ -1483,95 +1843,110 @@ pub mod bigtable_table_admin_client {
             tonic::Response<super::super::super::super::longrunning::Operation>,
             tonic::Status,
         > {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/CreateBackup",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Gets metadata on a pending or completed Cloud Bigtable Backup."]
+        /// Gets metadata on a pending or completed Cloud Bigtable Backup.
         pub async fn get_backup(
             &mut self,
             request: impl tonic::IntoRequest<super::GetBackupRequest>,
         ) -> Result<tonic::Response<super::Backup>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/GetBackup",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Updates a pending or completed Cloud Bigtable Backup."]
+        /// Updates a pending or completed Cloud Bigtable Backup.
         pub async fn update_backup(
             &mut self,
             request: impl tonic::IntoRequest<super::UpdateBackupRequest>,
         ) -> Result<tonic::Response<super::Backup>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/UpdateBackup",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Deletes a pending or completed Cloud Bigtable backup."]
+        /// Deletes a pending or completed Cloud Bigtable backup.
         pub async fn delete_backup(
             &mut self,
             request: impl tonic::IntoRequest<super::DeleteBackupRequest>,
         ) -> Result<tonic::Response<()>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/DeleteBackup",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Lists Cloud Bigtable backups. Returns both completed and pending"]
-        #[doc = " backups."]
+        /// Lists Cloud Bigtable backups. Returns both completed and pending
+        /// backups.
         pub async fn list_backups(
             &mut self,
             request: impl tonic::IntoRequest<super::ListBackupsRequest>,
         ) -> Result<tonic::Response<super::ListBackupsResponse>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/ListBackups",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Create a new table by restoring from a completed backup. The new table"]
-        #[doc = " must be in the same project as the instance containing the backup.  The"]
-        #[doc = " returned table [long-running operation][google.longrunning.Operation] can"]
-        #[doc = " be used to track the progress of the operation, and to cancel it.  The"]
-        #[doc = " [metadata][google.longrunning.Operation.metadata] field type is"]
-        #[doc = " [RestoreTableMetadata][google.bigtable.admin.RestoreTableMetadata].  The"]
-        #[doc = " [response][google.longrunning.Operation.response] type is"]
-        #[doc = " [Table][google.bigtable.admin.v2.Table], if successful."]
+        /// Create a new table by restoring from a completed backup. The new table
+        /// must be in the same project as the instance containing the backup.  The
+        /// returned table [long-running operation][google.longrunning.Operation] can
+        /// be used to track the progress of the operation, and to cancel it.  The
+        /// [metadata][google.longrunning.Operation.metadata] field type is
+        /// [RestoreTableMetadata][google.bigtable.admin.RestoreTableMetadata].  The
+        /// [response][google.longrunning.Operation.response] type is
+        /// [Table][google.bigtable.admin.v2.Table], if successful.
         pub async fn restore_table(
             &mut self,
             request: impl tonic::IntoRequest<super::RestoreTableRequest>,
@@ -1579,73 +1954,95 @@ pub mod bigtable_table_admin_client {
             tonic::Response<super::super::super::super::longrunning::Operation>,
             tonic::Status,
         > {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/RestoreTable",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Gets the access control policy for a Table or Backup resource."]
-        #[doc = " Returns an empty policy if the resource exists but does not have a policy"]
-        #[doc = " set."]
+        /// Gets the access control policy for a Table or Backup resource.
+        /// Returns an empty policy if the resource exists but does not have a policy
+        /// set.
         pub async fn get_iam_policy(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::super::super::iam::v1::GetIamPolicyRequest>,
-        ) -> Result<tonic::Response<super::super::super::super::iam::v1::Policy>, tonic::Status>
-        {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            request: impl tonic::IntoRequest<
+                super::super::super::super::iam::v1::GetIamPolicyRequest,
+            >,
+        ) -> Result<
+            tonic::Response<super::super::super::super::iam::v1::Policy>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/GetIamPolicy",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Sets the access control policy on a Table or Backup resource."]
-        #[doc = " Replaces any existing policy."]
+        /// Sets the access control policy on a Table or Backup resource.
+        /// Replaces any existing policy.
         pub async fn set_iam_policy(
             &mut self,
-            request: impl tonic::IntoRequest<super::super::super::super::iam::v1::SetIamPolicyRequest>,
-        ) -> Result<tonic::Response<super::super::super::super::iam::v1::Policy>, tonic::Status>
-        {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            request: impl tonic::IntoRequest<
+                super::super::super::super::iam::v1::SetIamPolicyRequest,
+            >,
+        ) -> Result<
+            tonic::Response<super::super::super::super::iam::v1::Policy>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/SetIamPolicy",
             );
             self.inner.unary(request.into_request(), path, codec).await
         }
-        #[doc = " Returns permissions that the caller has on the specified Table or Backup resource."]
+        /// Returns permissions that the caller has on the specified Table or Backup resource.
         pub async fn test_iam_permissions(
             &mut self,
             request: impl tonic::IntoRequest<
                 super::super::super::super::iam::v1::TestIamPermissionsRequest,
             >,
         ) -> Result<
-            tonic::Response<super::super::super::super::iam::v1::TestIamPermissionsResponse>,
+            tonic::Response<
+                super::super::super::super::iam::v1::TestIamPermissionsResponse,
+            >,
             tonic::Status,
         > {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.bigtable.admin.v2.BigtableTableAdmin/TestIamPermissions",
