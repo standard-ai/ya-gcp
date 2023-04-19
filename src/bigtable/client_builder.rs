@@ -9,6 +9,11 @@ const BIGTABLE_DATA_SCOPE: &'static str = "https://www.googleapis.com/auth/bigta
 const BIGTABLE_DATA_READONLY_SCOPE: &'static str =
     "https://www.googleapis.com/auth/bigtable.data.readonly";
 
+// I couldn't find any documentation on the maximum size for bigtable replies,
+// but this suggests it can be large:
+// https://github.com/googleapis/google-cloud-node/issues/1755
+const MAX_MESSAGE_SIZE: usize = usize::MAX;
+
 config_default! {
     /// Configuration for connecting to bigtable
     #[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Deserialize)]
@@ -71,7 +76,8 @@ where
 
         let inner = api::bigtable::v2::bigtable_client::BigtableClient::new(
             grpc::AuthGrpcService::new(connection, self.auth.clone(), scopes),
-        );
+        )
+        .max_decoding_message_size(MAX_MESSAGE_SIZE);
 
         Ok(BigtableClient {
             inner,
