@@ -1,6 +1,7 @@
 //! An API for interacting with Google's [Bigtable](https://cloud.google.com/bigtable) database.
 //!
-//! The [`BigtableClient`] allows reading and writing to tables, while the [`BigtableTableAdminClient`]
+//! The [`BigtableClient`] allows reading and writing to tables, while the
+//! [`BigtableTableAdminClient`](admin::BigtableTableAdminClient)
 //! allows for creating and listing tables.
 
 use futures::prelude::*;
@@ -396,6 +397,8 @@ where
     ///
     /// This is the most general read request; various other convenience methods are
     /// available.
+    /// Note that the table name in `request` needs to be
+    /// [fully qualified](Self::fully_qualified_table_name).
     pub fn read_rows(
         &mut self,
         mut request: ReadRowsRequest,
@@ -480,9 +483,8 @@ where
         rows_limit: Option<i64>,
     ) -> impl Stream<Item = Result<Bytes, ReadRowsError>> + '_ {
         use filters::{Chain, Filter};
-        let table_name = format!("{}{}", self.table_prefix, table_name);
         let req = ReadRowsRequest {
-            table_name,
+            table_name: self.fully_qualified_table_name(table_name),
             rows_limit: rows_limit.unwrap_or(0),
             rows: Some(v2::RowSet::default().with_range(range)),
             filter: Some(
@@ -508,9 +510,8 @@ where
         range: impl RangeBounds<Bytes>,
         rows_limit: Option<i64>,
     ) -> impl Stream<Item = Result<Row, ReadRowsError>> + '_ {
-        let table_name = format!("{}{}", self.table_prefix, table_name);
         let req = ReadRowsRequest {
-            table_name,
+            table_name: self.fully_qualified_table_name(table_name),
             rows_limit: rows_limit.unwrap_or(0),
             rows: Some(v2::RowSet::default().with_range(range)),
             filter: Some(filters::Filter::CellsPerColumnLimitFilter(1).into()),
@@ -525,9 +526,8 @@ where
         table_name: &str,
         row_key: impl Into<Bytes>,
     ) -> Result<Option<Row>, ReadRowsError> {
-        let table_name = format!("{}{}", self.table_prefix, table_name);
         let req = ReadRowsRequest {
-            table_name,
+            table_name: self.fully_qualified_table_name(table_name),
             rows: Some(v2::RowSet::default().with_key(row_key)),
             filter: Some(filters::Filter::CellsPerColumnLimitFilter(1).into()),
             ..Default::default()
@@ -539,6 +539,8 @@ where
     /// Performs a batch mutation request.
     ///
     /// This is the most general mutation request; various convenience methods are also available.
+    /// Note that the table name in `request` needs to be
+    /// [fully qualified](Self::fully_qualified_table_name).
     pub async fn mutate_rows(&mut self, request: MutateRowsRequest) -> Result<(), MutateRowsError> {
         let mut retry = self.retry.new_operation();
 
@@ -573,6 +575,9 @@ where
     }
 
     /// Performs a mutation request for a single row.
+    ///
+    /// Note that the table name in `request` needs to be
+    /// [fully qualified](Self::fully_qualified_table_name).
     pub async fn mutate_row(&mut self, request: MutateRowRequest) -> Result<(), tonic::Status> {
         let mut retry = self.retry.new_operation();
 
@@ -593,7 +598,7 @@ where
         table_name: &str,
         row_keys: impl IntoIterator<Item = impl Into<Bytes>>,
     ) -> Result<(), MutateRowsError> {
-        let table_name = format!("{}{}", self.table_prefix, table_name);
+        let table_name = self.fully_qualified_table_name(table_name);
         let req =
             MutateRowsRequest::new(table_name).with_entries(row_keys.into_iter().map(|row_key| {
                 mutation::Entry::new(row_key.into()).with_mutation(mutation::DeleteFromRow {})
@@ -637,7 +642,7 @@ where
         CellData: Into<Bytes>,
         RowData: IntoIterator<Item = (ColName, CellData)>,
     {
-        let table_name = format!("{}{}", self.table_prefix, table_name);
+        let table_name = self.fully_qualified_table_name(table_name);
         let req = MutateRowsRequest::new(table_name).with_entries(data.into_iter().map(
             |(row_key, row_data)| {
                 mutation::Entry::new(row_key.into()).with_mutations(row_data.into_iter().map(
@@ -674,7 +679,7 @@ where
         CellData: Into<Bytes>,
         RowData: IntoIterator<Item = (ColName, CellData)>,
     {
-        let table_name = format!("{}{}", self.table_prefix, table_name);
+        let table_name = self.fully_qualified_table_name(table_name);
         let req = MutateRowRequest::new(table_name, row_key.into()).with_mutations(
             data.into_iter().map(|(col_name, cell_data)| {
                 mutation::SetCell::new(family_name.clone(), col_name.into(), cell_data.into())
@@ -682,5 +687,14 @@ where
             }),
         );
         self.mutate_row(req).await
+    }
+
+    /// Builds a fully qualified table name, of the form `projects/<PROJECT>/instances/<INSTANCE>/tables/<TABLE>`.
+    ///
+    /// If you are building your own [`ReadRowsRequest`], [`MutateRowRequest`], or [`MutateRowsRequest`], you need to provide
+    /// this fully qualified table name. If you are using one of the other convenience query functions,
+    /// you do not need the fully qualified table name.
+    pub fn fully_qualified_table_name(&self, table_name: &str) -> String {
+        format!("{}{}", self.table_prefix, table_name)
     }
 }

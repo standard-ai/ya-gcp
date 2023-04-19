@@ -20,7 +20,7 @@ jobs:
         # some features like emulators and openssl won't work on windows/mac; those are tested in test-xplat
         os: [ubuntu-latest]
         test_flags: ["", "--no-default-features", "--all-features"]
-    timeout-minutes: 8
+    timeout-minutes: 20
     steps:
       - name: Install sudo package
         run: apt update && apt install sudo
