@@ -2175,6 +2175,7 @@ dependencies = [
  "derive_more",
  "futures",
  "http",
+ "http-body",
  "humantime-serde",
  "hyper",
  "hyper-openssl",

@@ -9,9 +9,9 @@ use hyper::body::Bytes;
 use prost::bytes::BytesMut;
 use std::ops::{Bound, RangeBounds};
 
-use crate::{
-    auth::grpc::AuthGrpcService,
-    retry_policy::{ExponentialBackoff, RetryOperation, RetryPolicy, RetryPredicate},
+use crate::auth::grpc::AuthGrpcService;
+use crate::retry_policy::{
+    exponential_backoff, ExponentialBackoff, RetryOperation, RetryPolicy, RetryPredicate,
 };
 
 pub use http::Uri;
@@ -368,31 +368,86 @@ impl From<ReadInProgressError> for ReadRowsError {
 /// function.
 #[derive(Clone)]
 pub struct BigtableClient<
-    C = crate::DefaultConnector,
+    Service = AuthGrpcService<tonic::transport::Channel, crate::DefaultConnector>,
     Retry = ExponentialBackoff<BigtableRetryCheck>,
 > {
-    inner: api::bigtable::v2::bigtable_client::BigtableClient<
-        AuthGrpcService<tonic::transport::Channel, C>,
-    >,
+    inner: api::bigtable::v2::bigtable_client::BigtableClient<Service>,
     retry: Retry,
     table_prefix: String,
 }
 
-impl<C, Retry> BigtableClient<C, Retry>
+impl<Service> BigtableClient<Service>
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    Service: tonic::client::GrpcService<tonic::body::BoxBody>,
+    Service::ResponseBody: http_body::Body + Send + 'static,
+    Service::Error: Into<Box<dyn std::error::Error + Send + Sync + 'static>>,
+    <Service::ResponseBody as http_body::Body>::Error:
+        Into<Box<dyn std::error::Error + Send + Sync + 'static>> + Send,
+{
+    /// Create a `BigtableClient` using a provided [`GrpcService`] for communicating
+    /// to bigtable.
+    ///
+    /// To connect to a non-emulated bigtable, the service will need to provide authentication;
+    /// [`AuthGrpcService`] is a wrapper that adds authentication to an unauthenticated service.
+    ///
+    /// # Example
+    /// ```
+    /// # use ya_gcp::bigtable::{BigtableConfig, BigtableClient};
+    /// # use ya_gcp::auth::grpc::AuthGrpcService;
+    /// # use hyper::body::Bytes;
+    /// # let _ = || async move {
+    /// // Set up auth using yup_oauth2. In this example, we grab it from the user credentials created
+    /// // by `gloud auth application-default login`.
+    /// let secret = yup_oauth2::read_authorized_user_secret("/home/me/.config/gcloud/application_default_credentials.json").await?;
+    /// let auth = yup_oauth2::AuthorizedUserAuthenticator::builder(secret).build().await?;
+    ///
+    /// let config = BigtableConfig::default();
+    /// let channel = tonic::transport::Endpoint::from_shared(config.endpoint.clone())?.connect().await?;
+    /// let auth_channel = AuthGrpcService::new(channel, Some(auth), config.auth_scopes());
+    /// let client = BigtableClient::new(auth_channel, "my-project", "my-instance");
+    /// # Ok::<_, Box<dyn std::error::Error>>(())
+    /// # };
+    /// ```
+    ///
+    /// [`GrpcService`]: tonic::client::GrpcService
+    pub fn new(service: Service, project: &str, instance_name: &str) -> Self {
+        let retry = ExponentialBackoff::new(
+            BigtableRetryCheck::default(),
+            exponential_backoff::Config::default(),
+        );
+        Self::with_retry(service, retry, project, instance_name)
+    }
+}
+
+impl<Service, Retry> BigtableClient<Service, Retry>
+where
+    Service: tonic::client::GrpcService<tonic::body::BoxBody>,
+    Service::ResponseBody: http_body::Body + Send + 'static,
+    Service::Error: Into<Box<dyn std::error::Error + Send + Sync + 'static>>,
+    <Service::ResponseBody as http_body::Body>::Error:
+        Into<Box<dyn std::error::Error + Send + Sync + 'static>> + Send,
     Retry: RetryPolicy<(), tonic::Status> + 'static,
     Retry::RetryOp: Send + 'static,
     <Retry::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,
 {
+    /// Create a `BigtableClient` with a custom retry policy and using a
+    /// provided [`GrpcService`] for communicating to bigtable.
+    ///
+    /// To connect to a non-emulated bigtable, the service will need to provide authentication;
+    /// [`AuthGrpcService`] is a wrapper that adds authentication to an unauthenticated service.
+    ///
+    /// [`GrpcService`]: tonic::client::GrpcService
+    pub fn with_retry(service: Service, retry: Retry, project: &str, instance_name: &str) -> Self {
+        let table_prefix = format!("projects/{}/instances/{}/tables/", project, instance_name);
+        let inner = api::bigtable::v2::bigtable_client::BigtableClient::new(service);
+
+        BigtableClient {
+            inner,
+            table_prefix,
+            retry,
+        }
+    }
+
     /// Request some rows from bigtable.
     ///
     /// This is the most general read request; various other convenience methods are

@@ -72,6 +72,7 @@ tempdir = { version = "0.3", optional = true }
 tonic = { version = "0.6.2", optional = true }
 tower = { version = "0.4", features = ["make"], optional = true }
 uuid = { version = "0.8.1", features = ["v4"], optional = true }
+http-body = "0.4.5"
 
 [dev-dependencies]
 approx = "0.5"

@@ -1,5 +1,5 @@
 use crate::{
-    auth::grpc,
+    auth::grpc::{self, AuthGrpcService},
     bigtable::{api, BigtableClient},
     builder,
     retry_policy::{exponential_backoff, ExponentialBackoff},
@@ -25,7 +25,13 @@ config_default! {
 }
 
 impl BigtableConfig {
-    fn auth_scopes(&self) -> Vec<String> {
+    /// Returns the oauth scopes required for this bigtable configuration.
+    ///
+    /// These are handled automatically when using [`build_bigtable_client`],
+    /// but you will need them if you intend to provide your own authentication.
+    ///
+    /// [`build_bigtable_client`]: crate::ClientBuilder::build_bigtable_client
+    pub fn auth_scopes(&self) -> Vec<String> {
         if self.readonly {
             vec![BIGTABLE_DATA_READONLY_SCOPE.to_owned()]
         } else {
@@ -60,7 +66,7 @@ where
         config: BigtableConfig,
         project: &str,
         instance_name: &str,
-    ) -> Result<BigtableClient<C>, BuildError> {
+    ) -> Result<BigtableClient<AuthGrpcService<tonic::transport::Channel, C>>, BuildError> {
         let scopes = config.auth_scopes();
         let endpoint = tonic::transport::Endpoint::new(config.endpoint)?;
 
