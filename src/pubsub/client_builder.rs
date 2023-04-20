@@ -4,6 +4,10 @@ use crate::{
     pubsub::{api, PublisherClient, SubscriberClient},
 };
 
+// Pubsub's maximum message size is 10MB, larger than tonic's default of 4MB
+// (https://github.com/GoogleCloudPlatform/pubsub/issues/164)
+const MAX_MESSAGE_SIZE: usize = 10 * 1024 * 1024;
+
 // re-export traits and types necessary for the bounds on public functions
 #[allow(unreachable_pub)] // the reachability lint seems faulty with parent module re-exports
 pub use http::Uri;
@@ -67,7 +71,8 @@ where
         Ok(PublisherClient {
             inner: api::publisher_client::PublisherClient::new(
                 self.pubsub_authed_service(config).await?,
-            ),
+            )
+            .max_decoding_message_size(MAX_MESSAGE_SIZE),
         })
     }
 
@@ -80,7 +85,8 @@ where
         Ok(SubscriberClient {
             inner: api::subscriber_client::SubscriberClient::new(
                 self.pubsub_authed_service(config).await?,
-            ),
+            )
+            .max_decoding_message_size(MAX_MESSAGE_SIZE),
         })
     }
 }

@@ -1,5 +1,6 @@
 /// This resource represents a long-running operation that is the result of a
 /// network API call.
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Operation {
     /// The server-assigned name, which is only unique within the same service that
@@ -29,6 +30,7 @@ pub mod operation {
     /// The operation result, which can be either an `error` or a valid `response`.
     /// If `done` == `false`, neither `error` nor `response` is set.
     /// If `done` == `true`, exactly one of `error` or `response` is set.
+    #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Result {
         /// The error result of the operation in case of failure or cancellation.
@@ -47,6 +49,7 @@ pub mod operation {
     }
 }
 /// The request message for \[Operations.GetOperation][google.longrunning.Operations.GetOperation\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetOperationRequest {
     /// The name of the operation resource.
@@ -54,6 +57,7 @@ pub struct GetOperationRequest {
     pub name: ::prost::alloc::string::String,
 }
 /// The request message for \[Operations.ListOperations][google.longrunning.Operations.ListOperations\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListOperationsRequest {
     /// The name of the operation's parent resource.
@@ -70,6 +74,7 @@ pub struct ListOperationsRequest {
     pub page_token: ::prost::alloc::string::String,
 }
 /// The response message for \[Operations.ListOperations][google.longrunning.Operations.ListOperations\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListOperationsResponse {
     /// A list of operations that matches the specified filter in the request.
@@ -80,6 +85,7 @@ pub struct ListOperationsResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 /// The request message for \[Operations.CancelOperation][google.longrunning.Operations.CancelOperation\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CancelOperationRequest {
     /// The name of the operation resource to be cancelled.
@@ -87,6 +93,7 @@ pub struct CancelOperationRequest {
     pub name: ::prost::alloc::string::String,
 }
 /// The request message for \[Operations.DeleteOperation][google.longrunning.Operations.DeleteOperation\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteOperationRequest {
     /// The name of the operation resource to be deleted.
@@ -94,6 +101,7 @@ pub struct DeleteOperationRequest {
     pub name: ::prost::alloc::string::String,
 }
 /// The request message for \[Operations.WaitOperation][google.longrunning.Operations.WaitOperation\].
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct WaitOperationRequest {
     /// The name of the operation resource to wait on.
@@ -109,13 +117,14 @@ pub struct WaitOperationRequest {
 ///
 /// Example:
 ///
-///   rpc LongRunningRecognize(LongRunningRecognizeRequest)
-///       returns (google.longrunning.Operation) {
-///     option (google.longrunning.operation_info) = {
-///       response_type: "LongRunningRecognizeResponse"
-///       metadata_type: "LongRunningRecognizeMetadata"
-///     };
-///   }
+///    rpc LongRunningRecognize(LongRunningRecognizeRequest)
+///        returns (google.longrunning.Operation) {
+///      option (google.longrunning.operation_info) = {
+///        response_type: "LongRunningRecognizeResponse"
+///        metadata_type: "LongRunningRecognizeMetadata"
+///      };
+///    }
+#[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OperationInfo {
     /// Required. The message name of the primary return type for this
@@ -138,28 +147,29 @@ pub struct OperationInfo {
     #[prost(string, tag = "2")]
     pub metadata_type: ::prost::alloc::string::String,
 }
-#[doc = r" Generated client implementations."]
+/// Generated client implementations.
 pub mod operations_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    #[doc = " Manages long-running operations with an API service."]
-    #[doc = ""]
-    #[doc = " When an API method normally takes long time to complete, it can be designed"]
-    #[doc = " to return [Operation][google.longrunning.Operation] to the client, and the client can use this"]
-    #[doc = " interface to receive the real response asynchronously by polling the"]
-    #[doc = " operation resource, or pass the operation resource to another API (such as"]
-    #[doc = " Google Cloud Pub/Sub API) to receive the response.  Any API service that"]
-    #[doc = " returns long-running operations should implement the `Operations` interface"]
-    #[doc = " so developers can have a consistent client experience."]
+    use tonic::codegen::http::Uri;
+    /// Manages long-running operations with an API service.
+    ///
+    /// When an API method normally takes long time to complete, it can be designed
+    /// to return [Operation][google.longrunning.Operation] to the client, and the client can use this
+    /// interface to receive the real response asynchronously by polling the
+    /// operation resource, or pass the operation resource to another API (such as
+    /// Google Cloud Pub/Sub API) to receive the response.  Any API service that
+    /// returns long-running operations should implement the `Operations` interface
+    /// so developers can have a consistent client experience.
     #[derive(Debug, Clone)]
     pub struct OperationsClient<T> {
         inner: tonic::client::Grpc<T>,
     }
     impl OperationsClient<tonic::transport::Channel> {
-        #[doc = r" Attempt to create a new client by connecting to a given endpoint."]
+        /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
-            D: std::convert::TryInto<tonic::transport::Endpoint>,
+            D: TryInto<tonic::transport::Endpoint>,
             D::Error: Into<StdError>,
         {
             let conn = tonic::transport::Endpoint::new(dst)?.connect().await?;
@@ -169,12 +179,16 @@ pub mod operations_client {
     impl<T> OperationsClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
-        T::ResponseBody: Body + Send + 'static,
         T::Error: Into<StdError>,
+        T::ResponseBody: Body<Data = Bytes> + Send + 'static,
         <T::ResponseBody as Body>::Error: Into<StdError> + Send,
     {
         pub fn new(inner: T) -> Self {
             let inner = tonic::client::Grpc::new(inner);
+            Self { inner }
+        }
+        pub fn with_origin(inner: T, origin: Uri) -> Self {
+            let inner = tonic::client::Grpc::with_origin(inner, origin);
             Self { inner }
         }
         pub fn with_interceptor<F>(
@@ -183,144 +197,208 @@ pub mod operations_client {
         ) -> OperationsClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
+            T::ResponseBody: Default,
             T: tonic::codegen::Service<
                 http::Request<tonic::body::BoxBody>,
                 Response = http::Response<
                     <T as tonic::client::GrpcService<tonic::body::BoxBody>>::ResponseBody,
                 >,
             >,
-            <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
-                Into<StdError> + Send + Sync,
+            <T as tonic::codegen::Service<
+                http::Request<tonic::body::BoxBody>,
+            >>::Error: Into<StdError> + Send + Sync,
         {
             OperationsClient::new(InterceptedService::new(inner, interceptor))
         }
-        #[doc = r" Compress requests with `gzip`."]
-        #[doc = r""]
-        #[doc = r" This requires the server to support it otherwise it might respond with an"]
-        #[doc = r" error."]
-        pub fn send_gzip(mut self) -> Self {
-            self.inner = self.inner.send_gzip();
+        /// Compress requests with the given encoding.
+        ///
+        /// This requires the server to support it otherwise it might respond with an
+        /// error.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.send_compressed(encoding);
             self
         }
-        #[doc = r" Enable decompressing responses with `gzip`."]
-        pub fn accept_gzip(mut self) -> Self {
-            self.inner = self.inner.accept_gzip();
+        /// Enable decompressing responses.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.inner = self.inner.accept_compressed(encoding);
             self
         }
-        #[doc = " Lists operations that match the specified filter in the request. If the"]
-        #[doc = " server doesn't support this method, it returns `UNIMPLEMENTED`."]
-        #[doc = ""]
-        #[doc = " NOTE: the `name` binding allows API services to override the binding"]
-        #[doc = " to use different resource name schemes, such as `users/*/operations`. To"]
-        #[doc = " override the binding, API services can add a binding such as"]
-        #[doc = " `\"/v1/{name=users/*}/operations\"` to their service configuration."]
-        #[doc = " For backwards compatibility, the default name includes the operations"]
-        #[doc = " collection id, however overriding users must ensure the name binding"]
-        #[doc = " is the parent resource, without the operations collection id."]
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_decoding_message_size(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.inner = self.inner.max_encoding_message_size(limit);
+            self
+        }
+        /// Lists operations that match the specified filter in the request. If the
+        /// server doesn't support this method, it returns `UNIMPLEMENTED`.
+        ///
+        /// NOTE: the `name` binding allows API services to override the binding
+        /// to use different resource name schemes, such as `users/*/operations`. To
+        /// override the binding, API services can add a binding such as
+        /// `"/v1/{name=users/*}/operations"` to their service configuration.
+        /// For backwards compatibility, the default name includes the operations
+        /// collection id, however overriding users must ensure the name binding
+        /// is the parent resource, without the operations collection id.
         pub async fn list_operations(
             &mut self,
             request: impl tonic::IntoRequest<super::ListOperationsRequest>,
-        ) -> Result<tonic::Response<super::ListOperationsResponse>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+        ) -> std::result::Result<
+            tonic::Response<super::ListOperationsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.longrunning.Operations/ListOperations",
             );
-            self.inner.unary(request.into_request(), path, codec).await
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("google.longrunning.Operations", "ListOperations"),
+                );
+            self.inner.unary(req, path, codec).await
         }
-        #[doc = " Gets the latest state of a long-running operation.  Clients can use this"]
-        #[doc = " method to poll the operation result at intervals as recommended by the API"]
-        #[doc = " service."]
+        /// Gets the latest state of a long-running operation.  Clients can use this
+        /// method to poll the operation result at intervals as recommended by the API
+        /// service.
         pub async fn get_operation(
             &mut self,
             request: impl tonic::IntoRequest<super::GetOperationRequest>,
-        ) -> Result<tonic::Response<super::Operation>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+        ) -> std::result::Result<tonic::Response<super::Operation>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path =
-                http::uri::PathAndQuery::from_static("/google.longrunning.Operations/GetOperation");
-            self.inner.unary(request.into_request(), path, codec).await
+            let path = http::uri::PathAndQuery::from_static(
+                "/google.longrunning.Operations/GetOperation",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("google.longrunning.Operations", "GetOperation"),
+                );
+            self.inner.unary(req, path, codec).await
         }
-        #[doc = " Deletes a long-running operation. This method indicates that the client is"]
-        #[doc = " no longer interested in the operation result. It does not cancel the"]
-        #[doc = " operation. If the server doesn't support this method, it returns"]
-        #[doc = " `google.rpc.Code.UNIMPLEMENTED`."]
+        /// Deletes a long-running operation. This method indicates that the client is
+        /// no longer interested in the operation result. It does not cancel the
+        /// operation. If the server doesn't support this method, it returns
+        /// `google.rpc.Code.UNIMPLEMENTED`.
         pub async fn delete_operation(
             &mut self,
             request: impl tonic::IntoRequest<super::DeleteOperationRequest>,
-        ) -> Result<tonic::Response<()>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+        ) -> std::result::Result<tonic::Response<()>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.longrunning.Operations/DeleteOperation",
             );
-            self.inner.unary(request.into_request(), path, codec).await
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("google.longrunning.Operations", "DeleteOperation"),
+                );
+            self.inner.unary(req, path, codec).await
         }
-        #[doc = " Starts asynchronous cancellation on a long-running operation.  The server"]
-        #[doc = " makes a best effort to cancel the operation, but success is not"]
-        #[doc = " guaranteed.  If the server doesn't support this method, it returns"]
-        #[doc = " `google.rpc.Code.UNIMPLEMENTED`.  Clients can use"]
-        #[doc = " [Operations.GetOperation][google.longrunning.Operations.GetOperation] or"]
-        #[doc = " other methods to check whether the cancellation succeeded or whether the"]
-        #[doc = " operation completed despite cancellation. On successful cancellation,"]
-        #[doc = " the operation is not deleted; instead, it becomes an operation with"]
-        #[doc = " an [Operation.error][google.longrunning.Operation.error] value with a [google.rpc.Status.code][google.rpc.Status.code] of 1,"]
-        #[doc = " corresponding to `Code.CANCELLED`."]
+        /// Starts asynchronous cancellation on a long-running operation.  The server
+        /// makes a best effort to cancel the operation, but success is not
+        /// guaranteed.  If the server doesn't support this method, it returns
+        /// `google.rpc.Code.UNIMPLEMENTED`.  Clients can use
+        /// [Operations.GetOperation][google.longrunning.Operations.GetOperation] or
+        /// other methods to check whether the cancellation succeeded or whether the
+        /// operation completed despite cancellation. On successful cancellation,
+        /// the operation is not deleted; instead, it becomes an operation with
+        /// an [Operation.error][google.longrunning.Operation.error] value with a [google.rpc.Status.code][google.rpc.Status.code] of 1,
+        /// corresponding to `Code.CANCELLED`.
         pub async fn cancel_operation(
             &mut self,
             request: impl tonic::IntoRequest<super::CancelOperationRequest>,
-        ) -> Result<tonic::Response<()>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+        ) -> std::result::Result<tonic::Response<()>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.longrunning.Operations/CancelOperation",
             );
-            self.inner.unary(request.into_request(), path, codec).await
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("google.longrunning.Operations", "CancelOperation"),
+                );
+            self.inner.unary(req, path, codec).await
         }
-        #[doc = " Waits until the specified long-running operation is done or reaches at most"]
-        #[doc = " a specified timeout, returning the latest state.  If the operation is"]
-        #[doc = " already done, the latest state is immediately returned.  If the timeout"]
-        #[doc = " specified is greater than the default HTTP/RPC timeout, the HTTP/RPC"]
-        #[doc = " timeout is used.  If the server does not support this method, it returns"]
-        #[doc = " `google.rpc.Code.UNIMPLEMENTED`."]
-        #[doc = " Note that this method is on a best-effort basis.  It may return the latest"]
-        #[doc = " state before the specified timeout (including immediately), meaning even an"]
-        #[doc = " immediate response is no guarantee that the operation is done."]
+        /// Waits until the specified long-running operation is done or reaches at most
+        /// a specified timeout, returning the latest state.  If the operation is
+        /// already done, the latest state is immediately returned.  If the timeout
+        /// specified is greater than the default HTTP/RPC timeout, the HTTP/RPC
+        /// timeout is used.  If the server does not support this method, it returns
+        /// `google.rpc.Code.UNIMPLEMENTED`.
+        /// Note that this method is on a best-effort basis.  It may return the latest
+        /// state before the specified timeout (including immediately), meaning even an
+        /// immediate response is no guarantee that the operation is done.
         pub async fn wait_operation(
             &mut self,
             request: impl tonic::IntoRequest<super::WaitOperationRequest>,
-        ) -> Result<tonic::Response<super::Operation>, tonic::Status> {
-            self.inner.ready().await.map_err(|e| {
-                tonic::Status::new(
-                    tonic::Code::Unknown,
-                    format!("Service was not ready: {}", e.into()),
-                )
-            })?;
+        ) -> std::result::Result<tonic::Response<super::Operation>, tonic::Status> {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
             let codec = tonic::codec::ProstCodec::default();
             let path = http::uri::PathAndQuery::from_static(
                 "/google.longrunning.Operations/WaitOperation",
             );
-            self.inner.unary(request.into_request(), path, codec).await
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new("google.longrunning.Operations", "WaitOperation"),
+                );
+            self.inner.unary(req, path, codec).await
         }
     }
 }

@@ -448,7 +448,7 @@ where
     <R::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,
 {
     let subscription_meta =
-        MetadataValue::from_str(&subscription).expect("valid subscription metadata");
+        MetadataValue::try_from(&subscription).expect("valid subscription metadata");
 
     // the client id is used for stream reconnection on error
     let client_id = uuid::Uuid::new_v4().to_string();

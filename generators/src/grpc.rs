@@ -39,6 +39,7 @@ fn main() -> Result<(), Error> {
     println!("generating interfaces in {}", args.output_dir.display());
 
     let mut prost_config = prost_build::Config::new();
+    prost_config.format(true);
     // use Bytes instead of Vec<u8> when possible in order to reduce copies when receiving data off
     // the wire
     prost_config.bytes(&["."]);
@@ -61,7 +62,6 @@ fn main() -> Result<(), Error> {
     tonic_build::configure()
         .build_client(true)
         .build_server(false)
-        .format(true)
         .out_dir(&args.output_dir)
         .compile_with_config(
             prost_config,
