@@ -28,7 +28,7 @@ const PROJECT_ID: &str = "test-project";
 const PORT_RANGE: Range<usize> = 8000..12000;
 pub(crate) const HOST: &str = "localhost";
 const CLI_RETRY: usize = 100;
-const CLIENT_CONNECT_RETRY: usize = 50;
+const CLIENT_CONNECT_RETRY_DEFAULT: usize = 50;
 
 #[derive(Clone)]
 pub(crate) struct EmulatorData {
@@ -69,6 +69,15 @@ impl EmulatorClient {
         data: EmulatorData,
         project_name: impl Into<String>,
     ) -> Result<Self, BoxError> {
+        Self::with_project_and_connect_retry_limit(data, project_name, CLIENT_CONNECT_RETRY_DEFAULT)
+            .await
+    }
+
+    pub(crate) async fn with_project_and_connect_retry_limit(
+        data: EmulatorData,
+        project_name: impl Into<String>,
+        connect_retry_limit: usize,
+    ) -> Result<Self, BoxError> {
         let project_name = project_name.into();
 
         let (child, port) =
@@ -78,7 +87,7 @@ impl EmulatorClient {
         // Give the server some time (5s) to come up.
         let mut err: Option<tonic::transport::Error> = None;
         let check = data.availability_check;
-        for _ in 0..CLIENT_CONNECT_RETRY {
+        for _ in 0..connect_retry_limit {
             // If we are able to create a schema client, then the server is up.
             match check(&port).await {
                 Err(e) => {

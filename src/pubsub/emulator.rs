@@ -66,6 +66,24 @@ impl EmulatorClient {
         })
     }
 
+    /// Create a new emulator instance with the given project name, which retries
+    /// connection the specified number of times.
+    pub async fn with_project_and_connect_retry_limit(
+        project_name: impl Into<String>,
+        connect_retry_limit: usize,
+    ) -> Result<Self, BoxError> {
+        let temp = tempdir::TempDir::new("pubsub_emulator")?;
+        Ok(EmulatorClient {
+            inner: emulator::EmulatorClient::with_project_and_connect_retry_limit(
+                data(&temp),
+                project_name,
+                connect_retry_limit,
+            )
+            .await?,
+            _temp: temp,
+        })
+    }
+
     /// Get the endpoint at which the emulator is listening for requests
     pub fn endpoint(&self) -> String {
         self.inner.endpoint()
