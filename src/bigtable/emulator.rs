@@ -4,15 +4,67 @@
 //! Follow installation directions from link above to set up your local development. Once setup,
 //! you should be able to run the pubsub emulator driven tests.
 
+use std::future::IntoFuture;
+
 use futures::{future::BoxFuture, FutureExt};
 
 use crate::{
     bigtable,
     builder::ClientBuilder,
-    emulator::{self, EmulatorData},
+    emulator::{self, EmulatorData, CLIENT_CONNECT_RETRY_DEFAULT, PROJECT_ID_DEFAULT},
 };
 
 type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+/// An async builder for constructing an emulator.
+pub struct Emulator {
+    project: String,
+    instance: String,
+    connection_retry_limit: usize,
+}
+
+impl Emulator {
+    /// Returns a new async builder for constructing an emulator
+    pub fn new() -> Self {
+        Self {
+            project: PROJECT_ID_DEFAULT.to_owned(),
+            instance: INSTANCE_ID_DEFAULT.to_owned(),
+            connection_retry_limit: CLIENT_CONNECT_RETRY_DEFAULT,
+        }
+    }
+
+    /// The GCP project name the emulator should use.
+    pub fn project(mut self, project: impl Into<String>) -> Self {
+        self.project = project.into();
+        self
+    }
+
+    /// The Bigtable instance name the emulator should use.
+    pub fn instance(mut self, instance: impl Into<String>) -> Self {
+        self.instance = instance.into();
+        self
+    }
+
+    /// How many times the emulator client should attempt to connect to the
+    /// emulator before giving up. Retries occur every 100ms so, e.g., a value
+    /// of `50` will result in a total retry time of 5s.
+    pub fn connection_retry_limit(mut self, connection_retry_limit: usize) -> Self {
+        self.connection_retry_limit = connection_retry_limit;
+        self
+    }
+}
+
+impl IntoFuture for Emulator {
+    type Output = Result<EmulatorClient, BoxError>;
+    type IntoFuture = BoxFuture<'static, Self::Output>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        async move {
+            EmulatorClient::new(self.project, self.instance, self.connection_retry_limit).await
+        }
+        .boxed()
+    }
+}
 
 /// Struct to hold a started PubSub emulator process. Process is closed when struct is dropped.
 pub struct EmulatorClient {
@@ -27,42 +79,18 @@ const DATA: EmulatorData = EmulatorData {
     extra_args: Vec::new(),
 };
 
-const INSTANCE_ID: &str = "test-instance";
+const INSTANCE_ID_DEFAULT: &str = "test-instance";
 
 impl EmulatorClient {
-    /// Create a new emulator instance with a default project name and instance name
-    pub async fn new() -> Result<Self, BoxError> {
-        Ok(EmulatorClient {
-            inner: emulator::EmulatorClient::new(DATA).await?,
-            instance: INSTANCE_ID.into(),
-        })
-    }
-
-    /// Create a new emulator instance with the given project name and instance name
-    pub async fn with_project_and_instance(
-        project_name: impl Into<String>,
-        instance_name: impl Into<String>,
-    ) -> Result<Self, BoxError> {
-        Ok(EmulatorClient {
-            inner: emulator::EmulatorClient::with_project(DATA, project_name).await?,
-            instance: instance_name.into(),
-        })
-    }
-
     /// Create a new emulator instance with the given project name, instance name,
     /// which retries connection the specified number of times.
-    pub async fn with_project_instance_and_connect_retry_limit(
+    async fn new(
         project_name: impl Into<String>,
         instance_name: impl Into<String>,
         connect_retry_limit: usize,
     ) -> Result<Self, BoxError> {
         Ok(EmulatorClient {
-            inner: emulator::EmulatorClient::with_project_and_connect_retry_limit(
-                DATA,
-                project_name,
-                connect_retry_limit,
-            )
-            .await?,
+            inner: emulator::EmulatorClient::new(DATA, project_name, connect_retry_limit).await?,
             instance: instance_name.into(),
         })
     }

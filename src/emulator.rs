@@ -24,11 +24,11 @@ use tracing::debug;
 
 type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
-const PROJECT_ID: &str = "test-project";
+pub(crate) const PROJECT_ID_DEFAULT: &str = "test-project";
 const PORT_RANGE: Range<usize> = 8000..12000;
 pub(crate) const HOST: &str = "localhost";
 const CLI_RETRY: usize = 100;
-const CLIENT_CONNECT_RETRY_DEFAULT: usize = 50;
+pub(crate) const CLIENT_CONNECT_RETRY_DEFAULT: usize = 50;
 
 #[derive(Clone)]
 pub(crate) struct EmulatorData {
@@ -59,24 +59,12 @@ pub(crate) struct EmulatorClient {
 }
 
 impl EmulatorClient {
-    /// Create a new emulator instance with a default project name
-    pub(crate) async fn new(data: EmulatorData) -> Result<Self, BoxError> {
-        Self::with_project(data, PROJECT_ID).await
-    }
-
-    /// Create a new emulator instance with the given project name
-    pub(crate) async fn with_project(
+    /// Create a new emulator instance wiht the given `EmulatorData`, project name
+    /// and limit to the number of connection retries.
+    pub(crate) async fn new(
         data: EmulatorData,
         project_name: impl Into<String>,
-    ) -> Result<Self, BoxError> {
-        Self::with_project_and_connect_retry_limit(data, project_name, CLIENT_CONNECT_RETRY_DEFAULT)
-            .await
-    }
-
-    pub(crate) async fn with_project_and_connect_retry_limit(
-        data: EmulatorData,
-        project_name: impl Into<String>,
-        connect_retry_limit: usize,
+        connection_retry_limit: usize,
     ) -> Result<Self, BoxError> {
         let project_name = project_name.into();
 
@@ -87,7 +75,7 @@ impl EmulatorClient {
         // Give the server some time (5s) to come up.
         let mut err: Option<tonic::transport::Error> = None;
         let check = data.availability_check;
-        for _ in 0..connect_retry_limit {
+        for _ in 0..connection_retry_limit {
             // If we are able to create a schema client, then the server is up.
             match check(&port).await {
                 Err(e) => {
@@ -160,10 +148,9 @@ async fn start_emulator(
     extra_args: &[OsString],
 ) -> Result<(tokio::process::Child, String), std::io::Error> {
     let mut err: Option<_> = None;
-    let mut rng = rand::thread_rng();
 
     for _ in 0..CLI_RETRY {
-        let port = format!("{}", rng.gen_range(PORT_RANGE));
+        let port = format!("{}", rand::thread_rng().gen_range(PORT_RANGE));
         match start_emulator_once(emulator_name, &port, project_name, extra_args) {
             Ok(child) => return Ok((child, port)),
             Err(e) => {

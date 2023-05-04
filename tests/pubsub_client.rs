@@ -8,8 +8,8 @@ mod pubsub_client_tests {
         time::Duration,
     };
     use ya_gcp::pubsub::{
-        self, api::PubsubMessage, emulator::EmulatorClient, ProjectSubscriptionName,
-        ProjectTopicName, PublisherClient, SinkError, StreamSubscriptionConfig,
+        self, api::PubsubMessage, emulator::Emulator, ProjectSubscriptionName, ProjectTopicName,
+        PublisherClient, SinkError, StreamSubscriptionConfig,
     };
 
     /// Helper to create a new topic request.
@@ -106,12 +106,12 @@ mod pubsub_client_tests {
 
     #[tokio::test]
     async fn build_emulator() {
-        EmulatorClient::new().await.unwrap();
+        Emulator::new().await.unwrap();
     }
 
     #[tokio::test]
     async fn build_publisher_client() {
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
         emulator
             .builder()
@@ -122,7 +122,7 @@ mod pubsub_client_tests {
 
     #[tokio::test]
     async fn build_subscriber_client() {
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
         emulator
             .builder()
@@ -134,7 +134,7 @@ mod pubsub_client_tests {
     #[tokio::test]
     async fn create_topic() {
         let topic_name = "test-topic";
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
         let mut client = emulator
             .builder()
@@ -157,7 +157,7 @@ mod pubsub_client_tests {
     #[tokio::test]
     async fn get_topic() {
         let topic_name = "test-topic";
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
         let mut client = emulator
             .builder()
@@ -186,7 +186,7 @@ mod pubsub_client_tests {
     // Publish a single list of messages.
     async fn publish() {
         let topic_name = "test-topic";
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
 
         let mut client = emulator
@@ -223,7 +223,7 @@ mod pubsub_client_tests {
     #[tokio::test]
     async fn list_topic_subscriptions() {
         let topic_name = "test-topic";
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
         let mut client = emulator
             .builder()
@@ -256,7 +256,7 @@ mod pubsub_client_tests {
     async fn create_subscription() {
         let topic_name = "test-topic";
         let subscription_name = "test-subscription";
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
 
         let mut client = emulator
@@ -294,7 +294,7 @@ mod pubsub_client_tests {
         let subscription_name = "test-subscription";
         let num_messages = 100;
 
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
         let mut publish_client = emulator
             .builder()
@@ -360,7 +360,7 @@ mod pubsub_client_tests {
     // for the stream.
     async fn create_subscription_stream_none_exists() {
         let subscription_name = "test-subscription";
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
 
         let mut client = emulator
@@ -391,7 +391,7 @@ mod pubsub_client_tests {
     async fn create_subscription_stream_empty() {
         let topic_name = "test-topic";
         let subscription_name = "test-subscription";
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
         let mut client = emulator
             .builder()
@@ -437,7 +437,7 @@ mod pubsub_client_tests {
     async fn create_subscription_stream_one() {
         let topic_name = "test-topic";
         let subscription_name = "test-subscription";
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
         let mut publish_client = emulator
             .builder()
@@ -507,7 +507,7 @@ mod pubsub_client_tests {
         let num_message_batches = 20;
         let total_messages = num_messages * num_message_batches;
 
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
         let mut publish_client = emulator
             .builder()
@@ -580,7 +580,7 @@ mod pubsub_client_tests {
         // lost. Since we ack these right away, we can't get them back.
         let total_messages = num_messages * (num_message_batches - 1);
 
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
         let mut publish_client = emulator
             .builder()
@@ -665,7 +665,7 @@ mod pubsub_client_tests {
         let batches = inner_step * outer_step;
         let total_messages = num_messages * batches;
 
-        let emulator = EmulatorClient::with_project(project_name).await.unwrap();
+        let emulator = Emulator::new().project(project_name).await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
 
         let mut publish_client = emulator
@@ -757,7 +757,7 @@ mod pubsub_client_tests {
         let topic_name = "test-topic";
         let subscription_name = "test-subscription";
 
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
 
         let mut publish_client = emulator
@@ -854,7 +854,7 @@ mod pubsub_client_tests {
         let topic_name = "test-topic";
         let subscription_name = "test-subscription";
 
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new().await.unwrap();
         let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
 
         let mut publish_client = emulator
@@ -962,7 +962,7 @@ mod pubsub_client_tests {
             let topic_name = "test-topic";
             let subscription_name = "test-subscription";
 
-            let emulator = EmulatorClient::new().await.unwrap();
+            let emulator = Emulator::new().await.unwrap();
             let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
 
             let mut publish_client = emulator

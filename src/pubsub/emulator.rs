@@ -14,16 +14,57 @@
 //! `ps aux | grep pubsub`. If there are open pubsub servers, run `pkill -f pubsub` to remove them
 //! all.
 
+use std::future::IntoFuture;
+
 use futures::{future::BoxFuture, FutureExt};
 
 use crate::{
     builder::ClientBuilder,
-    emulator::{self, EmulatorData},
+    emulator::{self, EmulatorData, CLIENT_CONNECT_RETRY_DEFAULT, PROJECT_ID_DEFAULT},
     pubsub,
 };
 use tracing::debug;
 
 type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
+
+/// An async builder for constructing an emulator.
+pub struct Emulator {
+    project: String,
+    connection_retry_limit: usize,
+}
+
+impl Emulator {
+    /// Returns a new async builder for constructing an emulator.
+    pub fn new() -> Self {
+        Self {
+            project: PROJECT_ID_DEFAULT.to_owned(),
+            connection_retry_limit: CLIENT_CONNECT_RETRY_DEFAULT,
+        }
+    }
+
+    /// The GCP project name the emulator should use.
+    pub fn project(mut self, project: impl Into<String>) -> Self {
+        self.project = project.into();
+        self
+    }
+
+    /// How many times the emulator client should attempt to connect to the
+    /// emulator before giving up. Retries occur every 100ms so, e.g., a value
+    /// of `50` will result in a total retry time of 5s.
+    pub fn connection_retry_limit(mut self, connection_retry_limit: usize) -> Self {
+        self.connection_retry_limit = connection_retry_limit;
+        self
+    }
+}
+
+impl IntoFuture for Emulator {
+    type Output = Result<EmulatorClient, BoxError>;
+    type IntoFuture = BoxFuture<'static, Self::Output>;
+
+    fn into_future(self) -> Self::IntoFuture {
+        async move { EmulatorClient::new(self.project, self.connection_retry_limit).await }.boxed()
+    }
+}
 
 /// Struct to hold a started PubSub emulator process. Process is closed when struct is dropped.
 pub struct EmulatorClient {
@@ -41,45 +82,16 @@ fn data(tmp_dir: &tempdir::TempDir) -> EmulatorData {
 }
 
 impl EmulatorClient {
-    /// Create a new emulator instance with a default project name
-    pub async fn new() -> Result<Self, BoxError> {
-        let temp = tempdir::TempDir::new("pubsub_emulator")?;
-        Ok(EmulatorClient {
-            inner: emulator::EmulatorClient::new(data(&temp)).await?,
-            _temp: temp,
-        })
-    }
-
-    /// Create a new emulator instance with the given project name
-    pub async fn with_project(project_name: impl Into<String>) -> Result<Self, BoxError> {
-        let temp = tempdir::TempDir::new("pubsub_emulator")?;
-        debug!(
-            path = temp.as_ref().to_str(),
-            "Created emulator data directory"
-        );
-
-        let project_name = project_name.into();
-
-        Ok(EmulatorClient {
-            inner: emulator::EmulatorClient::with_project(data(&temp), project_name).await?,
-            _temp: temp,
-        })
-    }
-
     /// Create a new emulator instance with the given project name, which retries
     /// connection the specified number of times.
-    pub async fn with_project_and_connect_retry_limit(
+    async fn new(
         project_name: impl Into<String>,
         connect_retry_limit: usize,
     ) -> Result<Self, BoxError> {
         let temp = tempdir::TempDir::new("pubsub_emulator")?;
         Ok(EmulatorClient {
-            inner: emulator::EmulatorClient::with_project_and_connect_retry_limit(
-                data(&temp),
-                project_name,
-                connect_retry_limit,
-            )
-            .await?,
+            inner: emulator::EmulatorClient::new(data(&temp), project_name, connect_retry_limit)
+                .await?,
             _temp: temp,
         })
     }
