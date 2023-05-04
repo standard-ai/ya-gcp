@@ -13,7 +13,11 @@ mod bigtable_client_tests {
     #[tokio::test]
     async fn create_table() {
         let table_name = "test-table";
-        let emulator = Emulator::new().await.unwrap();
+        let emulator = Emulator::new()
+            .project("test-project")
+            .instance("test-instance")
+            .await
+            .unwrap();
         let config = bigtable::admin::BigtableTableAdminConfig::new().endpoint(emulator.endpoint());
         let mut admin = emulator
             .builder()
@@ -42,7 +46,11 @@ mod bigtable_client_tests {
     }
 
     async fn default_client(table_name: &str) -> (EmulatorClient, bigtable::BigtableClient) {
-        let emulator = Emulator::new().await.unwrap();
+        let emulator = Emulator::new()
+            .project("test-project")
+            .instance("test-instance")
+            .await
+            .unwrap();
         emulator
             .create_table(table_name, ["fam1", "fam2"])
             .await

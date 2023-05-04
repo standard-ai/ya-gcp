@@ -14,40 +14,57 @@
 //! `ps aux | grep pubsub`. If there are open pubsub servers, run `pkill -f pubsub` to remove them
 //! all.
 
-use std::future::IntoFuture;
+use std::{future::IntoFuture, marker::PhantomData};
 
 use futures::{future::BoxFuture, FutureExt};
 
 use crate::{
     builder::ClientBuilder,
-    emulator::{self, EmulatorData, CLIENT_CONNECT_RETRY_DEFAULT, PROJECT_ID_DEFAULT},
+    emulator::{self, EmulatorData, CLIENT_CONNECT_RETRY_DEFAULT},
     pubsub,
 };
 use tracing::debug;
 
 type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
-/// An async builder for constructing an emulator.
-pub struct Emulator {
-    project: String,
-    connection_retry_limit: usize,
+mod builder_state {
+    pub trait State {}
+
+    pub enum NotReady {}
+    impl State for NotReady {}
+
+    pub enum Ready {}
+    impl State for Ready {}
 }
 
-impl Emulator {
+/// An async builder for constructing an emulator.
+pub struct Emulator<S: builder_state::State> {
+    project: Option<String>,
+    connection_retry_limit: usize,
+    _state: PhantomData<S>,
+}
+
+impl Emulator<builder_state::NotReady> {
     /// Returns a new async builder for constructing an emulator.
     pub fn new() -> Self {
         Self {
-            project: PROJECT_ID_DEFAULT.to_owned(),
+            project: None,
             connection_retry_limit: CLIENT_CONNECT_RETRY_DEFAULT,
+            _state: PhantomData,
         }
     }
 
     /// The GCP project name the emulator should use.
-    pub fn project(mut self, project: impl Into<String>) -> Self {
-        self.project = project.into();
-        self
+    pub fn project(self, project: impl Into<String>) -> Emulator<builder_state::Ready> {
+        Emulator {
+            project: Some(project.into()),
+            connection_retry_limit: CLIENT_CONNECT_RETRY_DEFAULT,
+            _state: PhantomData,
+        }
     }
+}
 
+impl<S: builder_state::State> Emulator<S> {
     /// How many times the emulator client should attempt to connect to the
     /// emulator before giving up. Retries occur every 100ms so, e.g., a value
     /// of `50` will result in a total retry time of 5s.
@@ -57,12 +74,13 @@ impl Emulator {
     }
 }
 
-impl IntoFuture for Emulator {
+impl IntoFuture for Emulator<builder_state::Ready> {
     type Output = Result<EmulatorClient, BoxError>;
     type IntoFuture = BoxFuture<'static, Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {
-        async move { EmulatorClient::new(self.project, self.connection_retry_limit).await }.boxed()
+        async move { EmulatorClient::new(self.project.unwrap(), self.connection_retry_limit).await }
+            .boxed()
     }
 }
 

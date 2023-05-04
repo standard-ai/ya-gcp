@@ -4,47 +4,77 @@
 //! Follow installation directions from link above to set up your local development. Once setup,
 //! you should be able to run the pubsub emulator driven tests.
 
-use std::future::IntoFuture;
+use std::{future::IntoFuture, marker::PhantomData};
 
 use futures::{future::BoxFuture, FutureExt};
 
 use crate::{
     bigtable,
     builder::ClientBuilder,
-    emulator::{self, EmulatorData, CLIENT_CONNECT_RETRY_DEFAULT, PROJECT_ID_DEFAULT},
+    emulator::{self, EmulatorData, CLIENT_CONNECT_RETRY_DEFAULT},
 };
 
 type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
+mod builder_state {
+    pub trait State {}
+
+    pub enum NotReady {}
+    impl State for NotReady {}
+
+    pub enum Ready {}
+    impl State for Ready {}
+}
+
 /// An async builder for constructing an emulator.
-pub struct Emulator {
-    project: String,
-    instance: String,
+pub struct Emulator<ProjectState: builder_state::State, InstanceState: builder_state::State> {
+    project: Option<String>,
+    _project_state: PhantomData<ProjectState>,
+    instance: Option<String>,
+    _instance_state: PhantomData<InstanceState>,
     connection_retry_limit: usize,
 }
 
-impl Emulator {
+impl Emulator<builder_state::NotReady, builder_state::NotReady> {
     /// Returns a new async builder for constructing an emulator
     pub fn new() -> Self {
         Self {
-            project: PROJECT_ID_DEFAULT.to_owned(),
-            instance: INSTANCE_ID_DEFAULT.to_owned(),
+            project: None,
+            _project_state: PhantomData,
+            instance: None,
+            _instance_state: PhantomData,
             connection_retry_limit: CLIENT_CONNECT_RETRY_DEFAULT,
         }
     }
+}
 
+impl<IS: builder_state::State> Emulator<builder_state::NotReady, IS> {
     /// The GCP project name the emulator should use.
-    pub fn project(mut self, project: impl Into<String>) -> Self {
-        self.project = project.into();
-        self
+    pub fn project(self, project: impl Into<String>) -> Emulator<builder_state::Ready, IS> {
+        Emulator {
+            project: Some(project.into()),
+            _project_state: PhantomData,
+            instance: self.instance,
+            _instance_state: PhantomData,
+            connection_retry_limit: self.connection_retry_limit,
+        }
     }
+}
 
+impl<PS: builder_state::State> Emulator<PS, builder_state::NotReady> {
     /// The Bigtable instance name the emulator should use.
-    pub fn instance(mut self, instance: impl Into<String>) -> Self {
-        self.instance = instance.into();
-        self
+    pub fn instance(self, instance: impl Into<String>) -> Emulator<PS, builder_state::Ready> {
+        Emulator {
+            project: self.project,
+            _project_state: PhantomData,
+            instance: Some(instance.into()),
+            _instance_state: PhantomData,
+            connection_retry_limit: self.connection_retry_limit,
+        }
     }
+}
 
+impl<PS: builder_state::State, IS: builder_state::State> Emulator<PS, IS> {
     /// How many times the emulator client should attempt to connect to the
     /// emulator before giving up. Retries occur every 100ms so, e.g., a value
     /// of `50` will result in a total retry time of 5s.
@@ -54,13 +84,18 @@ impl Emulator {
     }
 }
 
-impl IntoFuture for Emulator {
+impl IntoFuture for Emulator<builder_state::Ready, builder_state::Ready> {
     type Output = Result<EmulatorClient, BoxError>;
     type IntoFuture = BoxFuture<'static, Self::Output>;
 
     fn into_future(self) -> Self::IntoFuture {
         async move {
-            EmulatorClient::new(self.project, self.instance, self.connection_retry_limit).await
+            EmulatorClient::new(
+                self.project.unwrap(),
+                self.instance.unwrap(),
+                self.connection_retry_limit,
+            )
+            .await
         }
         .boxed()
     }
@@ -78,8 +113,6 @@ const DATA: EmulatorData = EmulatorData {
     availability_check: create_bigtable_client,
     extra_args: Vec::new(),
 };
-
-const INSTANCE_ID_DEFAULT: &str = "test-instance";
 
 impl EmulatorClient {
     /// Create a new emulator instance with the given project name, instance name,

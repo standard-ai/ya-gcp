@@ -24,7 +24,6 @@ use tracing::debug;
 
 type BoxError = Box<dyn std::error::Error + Send + Sync + 'static>;
 
-pub(crate) const PROJECT_ID_DEFAULT: &str = "test-project";
 const PORT_RANGE: Range<usize> = 8000..12000;
 pub(crate) const HOST: &str = "localhost";
 const CLI_RETRY: usize = 100;
