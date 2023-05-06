@@ -975,7 +975,9 @@ mod test {
     #[cfg(feature = "emulators")]
     #[tokio::test]
     async fn message_responses_in_order() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let emulator = pubsub::emulator::EmulatorClient::new().await?;
+        let emulator = pubsub::emulator::Emulator::new()
+            .project("test-project")
+            .await?;
         let project_topic =
             ProjectTopicName::new(emulator.project(), "message_responses_in_order_test");
         let project_subscription = pubsub::ProjectSubscriptionName::new(
@@ -1082,7 +1084,9 @@ mod test {
     #[cfg(feature = "emulators")]
     #[tokio::test]
     async fn user_sink_closed_with_flush() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let emulator = pubsub::emulator::EmulatorClient::new().await?;
+        let emulator = pubsub::emulator::Emulator::new()
+            .project("test-project")
+            .await?;
         let project_topic = ProjectTopicName::new(emulator.project(), "user_sink_test");
 
         let mut publisher = emulator

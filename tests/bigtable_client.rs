@@ -2,12 +2,22 @@
 mod bigtable_client_tests {
     use futures::TryStreamExt;
     use hyper::body::Bytes;
-    use ya_gcp::bigtable::{self, admin::Rule, api, emulator::EmulatorClient, ReadRowsRequest};
+    use ya_gcp::bigtable::{
+        self,
+        admin::Rule,
+        api,
+        emulator::{Emulator, EmulatorClient},
+        ReadRowsRequest,
+    };
 
     #[tokio::test]
     async fn create_table() {
         let table_name = "test-table";
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new()
+            .project("test-project")
+            .instance("test-instance")
+            .await
+            .unwrap();
         let config = bigtable::admin::BigtableTableAdminConfig::new().endpoint(emulator.endpoint());
         let mut admin = emulator
             .builder()
@@ -36,7 +46,11 @@ mod bigtable_client_tests {
     }
 
     async fn default_client(table_name: &str) -> (EmulatorClient, bigtable::BigtableClient) {
-        let emulator = EmulatorClient::new().await.unwrap();
+        let emulator = Emulator::new()
+            .project("test-project")
+            .instance("test-instance")
+            .await
+            .unwrap();
         emulator
             .create_table(table_name, ["fam1", "fam2"])
             .await
