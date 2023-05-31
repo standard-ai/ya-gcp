@@ -76,6 +76,8 @@ uuid = { version = "0.8.1", features = ["v4"], optional = true }
 [dev-dependencies]
 approx = "0.5"
 async-stream = "0.3"
+pbjson = "0.5"
+pbjson-types = "0.5"
 quickcheck = "1"
 quickcheck_macros = "1"
 serde_json = "1"
