@@ -347,7 +347,7 @@ pub enum ReadRowsError {
     Tonic(tonic::Status),
 
     /// A consistency error when streaming a row read.
-    #[error("row read error")]
+    #[error("row read error: {0}")]
     ReadInProgress(ReadInProgressError),
 }
 

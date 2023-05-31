@@ -46,11 +46,13 @@ struct ReadRowsResult {
 #[tokio::test]
 async fn bigtable_conformance_tests() {
     let test_file = parse_test_data();
+    let mut errors = Vec::new();
+    let n_cases = test_file.read_rows_tests.len();
 
     for test_case in test_file.read_rows_tests {
         // TODO: consider making this configurable via env var
         let addr = "127.0.0.1:8081";
-        let _server_handle =
+        let server_handle =
             StubBigtableServer::run_with_chunks(addr.parse().unwrap(), &test_case.chunks).await;
 
         let mut client = build_client(format!("http://{}", addr)).await;
@@ -61,7 +63,19 @@ async fn bigtable_conformance_tests() {
             .collect::<Vec<_>>()
             .await;
 
-        check_results(test_case, rows);
+        if let Err(e) = check_results(&test_case, rows) {
+            errors.push((test_case.description, e));
+        }
+
+        server_handle.abort();
+    }
+
+    if !errors.is_empty() {
+        for (desc, err) in errors.iter().take(10) {
+            eprintln!("{desc} failed: {err}");
+        }
+
+        panic!("{} failures out of {n_cases} tests", errors.len());
     }
 }
 
@@ -85,38 +99,48 @@ async fn build_client(endpoint: String) -> BigtableClient {
         .expect("Failed to build BigtableClient")
 }
 
-fn check_results(mut test_case: ReadRowsTest, mut rows: Vec<Result<Row, ReadRowsError>>) {
+// The conformance test JSON has its results formatted as a list of
+// cells, with their family name and column qualifier, sorted by
+// family name.
+#[derive(Debug, PartialEq)]
+struct ReceivedCell {
+    family_name: String,
+    column_qualifier: prost::bytes::Bytes,
+    cell: ya_gcp::bigtable::Cell,
+}
+
+#[derive(thiserror::Error, Debug)]
+enum CheckFailure {
+    #[error("unexpected failure {0}")]
+    UnexpectedFailure(ReadRowsError),
+    #[error("unexpected success")]
+    UnexpectedSuccess,
+    #[error("wrong number of cells")]
+    WrongNumberOfCells,
+    #[error("cells differed")]
+    Cell {
+        got: ReceivedCell,
+        want: ReceivedCell,
+    },
+}
+
+fn check_results(
+    test_case: &ReadRowsTest,
+    rows: Vec<Result<Row, ReadRowsError>>,
+) -> Result<(), CheckFailure> {
     let should_error = test_case
         .results
         .last()
         .map(|r| r.error.is_some())
         .unwrap_or(false);
-    if should_error {
-        assert!(
-            rows.last().map(|r| r.is_err()).unwrap_or(false),
-            "Failure: {}, expected an error but didn't get one",
-            test_case.description,
-        );
-        rows.pop();
-        test_case.results.pop();
+    if should_error && rows.last().map(|r| r.is_ok()) != Some(false) {
+        return Err(CheckFailure::UnexpectedSuccess);
     }
 
-    let rows = rows.into_iter().collect::<Result<Vec<_>, _>>().expect(
-        format!(
-            "Failure: {}, unexpected error when reading rows",
-            test_case.description,
-        )
-        .as_str(),
-    );
-
-    // The conformance test JSON has its results formatted as a list of
-    // cells, with their family name and column qualifier, sorted by
-    // family name.
-    struct ReceivedCell {
-        family_name: String,
-        column_qualifier: prost::bytes::Bytes,
-        cell: ya_gcp::bigtable::Cell,
-    }
+    let rows = rows
+        .into_iter()
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| CheckFailure::UnexpectedFailure(e))?;
 
     let items: Vec<ReceivedCell> = rows
         .into_iter()
@@ -141,50 +165,29 @@ fn check_results(mut test_case: ReadRowsTest, mut rows: Vec<Result<Row, ReadRows
         })
         .collect();
 
-    assert_eq!(
-        items.len(),
-        test_case.results.len(),
-        "Failure: {}, wrong number of cells in response",
-        test_case.description,
-    );
+    if items.len() != test_case.results.len() {
+        return Err(CheckFailure::WrongNumberOfCells);
+    }
 
     for (got, want) in items.into_iter().zip(test_case.results.iter()) {
-        let value_got = String::from_utf8(got.cell.value.as_ref().to_owned())
-            .expect("Values should be valid UTF-8");
-        let value_want = want.value.clone();
-        assert_eq!(
-            value_got, value_want,
-            "Failure: {}, values differed",
-            test_case.description
-        );
+        let want = ReceivedCell {
+            family_name: want.family_name.clone(),
+            column_qualifier: prost::bytes::Bytes::copy_from_slice(want.qualifier.as_bytes()),
+            cell: ya_gcp::bigtable::Cell {
+                timestamp_micros: want
+                    .timestamp_micros
+                    .as_ref()
+                    .and_then(|t| t.parse().ok())
+                    .unwrap_or_default(),
+                value: prost::bytes::Bytes::copy_from_slice(want.value.as_bytes()),
+                labels: Vec::new(),
+            },
+        };
 
-        let family_name_got = got.family_name;
-        let family_name_want = want.family_name.clone();
-        assert_eq!(
-            family_name_want, family_name_got,
-            "Failure: {}, family names differed",
-            test_case.description
-        );
-
-        let ts_micros_got = got.cell.timestamp_micros;
-        let ts_micros_want: i64 = want
-            .timestamp_micros
-            .as_ref()
-            .and_then(|t| t.parse().ok())
-            .unwrap_or_default();
-        assert_eq!(
-            ts_micros_got, ts_micros_want,
-            "Failure: {}, timestamps differed",
-            test_case.description
-        );
-
-        let column_got = String::from_utf8(got.column_qualifier.as_ref().to_owned())
-            .expect("Column name should be valid UTF-8");
-        let column_want = want.qualifier.clone();
-        assert_eq!(
-            column_got, column_want,
-            "Failure: {}, column qualifiers differed",
-            test_case.description
-        );
+        if got != want {
+            return Err(CheckFailure::Cell { got, want });
+        }
     }
+
+    Ok(())
 }
