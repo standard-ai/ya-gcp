@@ -154,23 +154,12 @@ pub enum ObjectError {
 }
 
 /// A client used to interact with Google Cloud Storage
-pub struct StorageClient<C = builder::DefaultConnector> {
-    client: Client<C>,
-    auth: Option<crate::Auth<C>>,
+pub struct StorageClient {
+    client: Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>,
+    auth: Option<crate::auth::Auth>,
 }
 
-impl<C> StorageClient<C>
-where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-{
+impl StorageClient {
     /// Add authentication to the request and send it, awaiting the response. The response will be
     /// collected into a single memory allocation (not a streamed body)
     async fn send_request(
@@ -338,14 +327,11 @@ where
     }
 }
 
-impl<C> builder::ClientBuilder<C>
-where
-    C: Clone,
-{
+impl builder::ClientBuilder {
     /// Create a client for access Google Cloud Storage
-    pub fn build_storage_client(&self) -> StorageClient<C> {
+    pub fn build_storage_client(&self) -> StorageClient {
         StorageClient {
-            client: self.client.clone(),
+            client: hyper::client::Client::builder().build(crate::builder::https_connector()),
             auth: self.auth.clone(),
         }
     }

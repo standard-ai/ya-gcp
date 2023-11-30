@@ -16,12 +16,12 @@ harness = false
 [dependencies]
 anyhow = "1"
 flate2 = "1"
-prost-build = { version = "0.11", features = ["format"] }
+prost-build = { version = "0.12.3", features = ["format"] }
 reqwest = { version = "0.11", features = ["blocking"] }
 structopt = "0.3"
 tar = "0.4"
 tempfile = "3"
-tonic-build = "0.9"
+tonic-build = "0.10"
 
 [dev-dependencies]
 criterion = { version = "0.3", features = ["html_reports"] }

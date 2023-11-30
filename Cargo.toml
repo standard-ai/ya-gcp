@@ -1,6 +1,6 @@
 [package]
 name = "ya-gcp"
-version = "0.10.0"
+version = "0.11.0"
 authors = ["Renar Narubin <renar@standard.ai>"]
 edition = "2021"
 description = "APIs for using Google Cloud Platform services"
@@ -30,10 +30,10 @@ path = "examples/bigtable.rs"
 required-features = ["bigtable"]
 
 [features]
-default = ["rustls"]
+default = ["rustls-native-certs"]
 
-rustls = ["hyper-rustls"]
-openssl = ["hyper-openssl"] # TODO maybe should be native-tls instead?
+rustls-native-certs = ["dep:rustls-native-certs", "tonic?/tls-roots"]
+webpki-roots = ["dep:webpki-roots", "tonic?/tls-webpki-roots"]
 
 # an internal feature used by services running grpc
 grpc = ["tonic", "prost", "prost-types", "tower", "derive_more"]
@@ -51,27 +51,29 @@ futures = "0.3"
 http = "0.2"
 humantime-serde = "1"
 hyper = "0.14"
+hyper-rustls = "0.24.2"
 paste = "1"
 rand = "0.8"
+rustls = "0.21.8"
 serde = { version = "1", features = ["derive"] }
 thiserror = "1"
 tokio = { version = "1", features = ["time"] }
-tracing = "0.1"
-yup-oauth2 = "8.1"
+tracing = "0.1.37"
+yup-oauth2 = "8.3.0"
 
 async-stream = { version = "0.3", optional = true }
 async-channel = { version = "1", optional = true }
 derive_more = { version = "0.99", optional = true }
-hyper-openssl = { version = "0.9", optional = true }
-hyper-rustls = { version = "0.22", features = ["rustls-native-certs"], optional = true }
 pin-project = { version = "1.0.11", optional = true }
-prost = { version = "0.11", optional = true }
-prost-types = { version = "0.11", optional = true }
+prost = { version = "0.12.3", optional = true }
+prost-types = { version = "0.12.3", optional = true }
+rustls-native-certs = { version = "0.6.3", optional = true }
 tame-gcs = { version = "0.10.0", optional = true }
 tempdir = { version = "0.3", optional = true }
-tonic = { version = "0.9", optional = true }
+tonic = { version = "0.10.2", optional = true }
 tower = { version = "0.4", features = ["make"], optional = true }
-uuid = { version = "0.8.1", features = ["v4"], optional = true }
+uuid = { version = "1.6", features = ["v4"], optional = true }
+webpki-roots = { version = "0.25.3", optional = true }
 
 [dev-dependencies]
 approx = "0.5"
@@ -83,12 +85,6 @@ structopt = "0.3" # for examples
 tokio = { version = "1.4.0", features = ["rt-multi-thread", "time", "test-util"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-tree = "0.2"
-
-[package.metadata.cargo-udeps.ignore]
-# hyper-openssl is only used (and thus detected) if the feature "openssl" is
-# enabled _and_ "rustls" is disabled. CI builds with --all-features, so udeps
-# fails unless we ignore the package explicitly
-normal = ["hyper-openssl"]
 
 [package.metadata.docs.rs]
 rustdoc-args = ["--cfg", "docsrs"]

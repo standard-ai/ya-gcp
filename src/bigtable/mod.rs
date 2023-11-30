@@ -5,13 +5,14 @@
 //! allows for creating and listing tables.
 
 use futures::prelude::*;
-use hyper::body::Bytes;
-use prost::bytes::BytesMut;
+use prost::bytes::{Bytes, BytesMut};
 use std::ops::{Bound, RangeBounds};
 
 use crate::{
-    auth::grpc::AuthGrpcService,
-    retry_policy::{ExponentialBackoff, RetryOperation, RetryPolicy, RetryPredicate},
+    grpc::{Body, BoxBody, DefaultGrpcImpl, GrpcService, StdError},
+    retry_policy::{
+        exponential_backoff, ExponentialBackoff, RetryOperation, RetryPolicy, RetryPredicate,
+    },
 };
 
 pub use http::Uri;
@@ -367,28 +368,63 @@ impl From<ReadInProgressError> for ReadRowsError {
 /// [`build_bigtable_client`](crate::builder::ClientBuilder::build_bigtable_client)
 /// function.
 #[derive(Clone)]
-pub struct BigtableClient<
-    C = crate::DefaultConnector,
-    Retry = ExponentialBackoff<BigtableRetryCheck>,
-> {
-    inner: api::bigtable::v2::bigtable_client::BigtableClient<
-        AuthGrpcService<tonic::transport::Channel, C>,
-    >,
+pub struct BigtableClient<S = DefaultGrpcImpl, Retry = ExponentialBackoff<BigtableRetryCheck>> {
+    inner: api::bigtable::v2::bigtable_client::BigtableClient<S>,
     retry: Retry,
     table_prefix: String,
 }
 
-impl<C, Retry> BigtableClient<C, Retry>
+impl<S> BigtableClient<S> {
+    /// Manually construct a new client.
+    ///
+    /// There are limited circumstances in which this is useful; consider instead using the builder
+    /// function [crate::builder::ClientBuilder::build_bigtable_client]
+    pub fn from_raw_api(
+        client: api::bigtable::v2::bigtable_client::BigtableClient<S>,
+        project: &str,
+        instance_name: &str,
+    ) -> Self {
+        BigtableClient {
+            inner: client,
+            retry: ExponentialBackoff::new(
+                BigtableRetryCheck::default(),
+                exponential_backoff::Config::default(),
+            ),
+            table_prefix: format!("projects/{}/instances/{}/tables/", project, instance_name),
+        }
+    }
+}
+
+impl<S, R> BigtableClient<S, R> {
+    /// Set the retry policy for failed operations encountered by this client
+    pub fn with_retry_policy<Retry>(self, retry_policy: Retry) -> BigtableClient<S, Retry>
+    where
+        Retry: RetryPolicy<(), tonic::Status> + 'static,
+    {
+        BigtableClient {
+            inner: self.inner,
+            retry: retry_policy,
+            table_prefix: self.table_prefix,
+        }
+    }
+
+    /// Access the underlying grpc api
+    pub fn raw_api(&self) -> &api::bigtable::v2::bigtable_client::BigtableClient<S> {
+        &self.inner
+    }
+
+    /// Mutably access the underlying grpc api
+    pub fn raw_api_mut(&mut self) -> &mut api::bigtable::v2::bigtable_client::BigtableClient<S> {
+        &mut self.inner
+    }
+}
+
+impl<S, Retry> BigtableClient<S, Retry>
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    S: GrpcService<BoxBody>,
+    S::Error: Into<StdError>,
+    S::ResponseBody: Body<Data = Bytes> + Send + 'static,
+    <S::ResponseBody as Body>::Error: Into<StdError> + Send,
     Retry: RetryPolicy<(), tonic::Status> + 'static,
     Retry::RetryOp: Send + 'static,
     <Retry::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,

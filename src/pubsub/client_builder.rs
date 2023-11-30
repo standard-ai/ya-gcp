@@ -1,6 +1,5 @@
 use crate::{
-    auth::grpc,
-    builder,
+    builder, grpc,
     pubsub::{api, PublisherClient, SubscriberClient},
 };
 
@@ -17,7 +16,6 @@ pub use tower::make::MakeConnection;
 config_default! {
     /// Configuration for connecting to pubsub
     #[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Deserialize)]
-    #[non_exhaustive]
     pub struct PubSubConfig {
         /// Endpoint to connect to pubsub over.
         @default("https://pubsub.googleapis.com/v1".into(), "PubSubConfig::default_endpoint")
@@ -34,28 +32,16 @@ config_default! {
 #[error(transparent)]
 pub struct BuildError(#[from] tonic::transport::Error);
 
-impl<C> builder::ClientBuilder<C>
-where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-    Box<dyn std::error::Error + Send + Sync + 'static>: From<C::Error>,
-{
+impl builder::ClientBuilder {
     async fn pubsub_authed_service(
         &self,
         config: PubSubConfig,
-    ) -> Result<grpc::AuthGrpcService<tonic::transport::Channel, C>, BuildError> {
+    ) -> Result<grpc::DefaultGrpcImpl, BuildError> {
         let connection = tonic::transport::Endpoint::new(config.endpoint)?
-            .connect_with_connector(self.connector.clone())
+            .connect()
             .await?;
 
-        Ok(grpc::AuthGrpcService::new(
+        Ok(grpc::DefaultGrpcImpl::new(
             connection,
             self.auth.clone(),
             config.auth_scopes,
@@ -66,28 +52,26 @@ where
     pub async fn build_pubsub_publisher(
         &self,
         config: PubSubConfig,
-    ) -> Result<PublisherClient<C>, BuildError> {
+    ) -> Result<PublisherClient, BuildError> {
         // the crate's client will wrap the raw grpc client to add features/functions/ergonomics
-        Ok(PublisherClient {
-            inner: api::publisher_client::PublisherClient::new(
-                self.pubsub_authed_service(config).await?,
-            )
-            .max_decoding_message_size(MAX_MESSAGE_SIZE),
-        })
+        Ok(PublisherClient::from_raw_api(
+            api::publisher_client::PublisherClient::new(self.pubsub_authed_service(config).await?)
+                .max_decoding_message_size(MAX_MESSAGE_SIZE),
+        ))
     }
 
     /// Create a client for subscribing to the pubsub service
     pub async fn build_pubsub_subscriber(
         &self,
         config: PubSubConfig,
-    ) -> Result<SubscriberClient<C>, BuildError> {
+    ) -> Result<SubscriberClient, BuildError> {
         // the crate's client will wrap the raw grpc client to add features/functions/ergonomics
-        Ok(SubscriberClient {
-            inner: api::subscriber_client::SubscriberClient::new(
+        Ok(SubscriberClient::from_raw_api(
+            api::subscriber_client::SubscriberClient::new(
                 self.pubsub_authed_service(config).await?,
             )
             .max_decoding_message_size(MAX_MESSAGE_SIZE),
-        })
+        ))
     }
 }
 

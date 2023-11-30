@@ -1,6 +1,9 @@
-use super::{api, ProjectTopicName, PubSubRetryCheck};
+use super::{
+    api::{self, publisher_client::PublisherClient as ApiPublisherClient},
+    ProjectTopicName, PubSubRetryCheck,
+};
 use crate::{
-    auth::grpc::AuthGrpcService,
+    grpc::{Body, BoxBody, Bytes, GrpcService, StdError},
     retry_policy::{exponential_backoff, ExponentialBackoff, RetryOperation, RetryPolicy},
 };
 use futures::{future::BoxFuture, ready, stream, Sink, SinkExt, TryFutureExt};
@@ -9,7 +12,6 @@ use prost::Message;
 use std::{
     cmp::Ordering,
     convert::Infallible,
-    error::Error as StdError,
     fmt,
     future::Future,
     pin::Pin,
@@ -29,8 +31,6 @@ const MAX_MESSAGES_PER_PUBLISH: usize = 1000;
 const MAX_DATA_FIELD_BYTES: usize = 10 * MB;
 const MAX_PUBLISH_REQUEST_BYTES: usize = 10 * MB;
 
-type ApiPublisherClient<C> =
-    api::publisher_client::PublisherClient<AuthGrpcService<tonic::transport::Channel, C>>;
 type Drain = futures::sink::Drain<api::PubsubMessage>;
 type FlushOutput<Si, E> = (Si, Result<(), SinkError<E>>);
 
@@ -77,8 +77,8 @@ impl<E: fmt::Display> fmt::Display for SinkError<E> {
     }
 }
 
-impl<E: StdError + 'static> StdError for SinkError<E> {
-    fn source(&self) -> Option<&(dyn StdError + 'static)> {
+impl<E: std::error::Error + 'static> std::error::Error for SinkError<E> {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             SinkError::Publish(err) => Some(err as &_),
             SinkError::Response(err) => Some(err as &_),
@@ -103,7 +103,6 @@ config_default! {
     /// Configuration for a [publish sink](super::PublisherClient::publish_topic_sink)
     /// request
     #[derive(Debug, Clone, Copy, Eq, PartialEq, serde::Deserialize)]
-    #[non_exhaustive]
     pub struct PublishConfig {
         /// The amount of time to wait for a publish request to succeed before timing out
         // TODO use 60sec default value from go lib, or 5 seconds plus backoff from java lib
@@ -155,12 +154,12 @@ config_default! {
 /// [`with_response_sink`]: PublishTopicSink::with_response_sink
 #[pin_project(project=PublishTopicSinkProjection)]
 pub struct PublishTopicSink<
-    C = crate::DefaultConnector,
+    S = crate::grpc::DefaultGrpcImpl,
     Retry = ExponentialBackoff<PubSubRetryCheck>,
     ResponseSink: Sink<api::PubsubMessage> = Drain,
 > {
     /// the underlying client used to execute the requests
-    client: ApiPublisherClient<C>,
+    client: ApiPublisherClient<S>,
 
     /// the publish request currently being populated with messages
     buffer: PublishBuffer,
@@ -194,16 +193,13 @@ enum FlushState<ResponseSink: Sink<api::PubsubMessage>> {
     Flushing(#[pin] BoxFuture<'static, FlushOutput<ResponseSink, ResponseSink::Error>>),
 }
 
-impl<C> PublishTopicSink<C, ExponentialBackoff<PubSubRetryCheck>, Drain> {
+impl<S> PublishTopicSink<S, ExponentialBackoff<PubSubRetryCheck>, Drain> {
     /// Create a new `PublishTopicSink` with the default retry policy and no response sink
-    pub(super) fn new(
-        client: ApiPublisherClient<C>,
+    pub(crate) fn new(
+        client: ApiPublisherClient<S>,
         topic: ProjectTopicName,
         config: PublishConfig,
-    ) -> Self
-    where
-        C: crate::Connect + Clone + Send + Sync + 'static,
-    {
+    ) -> Self {
         PublishTopicSink {
             client,
             buffer: PublishBuffer::new(String::from(topic)),
@@ -218,7 +214,7 @@ impl<C> PublishTopicSink<C, ExponentialBackoff<PubSubRetryCheck>, Drain> {
     }
 }
 
-impl<C, Retry, ResponseSink: Sink<api::PubsubMessage>> PublishTopicSink<C, Retry, ResponseSink> {
+impl<S, Retry, ResponseSink: Sink<api::PubsubMessage>> PublishTopicSink<S, Retry, ResponseSink> {
     /// Set the sink to receive successful publishing responses for published messages.
     ///
     /// By default, the `PublishTopicSink` will not report when messages are successfully published.
@@ -232,7 +228,7 @@ impl<C, Retry, ResponseSink: Sink<api::PubsubMessage>> PublishTopicSink<C, Retry
     // switching a retry policy after anything was started.
     //
     // This essentially makes Self a builder during the time before its pinning
-    pub fn with_response_sink<Si>(self, sink: Si) -> PublishTopicSink<C, Retry, Si>
+    pub fn with_response_sink<Si>(self, sink: Si) -> PublishTopicSink<S, Retry, Si>
     where
         Si: Sink<api::PubsubMessage>,
     {
@@ -251,7 +247,7 @@ impl<C, Retry, ResponseSink: Sink<api::PubsubMessage>> PublishTopicSink<C, Retry
     /// If a publishing operation encounters an error, the given retry policy will be consulted to
     /// possibly retry the operation, or otherwise propagate the error to the caller.
     // like `with_response_sink`, taking `self` means the sink hasn't done anything yet
-    pub fn with_retry_policy<R>(self, retry_policy: R) -> PublishTopicSink<C, R, ResponseSink>
+    pub fn with_retry_policy<R>(self, retry_policy: R) -> PublishTopicSink<S, R, ResponseSink>
     where
         R: RetryPolicy<api::PublishRequest, tonic::Status>,
     {
@@ -266,17 +262,13 @@ impl<C, Retry, ResponseSink: Sink<api::PubsubMessage>> PublishTopicSink<C, Retry
     }
 }
 
-impl<C, Retry, ResponseSink> Sink<api::PubsubMessage> for PublishTopicSink<C, Retry, ResponseSink>
+impl<S, Retry, ResponseSink> Sink<api::PubsubMessage> for PublishTopicSink<S, Retry, ResponseSink>
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    S: GrpcService<BoxBody> + Clone + Send + 'static,
+    S::Future: Send + 'static,
+    S::Error: Into<StdError>,
+    S::ResponseBody: Body<Data = Bytes> + Send + 'static,
+    <S::ResponseBody as Body>::Error: Into<StdError> + Send,
     // TODO(type_alias_impl_trait) remove most of these 'static (and Send?) bounds
     Retry: RetryPolicy<api::PublishRequest, tonic::Status> + 'static,
     Retry::RetryOp: Send + 'static,
@@ -320,17 +312,13 @@ where
 
 // some methods are implemented against a projection instead of the base type to make nested
 // borrowing/pinning in callers easier
-impl<'pin, C, Retry, ResponseSink> PublishTopicSinkProjection<'pin, C, Retry, ResponseSink>
+impl<'pin, S, Retry, ResponseSink> PublishTopicSinkProjection<'pin, S, Retry, ResponseSink>
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    S: GrpcService<BoxBody> + Clone + Send + 'static,
+    S::Future: Send + 'static,
+    S::Error: Into<StdError>,
+    S::ResponseBody: Body<Data = Bytes> + Send + 'static,
+    <S::ResponseBody as Body>::Error: Into<StdError> + Send,
     Retry: RetryPolicy<api::PublishRequest, tonic::Status> + 'static,
     Retry::RetryOp: Send + 'static,
     <Retry::RetryOp as RetryOperation<api::PublishRequest, tonic::Status>>::Sleep: Send + 'static,
@@ -420,7 +408,7 @@ where
     }
 
     fn flush(
-        client: &mut ApiPublisherClient<C>,
+        client: &mut ApiPublisherClient<S>,
         mut request: api::PublishRequest,
         mut response_sink: ResponseSink,
         retry_policy: &mut Retry,
@@ -758,11 +746,11 @@ mod test {
         }
     }
 
-    fn dummy_client() -> ApiPublisherClient<crate::DefaultConnector> {
+    fn dummy_client() -> ApiPublisherClient<crate::grpc::DefaultGrpcImpl> {
         // by connecting to the endpoint lazily, this client will only work until the first request
         // is made (then it will error). That's good enough for testing certain functionality
         // that doesn't require the requests themselves, like validity checking
-        ApiPublisherClient::new(crate::auth::grpc::AuthGrpcService::new(
+        ApiPublisherClient::new(crate::grpc::DefaultGrpcImpl::new(
             tonic::transport::channel::Endpoint::from_static("https://localhost").connect_lazy(),
             None,
             vec![],
@@ -996,6 +984,7 @@ mod test {
             .await?;
 
         publisher
+            .raw_api_mut()
             .create_topic(api::Topic {
                 name: project_topic.clone().into(),
                 ..api::Topic::default()
@@ -1008,6 +997,7 @@ mod test {
             .await?;
 
         subscriber
+            .raw_api_mut()
             .create_subscription(api::Subscription {
                 name: project_subscription.clone().into(),
                 topic: project_topic.clone().into(),
@@ -1017,7 +1007,7 @@ mod test {
 
         let (response_sink, responses) = futures::channel::mpsc::unbounded();
         let publish_topic_sink = publisher
-            .publish_topic_sink(project_topic.clone())
+            .publish_topic_sink(project_topic.clone(), PublishConfig::default())
             .with_response_sink(response_sink);
 
         // send 10 messages, each large enough such that at most 4 messages fit into a single
@@ -1038,6 +1028,7 @@ mod test {
         while received_messages.len() < sent_messages.len() {
             received_messages.extend(
                 subscriber
+                    .raw_api_mut()
                     .pull(api::PullRequest {
                         subscription: project_subscription.clone().into(),
                         max_messages: 10,
@@ -1098,6 +1089,7 @@ mod test {
             .await?;
 
         publisher
+            .raw_api_mut()
             .create_topic(api::Topic {
                 name: project_topic.clone().into(),
                 ..api::Topic::default()
@@ -1106,7 +1098,7 @@ mod test {
 
         let (user_sink, mut user_sink_receiver) = futures::channel::mpsc::unbounded();
         let mut publish_sink = publisher
-            .publish_topic_sink(project_topic.clone())
+            .publish_topic_sink(project_topic.clone(), PublishConfig::default())
             .with_response_sink(user_sink);
 
         let message = api::PubsubMessage {

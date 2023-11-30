@@ -9,88 +9,59 @@ mod pubsub_client_tests {
     };
     use ya_gcp::pubsub::{
         self, api::PubsubMessage, emulator::Emulator, ProjectSubscriptionName, ProjectTopicName,
-        PublisherClient, SinkError, StreamSubscriptionConfig,
+        PublisherClient, SinkError, StreamSubscriptionConfig, SubscriberClient,
     };
 
     /// Helper to create a new topic request.
-    async fn create_dummy_topic<C>(
-        client: &mut PublisherClient<C>,
+    async fn create_dummy_topic(
+        client: &mut PublisherClient,
         project_name: &str,
         topic: &str,
-    ) -> Result<tonic::Response<pubsub::api::Topic>, tonic::Status>
-    where
-        C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-        C::Response: hyper::client::connect::Connection
-            + tokio::io::AsyncRead
-            + tokio::io::AsyncWrite
-            + Send
-            + Unpin
-            + 'static,
-        C::Future: Send + Unpin + 'static,
-        C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-    {
-        let request = pubsub::api::Topic {
-            name: format!("projects/{}/topics/{}", project_name, topic),
-            ..pubsub::api::Topic::default()
+    ) -> Result<tonic::Response<pubsub::api::Topic>, tonic::Status> {
+        let request = {
+            let mut t = pubsub::api::Topic::default();
+            t.name = format!("projects/{}/topics/{}", project_name, topic);
+            t
         };
 
-        client.create_topic(request).await
+        client.raw_api_mut().create_topic(request).await
     }
 
     async fn create_dummy_subscription(
-        client: &mut pubsub::api::subscriber_client::SubscriberClient<
-            impl tonic::client::GrpcService<
-                tonic::body::BoxBody,
-                Error = ya_gcp::auth::grpc::AuthGrpcError<
-                    tonic::transport::Error,
-                    yup_oauth2::Error,
-                >,
-                ResponseBody = tonic::transport::Body,
-            >,
-        >,
+        client: &mut SubscriberClient,
         project_name: &str,
         subscription_name: &str,
         topic_name: &str,
     ) -> Result<tonic::Response<pubsub::api::Subscription>, tonic::Status> {
-        let request = pubsub::api::Subscription {
-            name: ProjectSubscriptionName::new(project_name, subscription_name).into(),
-            topic: ProjectTopicName::new(project_name, topic_name).into(),
-            ..pubsub::api::Subscription::default()
+        let request = {
+            let mut sub = pubsub::api::Subscription::default();
+            sub.name = ProjectSubscriptionName::new(project_name, subscription_name).into();
+            sub.topic = ProjectTopicName::new(project_name, topic_name).into();
+            sub
         };
 
-        client.create_subscription(request).await
+        client.raw_api_mut().create_subscription(request).await
     }
 
-    async fn publish_data<C>(
-        client: &mut PublisherClient<C>,
+    async fn publish_data(
+        client: &mut PublisherClient,
         project_name: &str,
         topic_name: &str,
         messages: impl IntoIterator<Item = (Vec<u8>, BTreeMap<String, String>)>,
-    ) -> Result<Vec<pubsub::api::PubsubMessage>, tonic::Status>
-    where
-        C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-        C::Response: hyper::client::connect::Connection
-            + tokio::io::AsyncRead
-            + tokio::io::AsyncWrite
-            + Send
-            + Unpin
-            + 'static,
-        C::Future: Send + Unpin + 'static,
-        C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-    {
-        let messages = messages
-            .into_iter()
-            .map(|(data, attributes)| pubsub::api::PubsubMessage {
-                data: ::prost::bytes::Bytes::from(data),
-                attributes,
-                message_id: Default::default(),
-                publish_time: None,
-                ordering_key: Default::default(),
-            });
+    ) -> Result<Vec<pubsub::api::PubsubMessage>, tonic::Status> {
+        let messages = messages.into_iter().map(|(data, attributes)| {
+            let mut msg = pubsub::api::PubsubMessage::default();
+            msg.data = ::prost::bytes::Bytes::from(data);
+            msg.attributes = attributes;
+            msg
+        });
 
         let (tx, rx) = futures::channel::mpsc::unbounded();
         let message_sink = client
-            .publish_topic_sink(ProjectTopicName::new(project_name, topic_name))
+            .publish_topic_sink(
+                ProjectTopicName::new(project_name, topic_name),
+                Default::default(),
+            )
             .with_response_sink(tx);
 
         futures::stream::iter(messages.map(Ok))
@@ -143,9 +114,10 @@ mod pubsub_client_tests {
             .unwrap();
 
         assert_eq!(
-            pubsub::api::Topic {
-                name: format!("projects/{}/topics/{}", emulator.project(), topic_name),
-                ..Default::default()
+            {
+                let mut t = pubsub::api::Topic::default();
+                t.name = format!("projects/{}/topics/{}", emulator.project(), topic_name);
+                t
             },
             create_dummy_topic(&mut client, emulator.project(), topic_name)
                 .await
@@ -169,16 +141,24 @@ mod pubsub_client_tests {
             .await
             .unwrap();
 
-        let request = pubsub::api::GetTopicRequest {
-            topic: format!("projects/{}/topics/{}", emulator.project(), topic_name),
+        let request = {
+            let mut r = pubsub::api::GetTopicRequest::default();
+            r.topic = format!("projects/{}/topics/{}", emulator.project(), topic_name);
+            r
         };
 
         assert_eq!(
-            pubsub::api::Topic {
-                name: format!("projects/{}/topics/{}", emulator.project(), topic_name),
-                ..Default::default()
+            {
+                let mut t = pubsub::api::Topic::default();
+                t.name = format!("projects/{}/topics/{}", emulator.project(), topic_name);
+                t
             },
-            client.get_topic(request).await.unwrap().into_inner()
+            client
+                .raw_api_mut()
+                .get_topic(request)
+                .await
+                .unwrap()
+                .into_inner()
         );
     }
 
@@ -235,18 +215,21 @@ mod pubsub_client_tests {
             .await
             .unwrap();
 
-        let request = pubsub::api::ListTopicSubscriptionsRequest {
-            topic: format!("projects/{}/topics/{}", emulator.project(), topic_name),
-            page_size: 10,
-            page_token: Default::default(),
+        let request = {
+            let mut r = pubsub::api::ListTopicSubscriptionsRequest::default();
+            r.topic = format!("projects/{}/topics/{}", emulator.project(), topic_name);
+            r.page_size = 10;
+            r
         };
 
-        let response = client.list_topic_subscriptions(request).await;
+        let response = client.raw_api_mut().list_topic_subscriptions(request).await;
 
         assert_eq!(
-            pubsub::api::ListTopicSubscriptionsResponse {
-                subscriptions: vec![],
-                next_page_token: String::new(),
+            {
+                let mut r = pubsub::api::ListTopicSubscriptionsResponse::default();
+                r.subscriptions = vec![];
+                r.next_page_token = String::new();
+                r
             },
             response.unwrap().into_inner()
         );
@@ -324,10 +307,12 @@ mod pubsub_client_tests {
         .into_inner();
 
         #[allow(deprecated)]
-        let request = pubsub::api::PullRequest {
-            subscription: response.name,
-            return_immediately: false,
-            max_messages: num_messages as i32,
+        let request = {
+            let mut r = pubsub::api::PullRequest::default();
+            r.subscription = response.name;
+            r.return_immediately = false;
+            r.max_messages = num_messages as i32;
+            r
         };
 
         let mut attributes = BTreeMap::default();
@@ -346,7 +331,7 @@ mod pubsub_client_tests {
 
         assert_eq!(message_ids.len(), num_messages);
 
-        let response = subscription_client.pull(request).await;
+        let response = subscription_client.raw_api_mut().pull(request).await;
         let mut received_messages = response.unwrap().into_inner().received_messages;
 
         let message = received_messages.pop().unwrap();
@@ -487,9 +472,9 @@ mod pubsub_client_tests {
 
         let read_messages = stream
             .take(num_messages)
-            .map_ok(|(_ack_token, msg)| pubsub::api::PubsubMessage {
-                publish_time: None,
-                ..msg
+            .map_ok(|(_ack_token, mut msg)| {
+                msg.publish_time = None;
+                msg
             })
             .try_collect::<Vec<_>>()
             .await
@@ -791,43 +776,51 @@ mod pubsub_client_tests {
 
         // update the subscription with a DeadLetterPolicy so that the delivery counter engages
         subscription_client
-            .update_subscription(pubsub::api::UpdateSubscriptionRequest {
-                subscription: Some(pubsub::api::Subscription {
-                    dead_letter_policy: Some(pubsub::api::DeadLetterPolicy {
-                        dead_letter_topic: format!(
-                            "projects/{}/topics/{}",
-                            emulator.project(),
-                            topic_name
-                        ),
-                        max_delivery_attempts: 5,
-                    }),
-                    ..subscription
-                }),
-                update_mask: Some(pubsub::api::FieldMask {
+            .raw_api_mut()
+            .update_subscription({
+                let mut update = pubsub::api::UpdateSubscriptionRequest::default();
+                update.subscription = Some({
+                    let mut sub = subscription.clone();
+                    sub.dead_letter_policy = Some({
+                        let mut d = pubsub::api::DeadLetterPolicy::default();
+                        d.dead_letter_topic =
+                            format!("projects/{}/topics/{}", emulator.project(), topic_name);
+                        d.max_delivery_attempts = 5;
+                        d
+                    });
+                    sub
+                });
+                update.update_mask = Some(pubsub::api::FieldMask {
                     paths: vec!["dead_letter_policy".into()],
-                }),
+                });
+                update
             })
             .await
             .unwrap();
 
         // send 1 message to the publisher. this should be delivered again after a nack
         publish_client
-            .publish(pubsub::api::PublishRequest {
-                topic: topic.name,
-                messages: vec![pubsub::api::PubsubMessage {
-                    data: "foobar".into(),
-                    ..pubsub::api::PubsubMessage::default()
-                }],
+            .raw_api_mut()
+            .publish({
+                let mut p = pubsub::api::PublishRequest::default();
+                p.topic = topic.name;
+                p.messages = vec![{
+                    let mut m = pubsub::api::PubsubMessage::default();
+                    m.data = "foobar".into();
+                    m
+                }];
+                p
             })
             .await
             .unwrap();
 
         let mut subscription_stream = subscription_client.stream_subscription(
             ProjectSubscriptionName::new(emulator.project(), subscription_name),
-            StreamSubscriptionConfig {
+            {
+                let mut c = StreamSubscriptionConfig::default();
                 // set a large general deadline to prevent inadvertent delivery
-                stream_ack_deadline: Duration::from_secs(600),
-                ..StreamSubscriptionConfig::default()
+                c.stream_ack_deadline = Duration::from_secs(600);
+                c
             },
         );
 
@@ -888,43 +881,51 @@ mod pubsub_client_tests {
 
         // update the subscription with a DeadLetterPolicy so that the delivery counter engages
         subscription_client
-            .update_subscription(pubsub::api::UpdateSubscriptionRequest {
-                subscription: Some(pubsub::api::Subscription {
-                    dead_letter_policy: Some(pubsub::api::DeadLetterPolicy {
-                        dead_letter_topic: format!(
-                            "projects/{}/topics/{}",
-                            emulator.project(),
-                            topic_name
-                        ),
-                        max_delivery_attempts: 5,
-                    }),
-                    ..subscription
-                }),
-                update_mask: Some(pubsub::api::FieldMask {
+            .raw_api_mut()
+            .update_subscription({
+                let mut update = pubsub::api::UpdateSubscriptionRequest::default();
+                update.subscription = Some({
+                    let mut sub = subscription.clone();
+                    sub.dead_letter_policy = Some({
+                        let mut d = pubsub::api::DeadLetterPolicy::default();
+                        d.dead_letter_topic =
+                            format!("projects/{}/topics/{}", emulator.project(), topic_name);
+                        d.max_delivery_attempts = 5;
+                        d
+                    });
+                    sub
+                });
+                update.update_mask = Some(pubsub::api::FieldMask {
                     paths: vec!["dead_letter_policy".into()],
-                }),
+                });
+                update
             })
             .await
             .unwrap();
 
         // send 1 message to the publisher. this should be delivered again after its deadline
         publish_client
-            .publish(pubsub::api::PublishRequest {
-                topic: topic.name,
-                messages: vec![pubsub::api::PubsubMessage {
-                    data: "foobar".into(),
-                    ..pubsub::api::PubsubMessage::default()
-                }],
+            .raw_api_mut()
+            .publish({
+                let mut r = pubsub::api::PublishRequest::default();
+                r.topic = topic.name;
+                r.messages = vec![{
+                    let mut m = pubsub::api::PubsubMessage::default();
+                    m.data = "foobar".into();
+                    m
+                }];
+                r
             })
             .await
             .unwrap();
 
         let mut subscription_stream = subscription_client.stream_subscription(
             ProjectSubscriptionName::new(emulator.project(), subscription_name),
-            StreamSubscriptionConfig {
+            {
+                let mut c = StreamSubscriptionConfig::default();
                 // set a large general deadline to prevent inadvertent delivery
-                stream_ack_deadline: Duration::from_secs(600),
-                ..StreamSubscriptionConfig::default()
+                c.stream_ack_deadline = Duration::from_secs(600);
+                c
             },
         );
 
@@ -996,12 +997,16 @@ mod pubsub_client_tests {
 
             // send 1 message to the publisher to get an ack token
             publish_client
-                .publish(pubsub::api::PublishRequest {
-                    topic: topic.name,
-                    messages: vec![pubsub::api::PubsubMessage {
-                        data: "foobar".into(),
-                        ..pubsub::api::PubsubMessage::default()
-                    }],
+                .raw_api_mut()
+                .publish({
+                    let mut p = pubsub::api::PublishRequest::default();
+                    p.topic = topic.name;
+                    p.messages = vec![{
+                        let mut m = pubsub::api::PubsubMessage::default();
+                        m.data = "foobar".into();
+                        m
+                    }];
+                    p
                 })
                 .await
                 .unwrap();

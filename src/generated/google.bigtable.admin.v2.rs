@@ -1,5 +1,6 @@
 /// Encapsulates progress related information for a Cloud Bigtable long
 /// running operation.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OperationProgress {
@@ -16,6 +17,7 @@ pub struct OperationProgress {
     pub end_time: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Storage media types for persisting Bigtable data.
+#[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum StorageType {
@@ -49,6 +51,7 @@ impl StorageType {
     }
 }
 /// Information about a table restore.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RestoreInfo {
@@ -62,6 +65,7 @@ pub struct RestoreInfo {
 /// Nested message and enum types in `RestoreInfo`.
 pub mod restore_info {
     /// Information about the source used to restore the table.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum SourceInfo {
@@ -71,13 +75,27 @@ pub mod restore_info {
         BackupInfo(super::BackupInfo),
     }
 }
+/// Change stream configuration.
+#[non_exhaustive]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChangeStreamConfig {
+    /// How long the change stream should be retained. Change stream data older
+    /// than the retention period will not be returned when reading the change
+    /// stream from the table.
+    /// Values must be at least 1 day and at most 7 days, and will be truncated to
+    /// microsecond granularity.
+    #[prost(message, optional, tag = "1")]
+    pub retention_period: ::core::option::Option<::prost_types::Duration>,
+}
 /// A collection of user data indexed by row, column, and timestamp.
 /// Each table is served using the resources of its parent cluster.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Table {
     /// The unique name of the table. Values are of the form
-    /// `projects/{project}/instances/{instance}/tables/\[_a-zA-Z0-9][-_.a-zA-Z0-9\]*`.
+    /// `projects/{project}/instances/{instance}/tables/[_a-zA-Z0-9][-_.a-zA-Z0-9]*`.
     /// Views: `NAME_ONLY`, `SCHEMA_VIEW`, `REPLICATION_VIEW`, `FULL`
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
@@ -92,27 +110,34 @@ pub struct Table {
         table::ClusterState,
     >,
     /// The column families configured for this table, mapped by column family ID.
-    /// Views: `SCHEMA_VIEW`, `FULL`
+    /// Views: `SCHEMA_VIEW`, `STATS_VIEW`, `FULL`
     #[prost(map = "string, message", tag = "3")]
     pub column_families: ::std::collections::HashMap<
         ::prost::alloc::string::String,
         ColumnFamily,
     >,
-    /// Immutable. The granularity (i.e. `MILLIS`) at which timestamps are stored in this
-    /// table. Timestamps not matching the granularity will be rejected.
-    /// If unspecified at creation time, the value will be set to `MILLIS`.
-    /// Views: `SCHEMA_VIEW`, `FULL`.
+    /// Immutable. The granularity (i.e. `MILLIS`) at which timestamps are stored
+    /// in this table. Timestamps not matching the granularity will be rejected. If
+    /// unspecified at creation time, the value will be set to `MILLIS`. Views:
+    /// `SCHEMA_VIEW`, `FULL`.
     #[prost(enumeration = "table::TimestampGranularity", tag = "4")]
     pub granularity: i32,
-    /// Output only. If this table was restored from another data source (e.g. a backup), this
-    /// field will be populated with information about the restore.
+    /// Output only. If this table was restored from another data source (e.g. a
+    /// backup), this field will be populated with information about the restore.
     #[prost(message, optional, tag = "6")]
     pub restore_info: ::core::option::Option<RestoreInfo>,
+    /// If specified, enable the change stream on this table.
+    /// Otherwise, the change stream is disabled and the change stream is not
+    /// retained.
+    #[prost(message, optional, tag = "8")]
+    pub change_stream_config: ::core::option::Option<ChangeStreamConfig>,
     /// Set to true to make the table protected against data loss. i.e. deleting
     /// the following resources through Admin APIs are prohibited:
-    ///    - The table.
-    ///    - The column families in the table.
-    ///    - The instance containing the table.
+    ///
+    /// * The table.
+    /// * The column families in the table.
+    /// * The instance containing the table.
+    ///
     /// Note one can still delete the data stored in the table through Data APIs.
     #[prost(bool, tag = "9")]
     pub deletion_protection: bool,
@@ -120,6 +145,7 @@ pub struct Table {
 /// Nested message and enum types in `Table`.
 pub mod table {
     /// The state of a table's data in a particular cluster.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct ClusterState {
@@ -137,6 +163,7 @@ pub mod table {
     /// Nested message and enum types in `ClusterState`.
     pub mod cluster_state {
         /// Table replication states.
+        #[non_exhaustive]
         #[derive(
             Clone,
             Copy,
@@ -202,6 +229,7 @@ pub mod table {
     }
     /// Possible timestamp granularities to use when keeping multiple versions
     /// of data in a table.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -242,6 +270,7 @@ pub mod table {
         }
     }
     /// Defines a view over a table's fields.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -299,6 +328,7 @@ pub mod table {
     }
 }
 /// A set of columns within a table which share a common configuration.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ColumnFamily {
@@ -312,6 +342,7 @@ pub struct ColumnFamily {
     pub gc_rule: ::core::option::Option<GcRule>,
 }
 /// Rule for determining which cells to delete during garbage collection.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GcRule {
@@ -322,6 +353,7 @@ pub struct GcRule {
 /// Nested message and enum types in `GcRule`.
 pub mod gc_rule {
     /// A GcRule which deletes cells matching all of the given rules.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Intersection {
@@ -330,6 +362,7 @@ pub mod gc_rule {
         pub rules: ::prost::alloc::vec::Vec<super::GcRule>,
     }
     /// A GcRule which deletes cells matching any of the given rules.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Union {
@@ -338,6 +371,7 @@ pub mod gc_rule {
         pub rules: ::prost::alloc::vec::Vec<super::GcRule>,
     }
     /// Garbage collection rules.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Rule {
@@ -361,24 +395,27 @@ pub mod gc_rule {
 /// If this resource is protected with customer managed encryption, the in-use
 /// Cloud Key Management Service (Cloud KMS) key version is specified along with
 /// its status.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct EncryptionInfo {
     /// Output only. The type of encryption used to protect this resource.
     #[prost(enumeration = "encryption_info::EncryptionType", tag = "3")]
     pub encryption_type: i32,
-    /// Output only. The status of encrypt/decrypt calls on underlying data for this resource.
-    /// Regardless of status, the existing data is always encrypted at rest.
+    /// Output only. The status of encrypt/decrypt calls on underlying data for
+    /// this resource. Regardless of status, the existing data is always encrypted
+    /// at rest.
     #[prost(message, optional, tag = "4")]
     pub encryption_status: ::core::option::Option<super::super::super::rpc::Status>,
-    /// Output only. The version of the Cloud KMS key specified in the parent cluster that is
-    /// in use for the data underlying this table.
+    /// Output only. The version of the Cloud KMS key specified in the parent
+    /// cluster that is in use for the data underlying this table.
     #[prost(string, tag = "2")]
     pub kms_key_version: ::prost::alloc::string::String,
 }
 /// Nested message and enum types in `EncryptionInfo`.
 pub mod encryption_info {
     /// Possible encryption types for a resource.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -439,10 +476,11 @@ pub mod encryption_info {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Snapshot {
-    /// Output only. The unique name of the snapshot.
+    /// The unique name of the snapshot.
     /// Values are of the form
     /// `projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}`.
     #[prost(string, tag = "1")]
@@ -459,21 +497,22 @@ pub struct Snapshot {
     /// Output only. The time when the snapshot is created.
     #[prost(message, optional, tag = "4")]
     pub create_time: ::core::option::Option<::prost_types::Timestamp>,
-    /// Output only. The time when the snapshot will be deleted. The maximum amount
-    /// of time a snapshot can stay active is 365 days. If 'ttl' is not specified,
+    /// The time when the snapshot will be deleted. The maximum amount of time a
+    /// snapshot can stay active is 365 days. If 'ttl' is not specified,
     /// the default maximum of 365 days will be used.
     #[prost(message, optional, tag = "5")]
     pub delete_time: ::core::option::Option<::prost_types::Timestamp>,
     /// Output only. The current state of the snapshot.
     #[prost(enumeration = "snapshot::State", tag = "6")]
     pub state: i32,
-    /// Output only. Description of the snapshot.
+    /// Description of the snapshot.
     #[prost(string, tag = "7")]
     pub description: ::prost::alloc::string::String,
 }
 /// Nested message and enum types in `Snapshot`.
 pub mod snapshot {
     /// Possible states of a snapshot.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -520,13 +559,14 @@ pub mod snapshot {
     }
 }
 /// A backup of a Cloud Bigtable table.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Backup {
     /// A globally unique identifier for the backup which cannot be
     /// changed. Values are of the form
     /// `projects/{project}/instances/{instance}/clusters/{cluster}/
-    ///     backups/\[_a-zA-Z0-9][-_.a-zA-Z0-9\]*`
+    ///     backups/[_a-zA-Z0-9][-_.a-zA-Z0-9]*`
     /// The final segment of the name must be between 1 and 50 characters
     /// in length.
     ///
@@ -535,13 +575,18 @@ pub struct Backup {
     /// `projects/{project}/instances/{instance}/clusters/{cluster}`.
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
-    /// Required. Immutable. Name of the table from which this backup was created. This needs
-    /// to be in the same instance as the backup. Values are of the form
+    /// Required. Immutable. Name of the table from which this backup was created.
+    /// This needs to be in the same instance as the backup. Values are of the form
     /// `projects/{project}/instances/{instance}/tables/{source_table}`.
     #[prost(string, tag = "2")]
     pub source_table: ::prost::alloc::string::String,
+    /// Output only. Name of the backup from which this backup was copied. If a
+    /// backup is not created by copying a backup, this field will be empty. Values
+    /// are of the form: projects/<project>/instances/<instance>/backups/<backup>.
+    #[prost(string, tag = "10")]
+    pub source_backup: ::prost::alloc::string::String,
     /// Required. The expiration time of the backup, with microseconds
-    /// granularity that must be at least 6 hours and at most 30 days
+    /// granularity that must be at least 6 hours and at most 90 days
     /// from the time the request is received. Once the `expire_time`
     /// has passed, Cloud Bigtable will delete the backup and free the
     /// resources used by the backup.
@@ -549,8 +594,9 @@ pub struct Backup {
     pub expire_time: ::core::option::Option<::prost_types::Timestamp>,
     /// Output only. `start_time` is the time that the backup was started
     /// (i.e. approximately the time the
-    /// \[CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup\] request is received).  The
-    /// row data in this backup will be no older than this timestamp.
+    /// [CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup]
+    /// request is received).  The row data in this backup will be no older than
+    /// this timestamp.
     #[prost(message, optional, tag = "4")]
     pub start_time: ::core::option::Option<::prost_types::Timestamp>,
     /// Output only. `end_time` is the time that the backup was finished. The row
@@ -570,6 +616,7 @@ pub struct Backup {
 /// Nested message and enum types in `Backup`.
 pub mod backup {
     /// Indicates the current state of the backup.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -615,6 +662,7 @@ pub mod backup {
     }
 }
 /// Information about a backup.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BackupInfo {
@@ -632,8 +680,14 @@ pub struct BackupInfo {
     /// Output only. Name of the table the backup was created from.
     #[prost(string, tag = "4")]
     pub source_table: ::prost::alloc::string::String,
+    /// Output only. Name of the backup from which this backup was copied. If a
+    /// backup is not created by copying a backup, this field will be empty. Values
+    /// are of the form: projects/<project>/instances/<instance>/backups/<backup>.
+    #[prost(string, tag = "10")]
+    pub source_backup: ::prost::alloc::string::String,
 }
 /// Indicates the type of the restore source.
+#[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum RestoreSourceType {
@@ -663,13 +717,13 @@ impl RestoreSourceType {
     }
 }
 /// The request for
-/// \[RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable\].
+/// [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RestoreTableRequest {
     /// Required. The name of the instance in which to create the restored
-    /// table. This instance must be in the same project as the source backup.
-    /// Values are of the form `projects/<project>/instances/<instance>`.
+    /// table. Values are of the form `projects/<project>/instances/<instance>`.
     #[prost(string, tag = "1")]
     pub parent: ::prost::alloc::string::String,
     /// Required. The id of the table to create and restore to. This
@@ -685,6 +739,7 @@ pub struct RestoreTableRequest {
 /// Nested message and enum types in `RestoreTableRequest`.
 pub mod restore_table_request {
     /// Required. The source from which to restore.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Source {
@@ -695,7 +750,8 @@ pub mod restore_table_request {
     }
 }
 /// Metadata type for the long-running operation returned by
-/// \[RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable\].
+/// [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RestoreTableMetadata {
@@ -708,27 +764,31 @@ pub struct RestoreTableMetadata {
     /// If exists, the name of the long-running operation that will be used to
     /// track the post-restore optimization process to optimize the performance of
     /// the restored table. The metadata type of the long-running operation is
-    /// \[OptimizeRestoreTableMetadata][\]. The response type is
-    /// \[Empty][google.protobuf.Empty\]. This long-running operation may be
+    /// [OptimizeRestoreTableMetadata][]. The response type is
+    /// [Empty][google.protobuf.Empty]. This long-running operation may be
     /// automatically created by the system if applicable after the
     /// RestoreTable long-running operation completes successfully. This operation
     /// may not be created if the table is already optimized or the restore was
     /// not successful.
     #[prost(string, tag = "4")]
     pub optimize_table_operation_name: ::prost::alloc::string::String,
-    /// The progress of the \[RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable\]
+    /// The progress of the
+    /// [RestoreTable][google.bigtable.admin.v2.BigtableTableAdmin.RestoreTable]
     /// operation.
     #[prost(message, optional, tag = "5")]
     pub progress: ::core::option::Option<OperationProgress>,
     /// Information about the source used to restore the table, as specified by
-    /// `source` in \[RestoreTableRequest][google.bigtable.admin.v2.RestoreTableRequest\].
+    /// `source` in
+    /// [RestoreTableRequest][google.bigtable.admin.v2.RestoreTableRequest].
     #[prost(oneof = "restore_table_metadata::SourceInfo", tags = "3")]
     pub source_info: ::core::option::Option<restore_table_metadata::SourceInfo>,
 }
 /// Nested message and enum types in `RestoreTableMetadata`.
 pub mod restore_table_metadata {
     /// Information about the source used to restore the table, as specified by
-    /// `source` in \[RestoreTableRequest][google.bigtable.admin.v2.RestoreTableRequest\].
+    /// `source` in
+    /// [RestoreTableRequest][google.bigtable.admin.v2.RestoreTableRequest].
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum SourceInfo {
@@ -740,6 +800,7 @@ pub mod restore_table_metadata {
 /// of optimizations performed on a newly restored table. This long-running
 /// operation is automatically created by the system after the successful
 /// completion of a table restore, and cannot be cancelled.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OptimizeRestoredTableMetadata {
@@ -751,7 +812,8 @@ pub struct OptimizeRestoredTableMetadata {
     pub progress: ::core::option::Option<OperationProgress>,
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.CreateTable][google.bigtable.admin.v2.BigtableTableAdmin.CreateTable\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.CreateTable][google.bigtable.admin.v2.BigtableTableAdmin.CreateTable]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateTableRequest {
@@ -759,8 +821,8 @@ pub struct CreateTableRequest {
     /// Values are of the form `projects/{project}/instances/{instance}`.
     #[prost(string, tag = "1")]
     pub parent: ::prost::alloc::string::String,
-    /// Required. The name by which the new table should be referred to within the parent
-    /// instance, e.g., `foobar` rather than `{parent}/tables/foobar`.
+    /// Required. The name by which the new table should be referred to within the
+    /// parent instance, e.g., `foobar` rather than `{parent}/tables/foobar`.
     /// Maximum 50 characters.
     #[prost(string, tag = "2")]
     pub table_id: ::prost::alloc::string::String,
@@ -776,7 +838,7 @@ pub struct CreateTableRequest {
     ///
     /// * Row keys := `["a", "apple", "custom", "customer_1", "customer_2",`
     ///                 `"other", "zz"]`
-    /// * initial_split_keys := `["apple", "customer_1", "customer_2", "other"]`
+    /// * initial_split_keys := `\["apple", "customer_1", "customer_2", "other"\]`
     /// * Key assignment:
     ///      - Tablet 1 `[, apple)                => {"a"}.`
     ///      - Tablet 2 `[apple, customer_1)      => {"apple", "custom"}.`
@@ -789,6 +851,7 @@ pub struct CreateTableRequest {
 /// Nested message and enum types in `CreateTableRequest`.
 pub mod create_table_request {
     /// An initial split point for a newly created table.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Split {
@@ -798,12 +861,13 @@ pub mod create_table_request {
     }
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.CreateTableFromSnapshot]
 ///
 /// Note: This is a private alpha release of Cloud Bigtable snapshots. This
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateTableFromSnapshotRequest {
@@ -811,19 +875,20 @@ pub struct CreateTableFromSnapshotRequest {
     /// Values are of the form `projects/{project}/instances/{instance}`.
     #[prost(string, tag = "1")]
     pub parent: ::prost::alloc::string::String,
-    /// Required. The name by which the new table should be referred to within the parent
-    /// instance, e.g., `foobar` rather than `{parent}/tables/foobar`.
+    /// Required. The name by which the new table should be referred to within the
+    /// parent instance, e.g., `foobar` rather than `{parent}/tables/foobar`.
     #[prost(string, tag = "2")]
     pub table_id: ::prost::alloc::string::String,
-    /// Required. The unique name of the snapshot from which to restore the table. The
-    /// snapshot and the table must be in the same instance.
-    /// Values are of the form
+    /// Required. The unique name of the snapshot from which to restore the table.
+    /// The snapshot and the table must be in the same instance. Values are of the
+    /// form
     /// `projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/{snapshot}`.
     #[prost(string, tag = "3")]
     pub source_snapshot: ::prost::alloc::string::String,
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange][google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange][google.bigtable.admin.v2.BigtableTableAdmin.DropRowRange]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DropRowRangeRequest {
@@ -839,6 +904,7 @@ pub struct DropRowRangeRequest {
 /// Nested message and enum types in `DropRowRangeRequest`.
 pub mod drop_row_range_request {
     /// Delete all rows or by prefix.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Target {
@@ -852,16 +918,17 @@ pub mod drop_row_range_request {
     }
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTablesRequest {
-    /// Required. The unique name of the instance for which tables should be listed.
-    /// Values are of the form `projects/{project}/instances/{instance}`.
+    /// Required. The unique name of the instance for which tables should be
+    /// listed. Values are of the form `projects/{project}/instances/{instance}`.
     #[prost(string, tag = "1")]
     pub parent: ::prost::alloc::string::String,
     /// The view to be applied to the returned tables' fields.
-    /// Only NAME_ONLY view (default) and REPLICATION_VIEW are supported.
+    /// NAME_ONLY view (default) and REPLICATION_VIEW are supported.
     #[prost(enumeration = "table::View", tag = "2")]
     pub view: i32,
     /// Maximum number of results per page.
@@ -880,7 +947,8 @@ pub struct ListTablesRequest {
     pub page_token: ::prost::alloc::string::String,
 }
 /// Response message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.ListTables][google.bigtable.admin.v2.BigtableTableAdmin.ListTables]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTablesResponse {
@@ -894,7 +962,8 @@ pub struct ListTablesResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.GetTable][google.bigtable.admin.v2.BigtableTableAdmin.GetTable\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.GetTable][google.bigtable.admin.v2.BigtableTableAdmin.GetTable]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTableRequest {
@@ -909,7 +978,8 @@ pub struct GetTableRequest {
     pub view: i32,
 }
 /// The request for
-/// \[UpdateTable][google.bigtable.admin.v2.BigtableTableAdmin.UpdateTable\].
+/// [UpdateTable][google.bigtable.admin.v2.BigtableTableAdmin.UpdateTable].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateTableRequest {
@@ -918,18 +988,23 @@ pub struct UpdateTableRequest {
     #[prost(message, optional, tag = "1")]
     pub table: ::core::option::Option<Table>,
     /// Required. The list of fields to update.
-    /// A mask specifying which fields (e.g. `deletion_protection`) in the `table`
+    /// A mask specifying which fields (e.g. `change_stream_config`) in the `table`
     /// field should be updated. This mask is relative to the `table` field, not to
     /// the request message. The wildcard (*) path is currently not supported.
-    /// Currently UpdateTable is only supported for the following field:
-    ///   * `deletion_protection`
+    /// Currently UpdateTable is only supported for the following fields:
+    ///
+    /// * `change_stream_config`
+    /// * `change_stream_config.retention_period`
+    /// * `deletion_protection`
+    ///
     /// If `column_families` is set in `update_mask`, it will return an
     /// UNIMPLEMENTED error.
     #[prost(message, optional, tag = "2")]
     pub update_mask: ::core::option::Option<::prost_types::FieldMask>,
 }
 /// Metadata type for the operation returned by
-/// \[UpdateTable][google.bigtable.admin.v2.BigtableTableAdmin.UpdateTable\].
+/// [UpdateTable][google.bigtable.admin.v2.BigtableTableAdmin.UpdateTable].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateTableMetadata {
@@ -944,7 +1019,8 @@ pub struct UpdateTableMetadata {
     pub end_time: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.DeleteTable]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteTableRequest {
@@ -955,7 +1031,8 @@ pub struct DeleteTableRequest {
     pub name: ::prost::alloc::string::String,
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UndeleteTableRequest {
@@ -966,7 +1043,8 @@ pub struct UndeleteTableRequest {
     pub name: ::prost::alloc::string::String,
 }
 /// Metadata type for the operation returned by
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable\].
+/// [google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable][google.bigtable.admin.v2.BigtableTableAdmin.UndeleteTable].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UndeleteTableMetadata {
@@ -981,7 +1059,8 @@ pub struct UndeleteTableMetadata {
     pub end_time: ::core::option::Option<::prost_types::Timestamp>,
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies][google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies][google.bigtable.admin.v2.BigtableTableAdmin.ModifyColumnFamilies]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ModifyColumnFamiliesRequest {
@@ -990,10 +1069,10 @@ pub struct ModifyColumnFamiliesRequest {
     /// `projects/{project}/instances/{instance}/tables/{table}`.
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
-    /// Required. Modifications to be atomically applied to the specified table's families.
-    /// Entries are applied in order, meaning that earlier modifications can be
-    /// masked by later ones (in the case of repeated updates to the same family,
-    /// for example).
+    /// Required. Modifications to be atomically applied to the specified table's
+    /// families. Entries are applied in order, meaning that earlier modifications
+    /// can be masked by later ones (in the case of repeated updates to the same
+    /// family, for example).
     #[prost(message, repeated, tag = "2")]
     pub modifications: ::prost::alloc::vec::Vec<
         modify_column_families_request::Modification,
@@ -1002,6 +1081,7 @@ pub struct ModifyColumnFamiliesRequest {
 /// Nested message and enum types in `ModifyColumnFamiliesRequest`.
 pub mod modify_column_families_request {
     /// A create, update, or delete of a particular column family.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Modification {
@@ -1015,6 +1095,7 @@ pub mod modify_column_families_request {
     /// Nested message and enum types in `Modification`.
     pub mod modification {
         /// Column family modifications.
+        #[non_exhaustive]
         #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Oneof)]
         pub enum Mod {
@@ -1034,18 +1115,20 @@ pub mod modify_column_families_request {
     }
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateConsistencyTokenRequest {
-    /// Required. The unique name of the Table for which to create a consistency token.
-    /// Values are of the form
+    /// Required. The unique name of the Table for which to create a consistency
+    /// token. Values are of the form
     /// `projects/{project}/instances/{instance}/tables/{table}`.
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
 }
 /// Response message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken][google.bigtable.admin.v2.BigtableTableAdmin.GenerateConsistencyToken]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateConsistencyTokenResponse {
@@ -1054,12 +1137,13 @@ pub struct GenerateConsistencyTokenResponse {
     pub consistency_token: ::prost::alloc::string::String,
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckConsistencyRequest {
-    /// Required. The unique name of the Table for which to check replication consistency.
-    /// Values are of the form
+    /// Required. The unique name of the Table for which to check replication
+    /// consistency. Values are of the form
     /// `projects/{project}/instances/{instance}/tables/{table}`.
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
@@ -1068,7 +1152,8 @@ pub struct CheckConsistencyRequest {
     pub consistency_token: ::prost::alloc::string::String,
 }
 /// Response message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency][google.bigtable.admin.v2.BigtableTableAdmin.CheckConsistency]
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckConsistencyResponse {
@@ -1078,12 +1163,13 @@ pub struct CheckConsistencyResponse {
     pub consistent: bool,
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable][google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable][google.bigtable.admin.v2.BigtableTableAdmin.SnapshotTable]
 ///
 /// Note: This is a private alpha release of Cloud Bigtable snapshots. This
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SnapshotTableRequest {
@@ -1097,9 +1183,9 @@ pub struct SnapshotTableRequest {
     /// `projects/{project}/instances/{instance}/clusters/{cluster}`.
     #[prost(string, tag = "2")]
     pub cluster: ::prost::alloc::string::String,
-    /// Required. The ID by which the new snapshot should be referred to within the parent
-    /// cluster, e.g., `mysnapshot` of the form: `\[_a-zA-Z0-9][-_.a-zA-Z0-9\]*`
-    /// rather than
+    /// Required. The ID by which the new snapshot should be referred to within the
+    /// parent cluster, e.g., `mysnapshot` of the form:
+    /// `[_a-zA-Z0-9][-_.a-zA-Z0-9]*` rather than
     /// `projects/{project}/instances/{instance}/clusters/{cluster}/snapshots/mysnapshot`.
     #[prost(string, tag = "3")]
     pub snapshot_id: ::prost::alloc::string::String,
@@ -1114,12 +1200,13 @@ pub struct SnapshotTableRequest {
     pub description: ::prost::alloc::string::String,
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.GetSnapshot]
 ///
 /// Note: This is a private alpha release of Cloud Bigtable snapshots. This
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSnapshotRequest {
@@ -1130,17 +1217,18 @@ pub struct GetSnapshotRequest {
     pub name: ::prost::alloc::string::String,
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
 ///
 /// Note: This is a private alpha release of Cloud Bigtable snapshots. This
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSnapshotsRequest {
-    /// Required. The unique name of the cluster for which snapshots should be listed.
-    /// Values are of the form
+    /// Required. The unique name of the cluster for which snapshots should be
+    /// listed. Values are of the form
     /// `projects/{project}/instances/{instance}/clusters/{cluster}`.
     /// Use `{cluster} = '-'` to list snapshots for all clusters in an instance,
     /// e.g., `projects/{project}/instances/{instance}/clusters/-`.
@@ -1155,12 +1243,13 @@ pub struct ListSnapshotsRequest {
     pub page_token: ::prost::alloc::string::String,
 }
 /// Response message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots][google.bigtable.admin.v2.BigtableTableAdmin.ListSnapshots]
 ///
 /// Note: This is a private alpha release of Cloud Bigtable snapshots. This
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSnapshotsResponse {
@@ -1174,12 +1263,13 @@ pub struct ListSnapshotsResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 /// Request message for
-/// \[google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot\]
+/// [google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot][google.bigtable.admin.v2.BigtableTableAdmin.DeleteSnapshot]
 ///
 /// Note: This is a private alpha release of Cloud Bigtable snapshots. This
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteSnapshotRequest {
@@ -1195,6 +1285,7 @@ pub struct DeleteSnapshotRequest {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SnapshotTableMetadata {
@@ -1214,6 +1305,7 @@ pub struct SnapshotTableMetadata {
 /// feature is not currently available to most Cloud Bigtable customers. This
 /// feature might be changed in backward-incompatible ways and is not recommended
 /// for production use. It is not subject to any SLA or deprecation policy.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateTableFromSnapshotMetadata {
@@ -1228,7 +1320,9 @@ pub struct CreateTableFromSnapshotMetadata {
     #[prost(message, optional, tag = "3")]
     pub finish_time: ::core::option::Option<::prost_types::Timestamp>,
 }
-/// The request for \[CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup\].
+/// The request for
+/// [CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateBackupRequest {
@@ -1242,7 +1336,7 @@ pub struct CreateBackupRequest {
     /// the full backup name, of the form:
     /// `projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup_id}`.
     /// This string must be between 1 and 50 characters in length and match the
-    /// regex \[_a-zA-Z0-9][-_.a-zA-Z0-9\]*.
+    /// regex [_a-zA-Z0-9][-_.a-zA-Z0-9]*.
     #[prost(string, tag = "2")]
     pub backup_id: ::prost::alloc::string::String,
     /// Required. The backup to create.
@@ -1250,7 +1344,8 @@ pub struct CreateBackupRequest {
     pub backup: ::core::option::Option<Backup>,
 }
 /// Metadata type for the operation returned by
-/// \[CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup\].
+/// [CreateBackup][google.bigtable.admin.v2.BigtableTableAdmin.CreateBackup].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateBackupMetadata {
@@ -1267,13 +1362,16 @@ pub struct CreateBackupMetadata {
     #[prost(message, optional, tag = "4")]
     pub end_time: ::core::option::Option<::prost_types::Timestamp>,
 }
-/// The request for \[UpdateBackup][google.bigtable.admin.v2.BigtableTableAdmin.UpdateBackup\].
+/// The request for
+/// [UpdateBackup][google.bigtable.admin.v2.BigtableTableAdmin.UpdateBackup].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateBackupRequest {
     /// Required. The backup to update. `backup.name`, and the fields to be updated
     /// as specified by `update_mask` are required. Other fields are ignored.
     /// Update is only supported for the following fields:
+    ///
     ///   * `backup.expire_time`.
     #[prost(message, optional, tag = "1")]
     pub backup: ::core::option::Option<Backup>,
@@ -1285,7 +1383,9 @@ pub struct UpdateBackupRequest {
     #[prost(message, optional, tag = "2")]
     pub update_mask: ::core::option::Option<::prost_types::FieldMask>,
 }
-/// The request for \[GetBackup][google.bigtable.admin.v2.BigtableTableAdmin.GetBackup\].
+/// The request for
+/// [GetBackup][google.bigtable.admin.v2.BigtableTableAdmin.GetBackup].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetBackupRequest {
@@ -1295,7 +1395,9 @@ pub struct GetBackupRequest {
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
 }
-/// The request for \[DeleteBackup][google.bigtable.admin.v2.BigtableTableAdmin.DeleteBackup\].
+/// The request for
+/// [DeleteBackup][google.bigtable.admin.v2.BigtableTableAdmin.DeleteBackup].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteBackupRequest {
@@ -1305,7 +1407,9 @@ pub struct DeleteBackupRequest {
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
 }
-/// The request for \[ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups\].
+/// The request for
+/// [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListBackupsRequest {
@@ -1323,13 +1427,14 @@ pub struct ListBackupsRequest {
     /// roughly synonymous with equality. Filter rules are case insensitive.
     ///
     /// The fields eligible for filtering are:
-    ///    * `name`
-    ///    * `source_table`
-    ///    * `state`
-    ///    * `start_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
-    ///    * `end_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
-    ///    * `expire_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
-    ///    * `size_bytes`
+    ///
+    /// * `name`
+    /// * `source_table`
+    /// * `state`
+    /// * `start_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
+    /// * `end_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
+    /// * `expire_time` (and values are of the format YYYY-MM-DDTHH:MM:SSZ)
+    /// * `size_bytes`
     ///
     /// To filter on multiple expressions, provide each separate expression within
     /// parentheses. By default, each expression is an AND expression. However,
@@ -1337,30 +1442,32 @@ pub struct ListBackupsRequest {
     ///
     /// Some examples of using filters are:
     ///
-    ///    * `name:"exact"` --> The backup's name is the string "exact".
-    ///    * `name:howl` --> The backup's name contains the string "howl".
-    ///    * `source_table:prod`
-    ///           --> The source_table's name contains the string "prod".
-    ///    * `state:CREATING` --> The backup is pending creation.
-    ///    * `state:READY` --> The backup is fully created and ready for use.
-    ///    * `(name:howl) AND (start_time < \"2018-03-28T14:50:00Z\")`
-    ///           --> The backup name contains the string "howl" and start_time
-    ///               of the backup is before 2018-03-28T14:50:00Z.
-    ///    * `size_bytes > 10000000000` --> The backup's size is greater than 10GB
+    /// * `name:"exact"` --> The backup's name is the string "exact".
+    /// * `name:howl` --> The backup's name contains the string "howl".
+    /// * `source_table:prod`
+    ///         --> The source_table's name contains the string "prod".
+    /// * `state:CREATING` --> The backup is pending creation.
+    /// * `state:READY` --> The backup is fully created and ready for use.
+    /// * `(name:howl) AND (start_time < \"2018-03-28T14:50:00Z\")`
+    ///         --> The backup name contains the string "howl" and start_time
+    ///             of the backup is before 2018-03-28T14:50:00Z.
+    /// * `size_bytes > 10000000000` --> The backup's size is greater than 10GB
     #[prost(string, tag = "2")]
     pub filter: ::prost::alloc::string::String,
     /// An expression for specifying the sort order of the results of the request.
-    /// The string value should specify one or more fields in \[Backup][google.bigtable.admin.v2.Backup\]. The full
-    /// syntax is described at <https://aip.dev/132#ordering.>
+    /// The string value should specify one or more fields in
+    /// [Backup][google.bigtable.admin.v2.Backup]. The full syntax is described at
+    /// <https://aip.dev/132#ordering.>
     ///
     /// Fields supported are:
-    ///     * name
-    ///     * source_table
-    ///     * expire_time
-    ///     * start_time
-    ///     * end_time
-    ///     * size_bytes
-    ///     * state
+    ///
+    /// * name
+    /// * source_table
+    /// * expire_time
+    /// * start_time
+    /// * end_time
+    /// * size_bytes
+    /// * state
     ///
     /// For example, "start_time". The default sorting order is ascending.
     /// To specify descending order for the field, a suffix " desc" should
@@ -1376,13 +1483,16 @@ pub struct ListBackupsRequest {
     #[prost(int32, tag = "4")]
     pub page_size: i32,
     /// If non-empty, `page_token` should contain a
-    /// \[next_page_token][google.bigtable.admin.v2.ListBackupsResponse.next_page_token\] from a
-    /// previous \[ListBackupsResponse][google.bigtable.admin.v2.ListBackupsResponse\] to the same `parent` and with the same
-    /// `filter`.
+    /// [next_page_token][google.bigtable.admin.v2.ListBackupsResponse.next_page_token]
+    /// from a previous
+    /// [ListBackupsResponse][google.bigtable.admin.v2.ListBackupsResponse] to the
+    /// same `parent` and with the same `filter`.
     #[prost(string, tag = "5")]
     pub page_token: ::prost::alloc::string::String,
 }
-/// The response for \[ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups\].
+/// The response for
+/// [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListBackupsResponse {
@@ -1390,10 +1500,66 @@ pub struct ListBackupsResponse {
     #[prost(message, repeated, tag = "1")]
     pub backups: ::prost::alloc::vec::Vec<Backup>,
     /// `next_page_token` can be sent in a subsequent
-    /// \[ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups\] call to fetch more
-    /// of the matching backups.
+    /// [ListBackups][google.bigtable.admin.v2.BigtableTableAdmin.ListBackups] call
+    /// to fetch more of the matching backups.
     #[prost(string, tag = "2")]
     pub next_page_token: ::prost::alloc::string::String,
+}
+/// The request for
+/// [CopyBackup][google.bigtable.admin.v2.BigtableTableAdmin.CopyBackup].
+#[non_exhaustive]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CopyBackupRequest {
+    /// Required. The name of the destination cluster that will contain the backup
+    /// copy. The cluster must already exists. Values are of the form:
+    /// `projects/{project}/instances/{instance}/clusters/{cluster}`.
+    #[prost(string, tag = "1")]
+    pub parent: ::prost::alloc::string::String,
+    /// Required. The id of the new backup. The `backup_id` along with `parent`
+    /// are combined as {parent}/backups/{backup_id} to create the full backup
+    /// name, of the form:
+    /// `projects/{project}/instances/{instance}/clusters/{cluster}/backups/{backup_id}`.
+    /// This string must be between 1 and 50 characters in length and match the
+    /// regex [_a-zA-Z0-9][-_.a-zA-Z0-9]*.
+    #[prost(string, tag = "2")]
+    pub backup_id: ::prost::alloc::string::String,
+    /// Required. The source backup to be copied from.
+    /// The source backup needs to be in READY state for it to be copied.
+    /// Copying a copied backup is not allowed.
+    /// Once CopyBackup is in progress, the source backup cannot be deleted or
+    /// cleaned up on expiration until CopyBackup is finished.
+    /// Values are of the form:
+    /// `projects/<project>/instances/<instance>/clusters/<cluster>/backups/<backup>`.
+    #[prost(string, tag = "3")]
+    pub source_backup: ::prost::alloc::string::String,
+    /// Required. Required. The expiration time of the copied backup with
+    /// microsecond granularity that must be at least 6 hours and at most 30 days
+    /// from the time the request is received. Once the `expire_time` has
+    /// passed, Cloud Bigtable will delete the backup and free the resources used
+    /// by the backup.
+    #[prost(message, optional, tag = "4")]
+    pub expire_time: ::core::option::Option<::prost_types::Timestamp>,
+}
+/// Metadata type for the google.longrunning.Operation returned by
+/// [CopyBackup][google.bigtable.admin.v2.BigtableTableAdmin.CopyBackup].
+#[non_exhaustive]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CopyBackupMetadata {
+    /// The name of the backup being created through the copy operation.
+    /// Values are of the form
+    /// `projects/<project>/instances/<instance>/clusters/<cluster>/backups/<backup>`.
+    #[prost(string, tag = "1")]
+    pub name: ::prost::alloc::string::String,
+    /// Information about the source backup that is being copied from.
+    #[prost(message, optional, tag = "2")]
+    pub source_backup_info: ::core::option::Option<BackupInfo>,
+    /// The progress of the
+    /// [CopyBackup][google.bigtable.admin.v2.BigtableTableAdmin.CopyBackup]
+    /// operation.
+    #[prost(message, optional, tag = "3")]
+    pub progress: ::core::option::Option<OperationProgress>,
 }
 /// Generated client implementations.
 pub mod bigtable_table_admin_client {
@@ -1979,8 +2145,8 @@ pub mod bigtable_table_admin_client {
         /// [metadata][google.longrunning.Operation.metadata] field type is
         /// [CreateBackupMetadata][google.bigtable.admin.v2.CreateBackupMetadata]. The
         /// [response][google.longrunning.Operation.response] field type is
-        /// [Backup][google.bigtable.admin.v2.Backup], if successful. Cancelling the returned operation will stop the
-        /// creation and delete the backup.
+        /// [Backup][google.bigtable.admin.v2.Backup], if successful. Cancelling the
+        /// returned operation will stop the creation and delete the backup.
         pub async fn create_backup(
             &mut self,
             request: impl tonic::IntoRequest<super::CreateBackupRequest>,
@@ -2127,8 +2293,7 @@ pub mod bigtable_table_admin_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        /// Create a new table by restoring from a completed backup. The new table
-        /// must be in the same project as the instance containing the backup.  The
+        /// Create a new table by restoring from a completed backup.  The
         /// returned table [long-running operation][google.longrunning.Operation] can
         /// be used to track the progress of the operation, and to cancel it.  The
         /// [metadata][google.longrunning.Operation.metadata] field type is
@@ -2161,6 +2326,38 @@ pub mod bigtable_table_admin_client {
                     GrpcMethod::new(
                         "google.bigtable.admin.v2.BigtableTableAdmin",
                         "RestoreTable",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        /// Copy a Cloud Bigtable backup to a new backup in the destination cluster
+        /// located in the destination instance and project.
+        pub async fn copy_backup(
+            &mut self,
+            request: impl tonic::IntoRequest<super::CopyBackupRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::super::super::super::longrunning::Operation>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::new(
+                        tonic::Code::Unknown,
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic::codec::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/google.bigtable.admin.v2.BigtableTableAdmin/CopyBackup",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "google.bigtable.admin.v2.BigtableTableAdmin",
+                        "CopyBackup",
                     ),
                 );
             self.inner.unary(req, path, codec).await
@@ -2234,7 +2431,8 @@ pub mod bigtable_table_admin_client {
                 );
             self.inner.unary(req, path, codec).await
         }
-        /// Returns permissions that the caller has on the specified Table or Backup resource.
+        /// Returns permissions that the caller has on the specified Table or Backup
+        /// resource.
         pub async fn test_iam_permissions(
             &mut self,
             request: impl tonic::IntoRequest<

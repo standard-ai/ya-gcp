@@ -1,6 +1,7 @@
 /// Defines the HTTP configuration for an API service. It contains a list of
-/// \[HttpRule][google.api.HttpRule\], each specifying the mapping of an RPC method
+/// [HttpRule][google.api.HttpRule], each specifying the mapping of an RPC method
 /// to one or more HTTP REST API methods.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Http {
@@ -26,7 +27,7 @@ pub struct Http {
 /// APIs](<https://github.com/googleapis/googleapis>),
 /// [Cloud Endpoints](<https://cloud.google.com/endpoints>), [gRPC
 /// Gateway](<https://github.com/grpc-ecosystem/grpc-gateway>),
-/// and \[Envoy\](<https://github.com/envoyproxy/envoy>) proxy support this feature
+/// and [Envoy](<https://github.com/envoyproxy/envoy>) proxy support this feature
 /// and use it for large scale production services.
 ///
 /// `HttpRule` defines the schema of the gRPC/REST mapping. The mapping specifies
@@ -187,26 +188,26 @@ pub struct Http {
 /// 1. Leaf request fields (recursive expansion nested messages in the request
 ///     message) are classified into three categories:
 ///     - Fields referred by the path template. They are passed via the URL path.
-///     - Fields referred by the \[HttpRule.body][google.api.HttpRule.body\]. They
+///     - Fields referred by the [HttpRule.body][google.api.HttpRule.body]. They
 ///     are passed via the HTTP
 ///       request body.
 ///     - All other fields are passed via the URL query parameters, and the
 ///       parameter name is the field path in the request message. A repeated
 ///       field can be represented as multiple query parameters under the same
 ///       name.
-///   2. If \[HttpRule.body][google.api.HttpRule.body\] is "*", there is no URL
+///   2. If [HttpRule.body][google.api.HttpRule.body] is "*", there is no URL
 ///   query parameter, all fields
 ///      are passed via URL path and HTTP request body.
-///   3. If \[HttpRule.body][google.api.HttpRule.body\] is omitted, there is no HTTP
+///   3. If [HttpRule.body][google.api.HttpRule.body] is omitted, there is no HTTP
 ///   request body, all
 ///      fields are passed via URL path and URL query parameters.
 ///
 /// ### Path template syntax
 ///
-///      Template = "/" Segments [ Verb ] ;
+///      Template = "/" Segments \[ Verb \] ;
 ///      Segments = Segment { "/" Segment } ;
 ///      Segment  = "*" | "**" | LITERAL | Variable ;
-///      Variable = "{" FieldPath [ "=" Segments ] "}" ;
+///      Variable = "{" FieldPath \[ "=" Segments \] "}" ;
 ///      FieldPath = IDENT { "." IDENT } ;
 ///      Verb     = ":" LITERAL ;
 ///
@@ -290,12 +291,13 @@ pub struct Http {
 /// If an API needs to use a JSON array for request or response body, it can map
 /// the request or response body to a repeated field. However, some gRPC
 /// Transcoding implementations may not support this feature.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct HttpRule {
     /// Selects a method to which this rule applies.
     ///
-    /// Refer to \[selector][google.api.DocumentationRule.selector\] for syntax
+    /// Refer to [selector][google.api.DocumentationRule.selector] for syntax
     /// details.
     #[prost(string, tag = "1")]
     pub selector: ::prost::alloc::string::String,
@@ -331,6 +333,7 @@ pub mod http_rule {
     /// Determines the URL pattern is matched by this rules. This pattern can be
     /// used with any of the {get|put|post|delete|patch} methods. A custom method
     /// can be defined using the 'custom' field.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Pattern {
@@ -359,6 +362,7 @@ pub mod http_rule {
     }
 }
 /// A custom pattern is used for defining custom HTTP verb.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CustomHttpPattern {
@@ -371,6 +375,7 @@ pub struct CustomHttpPattern {
 }
 /// The launch stage as defined by [Google Cloud Platform
 /// Launch Stages](<https://cloud.google.com/terms/launch-stages>).
+#[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum LaunchStage {
@@ -445,6 +450,7 @@ impl LaunchStage {
     }
 }
 /// Required information for every language.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CommonLanguageSettings {
@@ -458,6 +464,7 @@ pub struct CommonLanguageSettings {
     pub destinations: ::prost::alloc::vec::Vec<i32>,
 }
 /// Details about how and where to publish client libraries.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ClientLibrarySettings {
@@ -501,6 +508,7 @@ pub struct ClientLibrarySettings {
 /// This message configures the settings for publishing [Google Cloud Client
 /// libraries](<https://cloud.google.com/apis/docs/cloud-client-libraries>)
 /// generated from the service config.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Publishing {
@@ -508,7 +516,7 @@ pub struct Publishing {
     /// long-running operation pattern.
     #[prost(message, repeated, tag = "2")]
     pub method_settings: ::prost::alloc::vec::Vec<MethodSettings>,
-    /// Link to a place that API users can report issues.  Example:
+    /// Link to a *public* URI where users can report issues.  Example:
     /// <https://issuetracker.google.com/issues/new?component=190865&template=1161103>
     #[prost(string, tag = "101")]
     pub new_issue_uri: ::prost::alloc::string::String,
@@ -546,6 +554,7 @@ pub struct Publishing {
     pub proto_reference_documentation_uri: ::prost::alloc::string::String,
 }
 /// Settings for Java client libraries.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct JavaSettings {
@@ -586,6 +595,7 @@ pub struct JavaSettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for C++ client libraries.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CppSettings {
@@ -594,6 +604,7 @@ pub struct CppSettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for Php client libraries.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PhpSettings {
@@ -602,6 +613,7 @@ pub struct PhpSettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for Python client libraries.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PythonSettings {
@@ -610,6 +622,7 @@ pub struct PythonSettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for Node client libraries.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct NodeSettings {
@@ -618,6 +631,7 @@ pub struct NodeSettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for Dotnet client libraries.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DotnetSettings {
@@ -664,6 +678,7 @@ pub struct DotnetSettings {
     pub handwritten_signatures: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// Settings for Ruby client libraries.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RubySettings {
@@ -672,6 +687,7 @@ pub struct RubySettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Settings for Go client libraries.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GoSettings {
@@ -680,6 +696,7 @@ pub struct GoSettings {
     pub common: ::core::option::Option<CommonLanguageSettings>,
 }
 /// Describes the generator configuration for a method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MethodSettings {
@@ -713,7 +730,8 @@ pub mod method_settings {
     /// long-running operation pattern.
     /// All default values below are from those used in the client library
     /// generators (e.g.
-    /// \[Java\](<https://github.com/googleapis/gapic-generator-java/blob/04c2faa191a9b5a10b92392fe8482279c4404803/src/main/java/com/google/api/generator/gapic/composer/common/RetrySettingsComposer.java>)).
+    /// [Java](<https://github.com/googleapis/gapic-generator-java/blob/04c2faa191a9b5a10b92392fe8482279c4404803/src/main/java/com/google/api/generator/gapic/composer/common/RetrySettingsComposer.java>)).
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct LongRunning {
@@ -738,6 +756,7 @@ pub mod method_settings {
 }
 /// The organization for which the client libraries are being published.
 /// Affects the url where generated docs are published, etc.
+#[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ClientLibraryOrganization {
@@ -751,6 +770,12 @@ pub enum ClientLibraryOrganization {
     Photos = 3,
     /// Street View Org.
     StreetView = 4,
+    /// Shopping Org.
+    Shopping = 5,
+    /// Geo Org.
+    Geo = 6,
+    /// Generative AI - <https://developers.generativeai.google>
+    GenerativeAi = 7,
 }
 impl ClientLibraryOrganization {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -766,6 +791,9 @@ impl ClientLibraryOrganization {
             ClientLibraryOrganization::Ads => "ADS",
             ClientLibraryOrganization::Photos => "PHOTOS",
             ClientLibraryOrganization::StreetView => "STREET_VIEW",
+            ClientLibraryOrganization::Shopping => "SHOPPING",
+            ClientLibraryOrganization::Geo => "GEO",
+            ClientLibraryOrganization::GenerativeAi => "GENERATIVE_AI",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -776,11 +804,15 @@ impl ClientLibraryOrganization {
             "ADS" => Some(Self::Ads),
             "PHOTOS" => Some(Self::Photos),
             "STREET_VIEW" => Some(Self::StreetView),
+            "SHOPPING" => Some(Self::Shopping),
+            "GEO" => Some(Self::Geo),
+            "GENERATIVE_AI" => Some(Self::GenerativeAi),
             _ => None,
         }
     }
 }
 /// To where should client libraries be published?
+#[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ClientLibraryDestination {
@@ -823,6 +855,7 @@ impl ClientLibraryDestination {
 /// denotes the behavior and may affect how API tooling handles the field.
 ///
 /// Note: This enum **may** receive new values in the future.
+#[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum FieldBehavior {
@@ -859,6 +892,19 @@ pub enum FieldBehavior {
     /// a non-empty value will be returned. The user will not be aware of what
     /// non-empty value to expect.
     NonEmptyDefault = 7,
+    /// Denotes that the field in a resource (a message annotated with
+    /// google.api.resource) is used in the resource name to uniquely identify the
+    /// resource. For AIP-compliant APIs, this should only be applied to the
+    /// `name` field on the resource.
+    ///
+    /// This behavior should not be applied to references to other resources within
+    /// the message.
+    ///
+    /// The identifier field of resources often have different field behavior
+    /// depending on the request it is embedded in (e.g. for Create methods name
+    /// is optional and unused, while for Update methods it is required). Instead
+    /// of method-specific annotations, only `IDENTIFIER` is required.
+    Identifier = 8,
 }
 impl FieldBehavior {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -875,6 +921,7 @@ impl FieldBehavior {
             FieldBehavior::Immutable => "IMMUTABLE",
             FieldBehavior::UnorderedList => "UNORDERED_LIST",
             FieldBehavior::NonEmptyDefault => "NON_EMPTY_DEFAULT",
+            FieldBehavior::Identifier => "IDENTIFIER",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -888,6 +935,7 @@ impl FieldBehavior {
             "IMMUTABLE" => Some(Self::Immutable),
             "UNORDERED_LIST" => Some(Self::UnorderedList),
             "NON_EMPTY_DEFAULT" => Some(Self::NonEmptyDefault),
+            "IDENTIFIER" => Some(Self::Identifier),
             _ => None,
         }
     }
@@ -939,6 +987,7 @@ impl FieldBehavior {
 ///        pattern: "folders/{folder}/logs/{log}"
 ///        pattern: "organizations/{organization}/logs/{log}"
 ///        pattern: "billingAccounts/{billing_account}/logs/{log}"
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResourceDescriptor {
@@ -949,7 +998,7 @@ pub struct ResourceDescriptor {
     /// Example: `storage.googleapis.com/Bucket`
     ///
     /// The value of the resource_type_kind must follow the regular expression
-    /// /\[A-Za-z][a-zA-Z0-9\]+/. It should start with an upper case character and
+    /// /[A-Za-z][a-zA-Z0-9]+/. It should start with an upper case character and
     /// should use PascalCase (UpperCamelCase). The maximum number of
     /// characters allowed for the `resource_type_kind` is 100.
     #[prost(string, tag = "1")]
@@ -1021,6 +1070,7 @@ pub struct ResourceDescriptor {
 pub mod resource_descriptor {
     /// A description of the historical or future-looking state of the
     /// resource pattern.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -1067,6 +1117,7 @@ pub mod resource_descriptor {
         }
     }
     /// A flag representing a specific style that a resource claims to conform to.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -1115,6 +1166,7 @@ pub mod resource_descriptor {
 }
 /// Defines a proto annotation that describes a string field that refers to
 /// an API resource.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ResourceReference {
@@ -1513,6 +1565,7 @@ pub struct ResourceReference {
 ///
 ///      x-goog-request-params:
 ///      table_location=instances/instance_bar&routing_id=prof_qux
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RoutingRule {
@@ -1526,6 +1579,7 @@ pub struct RoutingRule {
     pub routing_parameters: ::prost::alloc::vec::Vec<RoutingParameter>,
 }
 /// A projection from an input message to the GRPC or REST header.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RoutingParameter {

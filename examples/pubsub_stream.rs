@@ -58,31 +58,38 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("Creating topic {}", &topic_name);
 
     publisher
-        .create_topic(pubsub::api::Topic {
-            name: topic_name.clone().into(),
-            ..pubsub::api::Topic::default()
+        .raw_api_mut()
+        .create_topic({
+            let mut t = pubsub::api::Topic::default();
+            t.name = topic_name.clone().into();
+            t
         })
         .await?;
 
     println!("Creating subscription {}", &subscription_name);
 
     subscriber
-        .create_subscription(pubsub::api::Subscription {
-            name: subscription_name.clone().into(),
-            topic: topic_name.clone().into(),
-            ..pubsub::api::Subscription::default()
+        .raw_api_mut()
+        .create_subscription({
+            let mut s = pubsub::api::Subscription::default();
+            s.name = subscription_name.clone().into();
+            s.topic = topic_name.clone().into();
+            s
         })
         .await?;
 
     println!("Publishing messages to topic");
 
-    futures::stream::iter(0u32..100)
-        .map(|i| pubsub::api::PubsubMessage {
-            data: format!("message-{}", i).into(),
-            ..pubsub::api::PubsubMessage::default()
+    futures::stream::iter(0u32..15)
+        .map(|i| {
+            let mut m = pubsub::api::PubsubMessage::default();
+            let payload = format!("message-{:02}", i);
+            println!("Sending `{payload}`");
+            m.data = payload.into();
+            m
         })
         .map(Ok)
-        .forward(publisher.publish_topic_sink(topic_name.clone()))
+        .forward(publisher.publish_topic_sink(topic_name.clone(), pubsub::PublishConfig::default()))
         .await?;
 
     println!("Reading back published messages");
@@ -93,32 +100,49 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
     futures::pin_mut!(read_stream);
 
-    for i in 0u32..100 {
+    let mut messages = Vec::new();
+    for _ in 0u32..15 {
         let (ack_token, message) = read_stream
             .next()
             .await
             .ok_or("unexpected end of stream")??;
 
-        ack_token.ack().await?;
+        let payload = std::str::from_utf8(&message.data[..]).unwrap();
+        println!("Received `{payload}`");
+        messages.push(payload.to_owned());
 
-        assert_eq!(message.data, format!("message-{}", i));
+        ack_token.ack().await?;
     }
+
+    messages.sort();
+    assert_eq!(
+        messages,
+        (0..15)
+            .map(|i| format!("message-{:02}", i))
+            .collect::<Vec<_>>()
+    );
 
     println!("All messages matched!");
 
     println!("Deleting subscription {}", &subscription_name);
 
     subscriber
-        .delete_subscription(pubsub::api::DeleteSubscriptionRequest {
-            subscription: subscription_name.into(),
+        .raw_api_mut()
+        .delete_subscription({
+            let mut d = pubsub::api::DeleteSubscriptionRequest::default();
+            d.subscription = subscription_name.into();
+            d
         })
         .await?;
 
     println!("Deleting topic {}", &topic_name);
 
     publisher
-        .delete_topic(pubsub::api::DeleteTopicRequest {
-            topic: topic_name.into(),
+        .raw_api_mut()
+        .delete_topic({
+            let mut d = pubsub::api::DeleteTopicRequest::default();
+            d.topic = topic_name.into();
+            d
         })
         .await?;
 

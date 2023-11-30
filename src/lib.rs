@@ -18,12 +18,6 @@
     "
 )]
 
-// re-export the Connect trait because users will need it for the bound on clients
-pub use ::hyper::client::connect::Connect;
-
-// a convenience alias
-pub(crate) type Auth<C> = yup_oauth2::authenticator::Authenticator<C>;
-
 /// Make a given config struct into a builder using the given default values for fields
 macro_rules! config_default {
     (
@@ -42,6 +36,7 @@ macro_rules! config_default {
         }
     ) => {
         $(#[$struct_attr])*
+        #[non_exhaustive]
         $struct_vis struct $struct_name {
             $(
                 $(#[$field_attr])*
@@ -125,8 +120,7 @@ pub mod storage;
 
 mod builder;
 pub use builder::{
-    AuthFlow, ClientBuilder, ClientBuilderConfig, CreateBuilderError, DefaultConnector,
-    ServiceAccountAuth,
+    AuthFlow, ClientBuilder, ClientBuilderConfig, CreateBuilderError, ServiceAccountAuth,
 };
 
 pub mod retry_policy;
