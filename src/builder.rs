@@ -103,6 +103,7 @@ pub enum CreateBuilderError {
 
 type Client = hyper::client::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>;
 
+#[allow(unused)] // only used by some feature combinations
 pub(crate) fn https_connector() -> hyper_rustls::HttpsConnector<hyper::client::HttpConnector> {
     #[allow(unused_mut)]
     let mut roots = rustls::RootCertStore::empty();
