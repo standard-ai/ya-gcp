@@ -44,20 +44,35 @@ fn main() -> Result<(), Error> {
     // the wire
     prost_config.bytes(&["."]);
 
-    // The bigtable docs have doc comments that trigger test failures.
-    // (TODO: in newer versions of prost-build, the `format` option might be enough for this)
-    prost_config.disable_comments(&[
+    // Some docs have doc comments that trigger test failures because they're not actually rust.
+    // Maybe future codegen will be better?
+    // Try to keep some docs by pretending the fields don't exist during doctests
+    for ignored_field in [
         "bigtable.v2.RowFilter.Interleave.filters",
+        "bigtable.v2.ReadRowsRequest.reversed",
+    ] {
+        prost_config.field_attribute(ignored_field, "#[cfg(not(doctest))]");
+    }
+
+    // Other types can't be pretended away because typechecks will fail. just disable the comments
+    prost_config.disable_comments(&[
         "bigtable.v2.RowFilter.sink",
         "iam.v1.Policy",
         "iam.v1.AuditConfig",
         "iam.v1.AuditLogConfig",
-        "type.Expr",
     ]);
 
     // the attributes map tend to have a small number of string keys, which are faster to access
     // using a btree than a hashmap. See the crate's benchmarks
     prost_config.btree_map(&["PubsubMessage.attributes"]);
+
+    // Declare all the generated structs and enums as non_exhaustive.
+    //
+    // This helps to reconcile two distinct semver conventions:
+    // 1. in protobuf, adding fields is a semver minor change
+    // 2. in prost codegen, structs are composed of all-pub fields, therefore adding a new field is
+    //    a semver *major* change
+    prost_config.type_attribute(".", "#[non_exhaustive]");
 
     tonic_build::configure()
         .build_client(true)

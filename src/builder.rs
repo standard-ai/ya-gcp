@@ -2,11 +2,8 @@
 //!
 //! See [`ClientBuilder`], which is used to instantiate the various GCP service clients.
 
+use crate::auth::Auth;
 use std::path::PathBuf;
-
-use hyper::client::Client;
-
-use crate::Auth;
 
 const SERVICE_ACCOUNT_ENV_VAR: &str = "GOOGLE_APPLICATION_CREDENTIALS";
 
@@ -69,7 +66,6 @@ impl Default for AuthFlow {
 config_default! {
     /// Configuration for creating a [`ClientBuilder`]
     #[derive(Debug, Clone, serde::Deserialize)]
-    #[non_exhaustive]
     pub struct ClientBuilderConfig {
         /// How authentication credentials should be loaded
         @default(AuthFlow::ServiceAccount(ServiceAccountAuth::EnvVar), "ClientBuilderConfig::default_auth_flow")
@@ -105,98 +101,62 @@ pub enum CreateBuilderError {
     Connector(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-// Set a default connector if a connector feature is enabled.
-//
-// This is default is then used as a default type for the generic parameter on types throughout
-// this crate. Using this default is more ergonomic than specifying a generic type everywhere,
-// which suits this crate's goal of ease-of-use
-cfg_if::cfg_if! {
-    // the order of the checked features has potentially user-facing consequences: "rustls" is
-    // currently enabled in default features, so "openssl" should be checked in this if-chain
-    // before it, so that `features = ["openssl"]` will do the less surprising thing (use openssl)
-    // despite having rustls and openssl both enabled. This allows a user to forget
-    // `default-features = false` with hopefully fewer unexpected consequences
+type Client = hyper::client::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>;
 
-    if #[cfg(feature="openssl")] {
-        /// The default connector used for clients, based on the crate's enabled features
-        pub type DefaultConnector =
-            hyper_openssl::HttpsConnector<hyper::client::connect::HttpConnector>;
+#[allow(unused)] // only used by some feature combinations
+pub(crate) fn https_connector() -> hyper_rustls::HttpsConnector<hyper::client::HttpConnector> {
+    #[allow(unused_mut)]
+    let mut roots = rustls::RootCertStore::empty();
 
-        impl ClientBuilder {
-            /// Create a new client builder using the default HTTPS connector based on the crate's
-            /// enabled features
-            #[cfg_attr(docsrs, doc(cfg(any(feature="rustls", feature="openssl"))))]
-            pub async fn new(config: ClientBuilderConfig) -> Result<Self, CreateBuilderError> {
-                let connector = hyper_openssl::HttpsConnector::new()
-                    .map_err(|e| CreateBuilderError::Connector(e.into()))?;
+    #[cfg(feature = "rustls-native-certs")]
+    roots.add_parsable_certificates(
+        &rustls_native_certs::load_native_certs().expect("could not load native certs"),
+    );
 
-                Self::with_connector(config, connector).await
-            }
-        }
-    }
-    else if #[cfg(feature="rustls")] {
-        /// The default connector used for clients, based on the crate's enabled features
-        pub type DefaultConnector =
-            hyper_rustls::HttpsConnector<hyper::client::connect::HttpConnector>;
+    #[cfg(feature = "webpki-roots")]
+    roots.add_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.iter().map(|ta| {
+        rustls::OwnedTrustAnchor::from_subject_spki_name_constraints(
+            ta.subject,
+            ta.spki,
+            ta.name_constraints,
+        )
+    }));
 
-        impl ClientBuilder {
-            /// Create a new client builder using the default HTTPS connector based on the crate's
-            /// enabled features
-            #[cfg_attr(docsrs, doc(cfg(any(feature="rustls", feature="openssl"))))]
-            pub async fn new(config: ClientBuilderConfig) -> Result<Self, CreateBuilderError> {
-                let connector = hyper_rustls::HttpsConnector::with_native_roots();
+    let tls_config = rustls::client::ClientConfig::builder()
+        .with_safe_defaults()
+        .with_root_certificates(roots)
+        .with_no_client_auth();
 
-                Self::with_connector(config, connector).await
-            }
-        }
-    }
-    else {
-        // If no connector features are enabled, the default connector can be any type. The type
-        // may show up in errors if a user forgets to specify the generic, however, so it's useful
-        // to have the type's name document the user's issue
-
-        #[doc(hidden)]
-        pub struct NoConnectorFeaturesEnabled;
-
-        /// The default connector used for clients, based on the crate's enabled features
-        pub type DefaultConnector = NoConnectorFeaturesEnabled;
-    }
+    hyper_rustls::HttpsConnectorBuilder::new()
+        .with_tls_config(tls_config)
+        .https_or_http()
+        .enable_all_versions()
+        .build()
 }
 
 /// A builder used to create all the clients for interacting with GCP services.
 ///
 /// Note that the builder is not consumed when creating clients, and many clients can be built
 /// using the same builder. This may allow some resource re-use across the clients
-pub struct ClientBuilder<Connector = DefaultConnector> {
-    // not all features use all the fields. Suppress the unused warning for simplicity
+pub struct ClientBuilder {
     #[allow(unused)]
-    pub(crate) connector: Connector,
-    #[allow(unused)]
-    pub(crate) auth: Option<Auth<Connector>>,
-    #[allow(unused)]
-    pub(crate) client: Client<Connector>,
+    pub(crate) auth: Option<Auth>,
 }
 
-impl<C> ClientBuilder<C> {
-    /// Create a new client builder using the given connector
-    pub async fn with_connector(
-        config: ClientBuilderConfig,
-        connector: C,
-    ) -> Result<Self, CreateBuilderError>
-    where
-        C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
-        C::Response: hyper::client::connect::Connection
-            + tokio::io::AsyncRead
-            + tokio::io::AsyncWrite
-            + Send
-            + Unpin
-            + 'static,
-        C::Future: Send + Unpin + 'static,
-        C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-    {
-        use AuthFlow::{NoAuth, ServiceAccount, ServiceAccountImpersonation, UserAccount};
+impl ClientBuilder {
+    /// Create a new client builder using default HTTPS settings
+    #[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
+    pub async fn new(config: ClientBuilderConfig) -> Result<Self, CreateBuilderError> {
+        Self::with_auth_connector(config, https_connector).await
+    }
 
-        let client = hyper::client::Client::builder().build(connector.clone());
+    /// Create a new client builder using the given connector for authentication requests
+    pub async fn with_auth_connector(
+        config: ClientBuilderConfig,
+        connector_fn: impl FnOnce() -> hyper_rustls::HttpsConnector<hyper::client::HttpConnector>,
+    ) -> Result<Self, CreateBuilderError> {
+        use AuthFlow::{NoAuth, ServiceAccount, ServiceAccountImpersonation, UserAccount};
+        let make_client = move || hyper::client::Client::builder().build(connector_fn());
 
         let auth = match config.auth_flow {
             NoAuth => None,
@@ -210,67 +170,28 @@ impl<C> ClientBuilder<C> {
                         ),
                         ServiceAccountAuth::ApplicationDefault => None,
                     },
-                    client.clone(),
+                    make_client(),
                 )
                 .await?,
             ),
             ServiceAccountImpersonation { user, email } => Some(
-                create_service_impersonation_auth(user.into_os_string(), email, client.clone())
+                create_service_impersonation_auth(user.into_os_string(), email, make_client())
                     .await?,
             ),
             UserAccount(path) => {
-                Some(create_user_auth(path.into_os_string(), client.clone()).await?)
+                Some(create_user_auth(path.into_os_string(), make_client()).await?)
             }
         };
 
-        Ok(Self {
-            connector,
-            client,
-            auth,
-        })
-    }
-
-    /// Create a new client builder with the given connector and auth builder.
-    pub async fn with_connector_and_auth_builder<F>(
-        connector: C,
-        auth_builder: impl FnOnce(Client<C>) -> F,
-    ) -> Result<Self, CreateBuilderError>
-    where
-        C: crate::Connect + Clone + Send + Sync + 'static,
-        F: futures::Future<Output = std::io::Result<Auth<C>>>,
-    {
-        let client = hyper::client::Client::builder().build(connector.clone());
-
-        let auth = Some(
-            auth_builder(client.clone())
-                .await
-                .map_err(CreateBuilderError::Authenticator)?,
-        );
-
-        Ok(Self {
-            connector,
-            client,
-            auth,
-        })
+        Ok(Self { auth })
     }
 }
 
 /// Convenience method to create an Authorization for the oauth ServiceFlow.
-async fn create_service_auth<C>(
+async fn create_service_auth(
     service_account_key_path: Option<impl AsRef<std::path::Path>>,
-    client: Client<C>,
-) -> Result<Auth<C>, CreateBuilderError>
-where
-    C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-{
+    client: Client,
+) -> Result<Auth, CreateBuilderError> {
     match service_account_key_path {
         Some(service_account_key_path) => {
             let service_account_key =
@@ -310,21 +231,10 @@ where
     }
 }
 
-async fn create_user_auth<C>(
+async fn create_user_auth(
     user_secrets_path: impl AsRef<std::path::Path>,
-    client: Client<C>,
-) -> Result<Auth<C>, CreateBuilderError>
-where
-    C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-{
+    client: Client,
+) -> Result<Auth, CreateBuilderError> {
     let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
         .await
         .map_err(|e| {
@@ -337,22 +247,11 @@ where
         .map_err(CreateBuilderError::Authenticator)
 }
 
-async fn create_service_impersonation_auth<C>(
+async fn create_service_impersonation_auth(
     user_secrets_path: impl AsRef<std::path::Path>,
     email: String,
-    client: Client<C>,
-) -> Result<Auth<C>, CreateBuilderError>
-where
-    C: hyper::service::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-{
+    client: Client,
+) -> Result<Auth, CreateBuilderError> {
     let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
         .await
         .map_err(|e| {

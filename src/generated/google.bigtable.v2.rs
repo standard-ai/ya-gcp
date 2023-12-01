@@ -1,5 +1,6 @@
 /// Specifies the complete (requested) contents of a single row of a table.
 /// Rows which exceed 256MiB in size cannot be read in full.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Row {
@@ -15,6 +16,7 @@ pub struct Row {
 }
 /// Specifies (some of) the contents of a single row/column family intersection
 /// of a table.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Family {
@@ -32,6 +34,7 @@ pub struct Family {
 }
 /// Specifies (some of) the contents of a single row/column intersection of a
 /// table.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Column {
@@ -47,6 +50,7 @@ pub struct Column {
     pub cells: ::prost::alloc::vec::Vec<Cell>,
 }
 /// Specifies (some of) the contents of a single row/column/timestamp of a table.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Cell {
@@ -63,11 +67,12 @@ pub struct Cell {
     /// length.
     #[prost(bytes = "bytes", tag = "2")]
     pub value: ::prost::bytes::Bytes,
-    /// Labels applied to the cell by a \[RowFilter][google.bigtable.v2.RowFilter\].
+    /// Labels applied to the cell by a [RowFilter][google.bigtable.v2.RowFilter].
     #[prost(string, repeated, tag = "3")]
     pub labels: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// Specifies a contiguous range of rows.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RowRange {
@@ -84,6 +89,7 @@ pub struct RowRange {
 pub mod row_range {
     /// The row key at which to start the range.
     /// If neither field is set, interpreted as the empty string, inclusive.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum StartKey {
@@ -96,6 +102,7 @@ pub mod row_range {
     }
     /// The row key at which to end the range.
     /// If neither field is set, interpreted as the infinite row key, exclusive.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum EndKey {
@@ -108,6 +115,7 @@ pub mod row_range {
     }
 }
 /// Specifies a non-contiguous set of rows.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RowSet {
@@ -122,6 +130,7 @@ pub struct RowSet {
 /// The range spans from &lt;column_family&gt;:&lt;start_qualifier&gt; to
 /// &lt;column_family&gt;:&lt;end_qualifier&gt;, where both bounds can be either
 /// inclusive or exclusive.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ColumnRange {
@@ -141,6 +150,7 @@ pub struct ColumnRange {
 pub mod column_range {
     /// The column qualifier at which to start the range (within `column_family`).
     /// If neither field is set, interpreted as the empty string, inclusive.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum StartQualifier {
@@ -153,6 +163,7 @@ pub mod column_range {
     }
     /// The column qualifier at which to end the range (within `column_family`).
     /// If neither field is set, interpreted as the infinite string, exclusive.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum EndQualifier {
@@ -165,6 +176,7 @@ pub mod column_range {
     }
 }
 /// Specified a contiguous range of microsecond timestamps.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TimestampRange {
@@ -176,6 +188,7 @@ pub struct TimestampRange {
     pub end_timestamp_micros: i64,
 }
 /// Specifies a contiguous range of raw byte values.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ValueRange {
@@ -192,6 +205,7 @@ pub struct ValueRange {
 pub mod value_range {
     /// The value at which to start the range.
     /// If neither field is set, interpreted as the empty string, inclusive.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum StartValue {
@@ -204,6 +218,7 @@ pub mod value_range {
     }
     /// The value at which to end the range.
     /// If neither field is set, interpreted as the infinite string, exclusive.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum EndValue {
@@ -248,6 +263,7 @@ pub mod value_range {
 /// The total serialized size of a RowFilter message must not
 /// exceed 20480 bytes, and RowFilters may not be nested within each other
 /// (in Chains or Interleaves) to a depth of more than 20.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RowFilter {
@@ -262,6 +278,7 @@ pub struct RowFilter {
 /// Nested message and enum types in `RowFilter`.
 pub mod row_filter {
     /// A RowFilter which sends rows through several RowFilters in sequence.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Chain {
@@ -273,10 +290,37 @@ pub mod row_filter {
     }
     /// A RowFilter which sends each row to each of several component
     /// RowFilters and interleaves the results.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Interleave {
+        /// The elements of "filters" all process a copy of the input row, and the
+        /// results are pooled, sorted, and combined into a single output row.
+        /// If multiple cells are produced with the same column and timestamp,
+        /// they will all appear in the output row in an unspecified mutual order.
+        /// Consider the following example, with three filters:
+        ///
+        ///                                   input row
+        ///                                       |
+        ///             -----------------------------------------------------
+        ///             |                         |                         |
+        ///            f(0)                      f(1)                      f(2)
+        ///             |                         |                         |
+        ///      1: foo,bar,10,x             foo,bar,10,z              far,bar,7,a
+        ///      2: foo,blah,11,z            far,blah,5,x              far,blah,5,x
+        ///             |                         |                         |
+        ///             -----------------------------------------------------
+        ///                                       |
+        ///      1:                      foo,bar,10,z   // could have switched with #2
+        ///      2:                      foo,bar,10,x   // could have switched with #1
+        ///      3:                      foo,blah,11,z
+        ///      4:                      far,bar,7,a
+        ///      5:                      far,blah,5,x   // identical to #6
+        ///      6:                      far,blah,5,x   // identical to #5
+        ///
+        /// All interleaved filters are executed atomically.
         #[prost(message, repeated, tag = "1")]
+        #[cfg(not(doctest))]
         pub filters: ::prost::alloc::vec::Vec<super::RowFilter>,
     }
     /// A RowFilter which evaluates one of two possible RowFilters, depending on
@@ -286,6 +330,7 @@ pub mod row_filter {
     /// true and false filters, which may lead to inconsistent or unexpected
     /// results. Additionally, Condition filters have poor performance, especially
     /// when filters are set for the false condition.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Condition {
@@ -311,6 +356,7 @@ pub mod row_filter {
     }
     /// Which of the possible RowFilter types to apply. If none are set, this
     /// RowFilter returns all cells in the input row.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Filter {
@@ -420,6 +466,7 @@ pub mod row_filter {
     }
 }
 /// Specifies a particular change to be made to the contents of a row.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Mutation {
@@ -430,6 +477,7 @@ pub struct Mutation {
 /// Nested message and enum types in `Mutation`.
 pub mod mutation {
     /// A Mutation which sets the value of the specified cell.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct SetCell {
@@ -454,6 +502,7 @@ pub mod mutation {
     }
     /// A Mutation which deletes cells from the specified column, optionally
     /// restricting the deletions to a given timestamp range.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct DeleteFromColumn {
@@ -470,6 +519,7 @@ pub mod mutation {
         pub time_range: ::core::option::Option<super::TimestampRange>,
     }
     /// A Mutation which deletes all cells from the specified column family.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct DeleteFromFamily {
@@ -479,10 +529,12 @@ pub mod mutation {
         pub family_name: ::prost::alloc::string::String,
     }
     /// A Mutation which deletes all cells from the containing row.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct DeleteFromRow {}
     /// Which of the possible Mutation types to apply.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Mutation {
@@ -502,6 +554,7 @@ pub mod mutation {
 }
 /// Specifies an atomic read/modify/write operation on the latest value of the
 /// specified column.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadModifyWriteRule {
@@ -523,6 +576,7 @@ pub struct ReadModifyWriteRule {
 pub mod read_modify_write_rule {
     /// The rule used to determine the column's new latest value from its current
     /// latest value.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Rule {
@@ -541,6 +595,7 @@ pub mod read_modify_write_rule {
 }
 /// NOTE: This API is intended to be used by Apache Beam BigtableIO.
 /// A partition of a change stream.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamPartition {
@@ -552,6 +607,7 @@ pub struct StreamPartition {
 /// NOTE: This API is intended to be used by Apache Beam BigtableIO.
 /// The information required to continue reading the data from multiple
 /// `StreamPartitions` from where a previous read left off.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamContinuationTokens {
@@ -562,6 +618,7 @@ pub struct StreamContinuationTokens {
 /// NOTE: This API is intended to be used by Apache Beam BigtableIO.
 /// The information required to continue reading the data from a
 /// `StreamPartition` from where a previous read left off.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamContinuationToken {
@@ -575,6 +632,7 @@ pub struct StreamContinuationToken {
 /// ReadIterationStats captures information about the iteration of rows or cells
 /// over the course of a read, e.g. how many results were scanned in a read
 /// operation versus the results returned.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadIterationStats {
@@ -596,6 +654,7 @@ pub struct ReadIterationStats {
 /// RequestLatencyStats provides a measurement of the latency of the request as
 /// it interacts with different systems over its lifetime, e.g. how long the
 /// request took to execute within a frontend server.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RequestLatencyStats {
@@ -620,6 +679,7 @@ pub struct RequestLatencyStats {
     pub frontend_server_latency: ::core::option::Option<::prost_types::Duration>,
 }
 /// FullReadStatsView captures all known information about a read.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct FullReadStatsView {
@@ -638,6 +698,7 @@ pub struct FullReadStatsView {
 /// single request, helpful for evaluating the performance of the sent request.
 /// Currently, there are the following supported methods:
 ///    * google.bigtable.v2.ReadRows
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RequestStats {
@@ -654,6 +715,7 @@ pub mod request_stats {
     /// based on the requested view.
     ///
     /// See the messages above for additional context.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum StatsView {
@@ -664,6 +726,7 @@ pub mod request_stats {
     }
 }
 /// Request message for Bigtable.ReadRows.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadRowsRequest {
@@ -672,8 +735,8 @@ pub struct ReadRowsRequest {
     /// `projects/<project>/instances/<instance>/tables/<table>`.
     #[prost(string, tag = "1")]
     pub table_name: ::prost::alloc::string::String,
-    /// This value specifies routing for replication. This API only accepts the
-    /// empty value of app_profile_id.
+    /// This value specifies routing for replication. If not specified, the
+    /// "default" application profile will be used.
     #[prost(string, tag = "5")]
     pub app_profile_id: ::prost::alloc::string::String,
     /// The row keys and/or ranges to read sequentially. If not specified, reads
@@ -691,13 +754,28 @@ pub struct ReadRowsRequest {
     /// The view into RequestStats, as described above.
     #[prost(enumeration = "read_rows_request::RequestStatsView", tag = "6")]
     pub request_stats_view: i32,
+    /// Experimental API - Please note that this API is currently experimental
+    /// and can change in the future.
+    ///
+    /// Return rows in lexiographical descending order of the row keys. The row
+    /// contents will not be affected by this flag.
+    ///
+    /// Example result set:
+    ///
+    ///      [
+    ///        {key: "k2", "f:col1": "v1", "f:col2": "v1"},
+    ///        {key: "k1", "f:col1": "v2", "f:col2": "v2"}
+    ///      ]
+    #[prost(bool, tag = "7")]
+    #[cfg(not(doctest))]
+    pub reversed: bool,
 }
 /// Nested message and enum types in `ReadRowsRequest`.
 pub mod read_rows_request {
-    ///
     /// The desired view into RequestStats that should be returned in the response.
     ///
     /// See also: RequestStats message.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -744,6 +822,7 @@ pub mod read_rows_request {
     }
 }
 /// Response message for Bigtable.ReadRows.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadRowsResponse {
@@ -771,12 +850,12 @@ pub struct ReadRowsResponse {
     ///          chunks and request_stats filled.
     ///
     /// Visually, response messages will stream as follows:
-    ///     ... -> {chunks: \[...\]} -> {chunks: [], request_stats: {...}}
+    ///     ... -> {chunks: \[...\]} -> {chunks: \[\], request_stats: {...}}
     ///    \______________________/  \________________________________/
     ///        Primary response         Trailer of RequestStats info
     ///
     /// Or if the read did not return any values:
-    ///    {chunks: [], request_stats: {...}}
+    ///    {chunks: \[\], request_stats: {...}}
     ///    \________________________________/
     ///       Trailer of RequestStats info
     #[prost(message, optional, tag = "3")]
@@ -786,6 +865,7 @@ pub struct ReadRowsResponse {
 pub mod read_rows_response {
     /// Specifies a piece of a row's contents returned as part of the read
     /// response stream.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct CellChunk {
@@ -821,7 +901,7 @@ pub mod read_rows_response {
         #[prost(int64, tag = "4")]
         pub timestamp_micros: i64,
         /// Labels applied to the cell by a
-        /// \[RowFilter][google.bigtable.v2.RowFilter\].  Labels are only set
+        /// [RowFilter][google.bigtable.v2.RowFilter].  Labels are only set
         /// on the first CellChunk per cell.
         #[prost(string, repeated, tag = "5")]
         pub labels: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
@@ -845,6 +925,7 @@ pub mod read_rows_response {
     /// Nested message and enum types in `CellChunk`.
     pub mod cell_chunk {
         /// Signals to the client concerning previous CellChunks received.
+        #[non_exhaustive]
         #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Oneof)]
         pub enum RowStatus {
@@ -860,6 +941,7 @@ pub mod read_rows_response {
     }
 }
 /// Request message for Bigtable.SampleRowKeys.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SampleRowKeysRequest {
@@ -874,6 +956,7 @@ pub struct SampleRowKeysRequest {
     pub app_profile_id: ::prost::alloc::string::String,
 }
 /// Response message for Bigtable.SampleRowKeys.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SampleRowKeysResponse {
@@ -894,6 +977,7 @@ pub struct SampleRowKeysResponse {
     pub offset_bytes: i64,
 }
 /// Request message for Bigtable.MutateRow.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MutateRowRequest {
@@ -916,10 +1000,12 @@ pub struct MutateRowRequest {
     pub mutations: ::prost::alloc::vec::Vec<Mutation>,
 }
 /// Response message for Bigtable.MutateRow.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MutateRowResponse {}
 /// Request message for BigtableService.MutateRows.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MutateRowsRequest {
@@ -942,6 +1028,7 @@ pub struct MutateRowsRequest {
 /// Nested message and enum types in `MutateRowsRequest`.
 pub mod mutate_rows_request {
     /// A mutation for a given row.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Entry {
@@ -956,16 +1043,23 @@ pub mod mutate_rows_request {
     }
 }
 /// Response message for BigtableService.MutateRows.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MutateRowsResponse {
     /// One or more results for Entries from the batch request.
     #[prost(message, repeated, tag = "1")]
     pub entries: ::prost::alloc::vec::Vec<mutate_rows_response::Entry>,
+    /// Information about how client should limit the rate (QPS). Primirily used by
+    /// supported official Cloud Bigtable clients. If unset, the rate limit info is
+    /// not provided by the server.
+    #[prost(message, optional, tag = "3")]
+    pub rate_limit_info: ::core::option::Option<RateLimitInfo>,
 }
 /// Nested message and enum types in `MutateRowsResponse`.
 pub mod mutate_rows_response {
     /// The result of applying a passed mutation in the original request.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Entry {
@@ -981,7 +1075,33 @@ pub mod mutate_rows_response {
         pub status: ::core::option::Option<super::super::super::rpc::Status>,
     }
 }
+/// Information about how client should adjust the load to Bigtable.
+#[non_exhaustive]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct RateLimitInfo {
+    /// Time that clients should wait before adjusting the target rate again.
+    /// If clients adjust rate too frequently, the impact of the previous
+    /// adjustment may not have been taken into account and may
+    /// over-throttle or under-throttle. If clients adjust rate too slowly, they
+    /// will not be responsive to load changes on server side, and may
+    /// over-throttle or under-throttle.
+    #[prost(message, optional, tag = "1")]
+    pub period: ::core::option::Option<::prost_types::Duration>,
+    /// If it has been at least one `period` since the last load adjustment, the
+    /// client should multiply the current load by this value to get the new target
+    /// load. For example, if the current load is 100 and `factor` is 0.8, the new
+    /// target load should be 80. After adjusting, the client should ignore
+    /// `factor` until another `period` has passed.
+    ///
+    /// The client can measure its load using any unit that's comparable over time
+    /// For example, QPS can be used as long as each request involves a similar
+    /// amount of work.
+    #[prost(double, tag = "2")]
+    pub factor: f64,
+}
 /// Request message for Bigtable.CheckAndMutateRow.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckAndMutateRowRequest {
@@ -1020,6 +1140,7 @@ pub struct CheckAndMutateRowRequest {
     pub false_mutations: ::prost::alloc::vec::Vec<Mutation>,
 }
 /// Response message for Bigtable.CheckAndMutateRow.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CheckAndMutateRowResponse {
@@ -1029,6 +1150,7 @@ pub struct CheckAndMutateRowResponse {
     pub predicate_matched: bool,
 }
 /// Request message for client connection keep-alive and warming.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PingAndWarmRequest {
@@ -1043,10 +1165,12 @@ pub struct PingAndWarmRequest {
     pub app_profile_id: ::prost::alloc::string::String,
 }
 /// Response message for Bigtable.PingAndWarm connection keepalive and warming.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PingAndWarmResponse {}
 /// Request message for Bigtable.ReadModifyWriteRow.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadModifyWriteRowRequest {
@@ -1070,6 +1194,7 @@ pub struct ReadModifyWriteRowRequest {
     pub rules: ::prost::alloc::vec::Vec<ReadModifyWriteRule>,
 }
 /// Response message for Bigtable.ReadModifyWriteRow.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadModifyWriteRowResponse {
@@ -1079,6 +1204,7 @@ pub struct ReadModifyWriteRowResponse {
 }
 /// NOTE: This API is intended to be used by Apache Beam BigtableIO.
 /// Request message for Bigtable.GenerateInitialChangeStreamPartitions.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateInitialChangeStreamPartitionsRequest {
@@ -1096,6 +1222,7 @@ pub struct GenerateInitialChangeStreamPartitionsRequest {
 }
 /// NOTE: This API is intended to be used by Apache Beam BigtableIO.
 /// Response message for Bigtable.GenerateInitialChangeStreamPartitions.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GenerateInitialChangeStreamPartitionsResponse {
@@ -1105,6 +1232,7 @@ pub struct GenerateInitialChangeStreamPartitionsResponse {
 }
 /// NOTE: This API is intended to be used by Apache Beam BigtableIO.
 /// Request message for Bigtable.ReadChangeStream.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadChangeStreamRequest {
@@ -1138,6 +1266,7 @@ pub struct ReadChangeStreamRequest {
 /// Nested message and enum types in `ReadChangeStreamRequest`.
 pub mod read_change_stream_request {
     /// Options for describing where we want to start reading from the stream.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum StartFrom {
@@ -1163,6 +1292,7 @@ pub mod read_change_stream_request {
 }
 /// NOTE: This API is intended to be used by Apache Beam BigtableIO.
 /// Response message for Bigtable.ReadChangeStream.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReadChangeStreamResponse {
@@ -1173,6 +1303,7 @@ pub struct ReadChangeStreamResponse {
 /// Nested message and enum types in `ReadChangeStreamResponse`.
 pub mod read_change_stream_response {
     /// A partial or complete mutation.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct MutationChunk {
@@ -1191,6 +1322,7 @@ pub mod read_change_stream_response {
         /// Information about the chunking of this mutation.
         /// Only `SetCell` mutations can be chunked, and all chunks for a `SetCell`
         /// will be delivered contiguously with no other mutation types interleaved.
+        #[non_exhaustive]
         #[allow(clippy::derive_partial_eq_without_eq)]
         #[derive(Clone, PartialEq, ::prost::Message)]
         pub struct ChunkInfo {
@@ -1212,6 +1344,7 @@ pub mod read_change_stream_response {
     /// the first in a sequence will only have the `type` and `chunks` fields
     /// populated, with the final message in the sequence also containing `done`
     /// set to true.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct DataChange {
@@ -1264,6 +1397,7 @@ pub mod read_change_stream_response {
     /// Nested message and enum types in `DataChange`.
     pub mod data_change {
         /// The type of mutation.
+        #[non_exhaustive]
         #[derive(
             Clone,
             Copy,
@@ -1314,6 +1448,7 @@ pub mod read_change_stream_response {
     }
     /// A periodic message with information that can be used to checkpoint
     /// the state of a stream.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct Heartbeat {
@@ -1350,6 +1485,7 @@ pub mod read_change_stream_response {
     /// To read the new partition [A,C), supply the continuation tokens whose
     /// ranges cover the new partition, for example ContinuationToken[A,B) &
     /// ContinuationToken[B,C).
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct CloseStream {
@@ -1369,6 +1505,7 @@ pub mod read_change_stream_response {
         pub new_partitions: ::prost::alloc::vec::Vec<super::StreamPartition>,
     }
     /// The data or control message on the stream.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum StreamRecord {

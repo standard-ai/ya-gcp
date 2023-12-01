@@ -1,5 +1,6 @@
 //! Authorization support for gRPC requests
 
+use crate::auth::Auth;
 use futures::future::BoxFuture;
 use std::{
     sync::Arc,
@@ -45,15 +46,15 @@ use tonic::client::GrpcService;
 /// # };
 /// ```
 #[derive(Clone)]
-pub struct AuthGrpcService<Service, C> {
+pub struct AuthGrpcService<Service> {
     inner: Service,
-    auth: Option<crate::Auth<C>>,
-    scopes: Arc<Vec<String>>,
+    auth: Option<Auth>,
+    scopes: Arc<[String]>,
 }
 
-impl<Service, C> AuthGrpcService<Service, C> {
+impl<Service> AuthGrpcService<Service> {
     /// Wrap the given service to add authorization headers to each request
-    pub fn new<ReqBody>(service: Service, auth: Option<crate::Auth<C>>, scopes: Vec<String>) -> Self
+    pub fn new<ReqBody>(service: Service, auth: Option<Auth>, scopes: Vec<String>) -> Self
     where
         // Generic bounds included on the constructor because having them only on the trait impl
         // doesn't produce good compiler diagnostics
@@ -63,7 +64,7 @@ impl<Service, C> AuthGrpcService<Service, C> {
         Self {
             inner: service,
             auth,
-            scopes: Arc::new(scopes),
+            scopes: Arc::from(scopes),
         }
     }
 }
@@ -93,20 +94,11 @@ where
     Grpc(ServiceErr),
 }
 
-impl<Service, C, ReqBody> GrpcService<ReqBody> for AuthGrpcService<Service, C>
+impl<Service, ReqBody> GrpcService<ReqBody> for AuthGrpcService<Service>
 where
     Service: GrpcService<ReqBody> + Clone + Send + 'static,
     Service::Error: std::error::Error + Send + Sync + 'static,
     Service::Future: Send,
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     ReqBody: Send + 'static,
 {
     type Error = AuthGrpcError<Service::Error, yup_oauth2::Error>;
@@ -290,8 +282,7 @@ mod test {
             }
         }
 
-        let mut auth_service =
-            AuthGrpcService::<_, crate::DefaultConnector>::new(OkService, None, vec![]);
+        let mut auth_service = AuthGrpcService::<_>::new(OkService, None, vec![]);
 
         let result = auth_service.call(http::request::Request::new(())).await;
 

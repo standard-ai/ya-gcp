@@ -16,7 +16,7 @@ use tonic::metadata::MetadataValue;
 use tracing::{debug, trace_span, Instrument};
 
 use crate::{
-    auth::grpc::AuthGrpcService,
+    grpc::{Body, BoxBody, Bytes, GrpcService, StdError},
     pubsub::{api, PubSubRetryCheck},
     retry_policy::{exponential_backoff, ExponentialBackoff, RetryOperation, RetryPolicy},
 };
@@ -265,9 +265,11 @@ fn create_streaming_pull_request_stream(
 /// The stream returned by the
 /// [`stream_subscription`](crate::pubsub::SubscriberClient::stream_subscription) function
 #[pin_project]
-pub struct StreamSubscription<C = crate::DefaultConnector, R = ExponentialBackoff<PubSubRetryCheck>>
-{
-    state: StreamState<C, R>,
+pub struct StreamSubscription<
+    S = crate::grpc::DefaultGrpcImpl,
+    R = ExponentialBackoff<PubSubRetryCheck>,
+> {
+    state: StreamState<S, R>,
     // reserve the right to be !Unpin in the future without a major version bump
     _p: std::marker::PhantomPinned,
 }
@@ -279,10 +281,9 @@ pub struct StreamSubscription<C = crate::DefaultConnector, R = ExponentialBackof
 /// so that these options can only be changed before streaming actually begins. Any calls to
 /// `poll_next` require `Pin<&mut Self>` which then prohibits moving `self`, so no builder methods
 /// could be called after streaming
-enum StreamState<C, R> {
+enum StreamState<S, R> {
     Initialized {
-        client:
-            api::subscriber_client::SubscriberClient<AuthGrpcService<tonic::transport::Channel, C>>,
+        client: api::subscriber_client::SubscriberClient<S>,
         subscription: String,
         config: StreamSubscriptionConfig,
         retry_policy: R,
@@ -294,11 +295,9 @@ enum StreamState<C, R> {
     ),
 }
 
-impl<C> StreamSubscription<C> {
+impl<S> StreamSubscription<S> {
     pub(super) fn new(
-        client: api::subscriber_client::SubscriberClient<
-            AuthGrpcService<tonic::transport::Channel, C>,
-        >,
+        client: api::subscriber_client::SubscriberClient<S>,
         subscription: String,
         config: StreamSubscriptionConfig,
     ) -> Self {
@@ -330,7 +329,7 @@ impl<C> StreamSubscription<C> {
     }
 }
 
-impl<C, OldR> StreamSubscription<C, OldR> {
+impl<S, OldR> StreamSubscription<S, OldR> {
     /// Set the [`RetryPolicy`] to use for this streaming subscription.
     ///
     /// The stream will be reconnected if the policy indicates that an encountered
@@ -338,7 +337,7 @@ impl<C, OldR> StreamSubscription<C, OldR> {
     // Because `poll_next` requires `Pin<&mut Self>`, this function cannot be called after the
     // stream has started because it moves `self`. That means that the retry policy can only be
     // changed before the polling starts, and is fixed from that point on
-    pub fn with_retry_policy<R>(self, new_retry_policy: R) -> StreamSubscription<C, R>
+    pub fn with_retry_policy<R>(self, new_retry_policy: R) -> StreamSubscription<S, R>
     where
         R: RetryPolicy<(), tonic::Status>,
     {
@@ -366,17 +365,13 @@ impl<C, OldR> StreamSubscription<C, OldR> {
     }
 }
 
-impl<C, R> Stream for StreamSubscription<C, R>
+impl<S, R> Stream for StreamSubscription<S, R>
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    S: GrpcService<BoxBody> + Send + 'static,
+    S::Future: Send + 'static,
+    S::Error: Into<StdError>,
+    S::ResponseBody: Body<Data = Bytes> + Send + 'static,
+    <S::ResponseBody as Body>::Error: Into<StdError> + Send,
     R: RetryPolicy<(), tonic::Status> + Send + 'static,
     R::RetryOp: Send + 'static,
     <R::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,
@@ -425,24 +420,18 @@ where
 ///
 /// The stream will internally reconnect on error if the given retry policy indicates the
 /// error is retriable
-fn stream_from_client<C, R>(
-    mut client: api::subscriber_client::SubscriberClient<
-        AuthGrpcService<tonic::transport::Channel, C>,
-    >,
+fn stream_from_client<S, R>(
+    mut client: api::subscriber_client::SubscriberClient<S>,
     subscription: String,
     config: StreamSubscriptionConfig,
     mut retry_policy: R,
 ) -> impl Stream<Item = Result<(AcknowledgeToken, api::PubsubMessage), tonic::Status>> + Send + 'static
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    S: GrpcService<BoxBody> + Send + 'static,
+    S::Future: Send + 'static,
+    S::Error: Into<StdError>,
+    S::ResponseBody: Body<Data = Bytes> + Send + 'static,
+    <S::ResponseBody as Body>::Error: Into<StdError> + Send,
     R: RetryPolicy<(), tonic::Status> + Send + 'static,
     R::RetryOp: Send + 'static,
     <R::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,

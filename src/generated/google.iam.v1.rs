@@ -1,4 +1,5 @@
 /// Encapsulates settings provided to GetIamPolicy.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetPolicyOptions {
@@ -23,6 +24,7 @@ pub struct GetPolicyOptions {
     #[prost(int32, tag = "1")]
     pub requested_policy_version: i32,
 }
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Policy {
@@ -84,6 +86,7 @@ pub struct Policy {
     pub etag: ::prost::bytes::Bytes,
 }
 /// Associates `members`, or principals, with a `role`.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Binding {
@@ -91,7 +94,7 @@ pub struct Binding {
     /// For example, `roles/viewer`, `roles/editor`, or `roles/owner`.
     #[prost(string, tag = "1")]
     pub role: ::prost::alloc::string::String,
-    /// Specifies the principals requesting access for a Cloud Platform resource.
+    /// Specifies the principals requesting access for a Google Cloud resource.
     /// `members` can have the following values:
     ///
     /// * `allUsers`: A special identifier that represents anyone who is
@@ -152,6 +155,7 @@ pub struct Binding {
     #[prost(message, optional, tag = "3")]
     pub condition: ::core::option::Option<super::super::r#type::Expr>,
 }
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AuditConfig {
@@ -164,6 +168,7 @@ pub struct AuditConfig {
     #[prost(message, repeated, tag = "3")]
     pub audit_log_configs: ::prost::alloc::vec::Vec<AuditLogConfig>,
 }
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AuditLogConfig {
@@ -173,7 +178,7 @@ pub struct AuditLogConfig {
     /// Specifies the identities that do not cause logging for this type of
     /// permission.
     /// Follows the same format of
-    /// \[Binding.members][google.iam.v1.Binding.members\].
+    /// [Binding.members][google.iam.v1.Binding.members].
     #[prost(string, repeated, tag = "2")]
     pub exempted_members: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
@@ -181,6 +186,7 @@ pub struct AuditLogConfig {
 pub mod audit_log_config {
     /// The list of valid permission types for which logging can be configured.
     /// Admin writes are always logged, and are not configurable.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -229,6 +235,7 @@ pub mod audit_log_config {
     }
 }
 /// The difference delta between two policies.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PolicyDelta {
@@ -241,6 +248,7 @@ pub struct PolicyDelta {
 }
 /// One delta entry for Binding. Each individual change (only one member in each
 /// entry) to a binding will be a separate entry.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BindingDelta {
@@ -253,7 +261,7 @@ pub struct BindingDelta {
     /// Required
     #[prost(string, tag = "2")]
     pub role: ::prost::alloc::string::String,
-    /// A single identity requesting access for a Cloud Platform resource.
+    /// A single identity requesting access for a Google Cloud resource.
     /// Follows the same format of Binding.members.
     /// Required
     #[prost(string, tag = "3")]
@@ -265,6 +273,7 @@ pub struct BindingDelta {
 /// Nested message and enum types in `BindingDelta`.
 pub mod binding_delta {
     /// The type of action performed on a Binding in a policy.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -310,6 +319,7 @@ pub mod binding_delta {
 }
 /// One delta entry for AuditConfig. Each individual change (only one
 /// exempted_member in each entry) to a AuditConfig will be a separate entry.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AuditConfigDelta {
@@ -337,6 +347,7 @@ pub struct AuditConfigDelta {
 /// Nested message and enum types in `AuditConfigDelta`.
 pub mod audit_config_delta {
     /// The type of action performed on an audit configuration in a policy.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -381,6 +392,7 @@ pub mod audit_config_delta {
     }
 }
 /// Request message for `SetIamPolicy` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SetIamPolicyRequest {
@@ -403,6 +415,7 @@ pub struct SetIamPolicyRequest {
     pub update_mask: ::core::option::Option<::prost_types::FieldMask>,
 }
 /// Request message for `GetIamPolicy` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetIamPolicyRequest {
@@ -416,6 +429,7 @@ pub struct GetIamPolicyRequest {
     pub options: ::core::option::Option<GetPolicyOptions>,
 }
 /// Request message for `TestIamPermissions` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TestIamPermissionsRequest {
@@ -431,6 +445,7 @@ pub struct TestIamPermissionsRequest {
     pub permissions: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// Response message for `TestIamPermissions` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct TestIamPermissionsResponse {

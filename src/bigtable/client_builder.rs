@@ -1,8 +1,6 @@
 use crate::{
-    auth::grpc,
     bigtable::{api, BigtableClient},
-    builder,
-    retry_policy::{exponential_backoff, ExponentialBackoff},
+    builder, grpc,
 };
 
 const BIGTABLE_DATA_SCOPE: &'static str = "https://www.googleapis.com/auth/bigtable.data";
@@ -17,7 +15,6 @@ const MAX_MESSAGE_SIZE: usize = usize::MAX;
 config_default! {
     /// Configuration for connecting to bigtable
     #[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Deserialize)]
-    #[non_exhaustive]
     pub struct BigtableConfig {
         /// Endpoint to connect to bigtable over.
         @default("https://bigtable.googleapis.com".into(), "BigtableConfig::default_endpoint")
@@ -44,48 +41,24 @@ impl BigtableConfig {
 #[error(transparent)]
 pub struct BuildError(#[from] tonic::transport::Error);
 
-use super::BigtableRetryCheck;
-
-impl<C> builder::ClientBuilder<C>
-where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-    Box<dyn std::error::Error + Send + Sync + 'static>: From<C::Error>,
-{
+impl builder::ClientBuilder {
     /// Create a client for connecting to bigtable
     pub async fn build_bigtable_client(
         &self,
         config: BigtableConfig,
         project: &str,
         instance_name: &str,
-    ) -> Result<BigtableClient<C>, BuildError> {
+    ) -> Result<BigtableClient<grpc::DefaultGrpcImpl>, BuildError> {
         let scopes = config.auth_scopes();
         let endpoint = tonic::transport::Endpoint::new(config.endpoint)?;
 
-        let connection = endpoint
-            .connect_with_connector(self.connector.clone())
-            .await?;
-        let table_prefix = format!("projects/{}/instances/{}/tables/", project, instance_name);
+        let connection = endpoint.connect().await?;
 
         let inner = api::bigtable::v2::bigtable_client::BigtableClient::new(
-            grpc::AuthGrpcService::new(connection, self.auth.clone(), scopes),
+            grpc::DefaultGrpcImpl::new(connection, self.auth.clone(), scopes),
         )
         .max_decoding_message_size(MAX_MESSAGE_SIZE);
 
-        Ok(BigtableClient {
-            inner,
-            table_prefix,
-            retry: ExponentialBackoff::new(
-                BigtableRetryCheck::default(),
-                exponential_backoff::Config::default(),
-            ),
-        })
+        Ok(BigtableClient::from_raw_api(inner, project, instance_name))
     }
 }

@@ -1,5 +1,6 @@
 /// This resource represents a long-running operation that is the result of a
 /// network API call.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Operation {
@@ -30,6 +31,7 @@ pub mod operation {
     /// The operation result, which can be either an `error` or a valid `response`.
     /// If `done` == `false`, neither `error` nor `response` is set.
     /// If `done` == `true`, exactly one of `error` or `response` is set.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Result {
@@ -48,7 +50,8 @@ pub mod operation {
         Response(::prost_types::Any),
     }
 }
-/// The request message for \[Operations.GetOperation][google.longrunning.Operations.GetOperation\].
+/// The request message for [Operations.GetOperation][google.longrunning.Operations.GetOperation].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetOperationRequest {
@@ -56,7 +59,8 @@ pub struct GetOperationRequest {
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
 }
-/// The request message for \[Operations.ListOperations][google.longrunning.Operations.ListOperations\].
+/// The request message for [Operations.ListOperations][google.longrunning.Operations.ListOperations].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListOperationsRequest {
@@ -73,7 +77,8 @@ pub struct ListOperationsRequest {
     #[prost(string, tag = "3")]
     pub page_token: ::prost::alloc::string::String,
 }
-/// The response message for \[Operations.ListOperations][google.longrunning.Operations.ListOperations\].
+/// The response message for [Operations.ListOperations][google.longrunning.Operations.ListOperations].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListOperationsResponse {
@@ -84,7 +89,8 @@ pub struct ListOperationsResponse {
     #[prost(string, tag = "2")]
     pub next_page_token: ::prost::alloc::string::String,
 }
-/// The request message for \[Operations.CancelOperation][google.longrunning.Operations.CancelOperation\].
+/// The request message for [Operations.CancelOperation][google.longrunning.Operations.CancelOperation].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CancelOperationRequest {
@@ -92,7 +98,8 @@ pub struct CancelOperationRequest {
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
 }
-/// The request message for \[Operations.DeleteOperation][google.longrunning.Operations.DeleteOperation\].
+/// The request message for [Operations.DeleteOperation][google.longrunning.Operations.DeleteOperation].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteOperationRequest {
@@ -100,7 +107,8 @@ pub struct DeleteOperationRequest {
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
 }
-/// The request message for \[Operations.WaitOperation][google.longrunning.Operations.WaitOperation\].
+/// The request message for [Operations.WaitOperation][google.longrunning.Operations.WaitOperation].
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct WaitOperationRequest {
@@ -124,6 +132,7 @@ pub struct WaitOperationRequest {
 ///        metadata_type: "LongRunningRecognizeMetadata"
 ///      };
 ///    }
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct OperationInfo {

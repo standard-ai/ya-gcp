@@ -1,11 +1,10 @@
 //! An API for administering bigtable.
 
-use crate::{
-    auth::grpc::{self, AuthGrpcService},
-    builder,
-};
-
 use super::api::bigtable::admin;
+use crate::{
+    builder,
+    grpc::{Body, BoxBody, Bytes, DefaultGrpcImpl, GrpcService, StdError},
+};
 
 pub use admin::v2::Table;
 use futures::Stream;
@@ -17,7 +16,6 @@ const BIGTABLE_ADMIN_SCOPE: &'static str = "https://www.googleapis.com/auth/bigt
 config_default! {
     /// Configuration for the bigtable admin client
     #[derive(Debug, Clone, Eq, PartialEq, Hash, serde::Deserialize)]
-    #[non_exhaustive]
     pub struct BigtableTableAdminConfig {
         /// Endpoint to connect to bigtable over.
         @default("https://bigtableadmin.googleapis.com".into(), "BigtableTableAdminConfig::default_endpoint")
@@ -29,10 +27,8 @@ config_default! {
 /// [`build_bigtable_client`](crate::builder::ClientBuilder::build_bigtable_client)
 /// function.
 #[derive(Clone)]
-pub struct BigtableTableAdminClient<C = crate::DefaultConnector> {
-    pub(crate) inner: admin::v2::bigtable_table_admin_client::BigtableTableAdminClient<
-        AuthGrpcService<tonic::transport::Channel, C>,
-    >,
+pub struct BigtableTableAdminClient<S = DefaultGrpcImpl> {
+    pub(crate) inner: admin::v2::bigtable_table_admin_client::BigtableTableAdminClient<S>,
     // A string of the form projects/{project}/instances/{instance}
     pub(crate) table_prefix: String,
 }
@@ -73,30 +69,53 @@ impl From<Rule> for admin::v2::GcRule {
     }
 }
 
-impl<C> BigtableTableAdminClient<C>
+impl<S> BigtableTableAdminClient<S> {
+    /// Manually construct a new client.
+    ///
+    /// There are limited circumstances in which this is useful; consider instead using the builder
+    /// function [crate::builder::ClientBuilder::build_bigtable_admin_client]
+    pub fn from_raw_api(
+        client: admin::v2::bigtable_table_admin_client::BigtableTableAdminClient<S>,
+        project: &str,
+        instance_name: &str,
+    ) -> Self {
+        BigtableTableAdminClient {
+            inner: client,
+            table_prefix: format!("projects/{}/instances/{}", project, instance_name),
+        }
+    }
+
+    /// Access the underlying grpc api
+    pub fn raw_api(&self) -> &admin::v2::bigtable_table_admin_client::BigtableTableAdminClient<S> {
+        &self.inner
+    }
+
+    /// Mutably access the underlying grpc api
+    pub fn raw_api_mut(
+        &mut self,
+    ) -> &mut admin::v2::bigtable_table_admin_client::BigtableTableAdminClient<S> {
+        &mut self.inner
+    }
+}
+
+impl<S> BigtableTableAdminClient<S>
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    S: GrpcService<BoxBody>,
+    S::Error: Into<StdError>,
+    S::ResponseBody: Body<Data = Bytes> + Send + 'static,
+    <S::ResponseBody as Body>::Error: Into<StdError> + Send,
 {
     /// Create a new table.
     pub async fn create_table<Fams>(
         &mut self,
-        table_name: &str,
+        table_name: impl Into<String>,
         column_families: Fams,
     ) -> Result<Table, tonic::Status>
     where
         Fams: IntoIterator<Item = (String, Rule)>,
     {
-        let table_id = table_name.to_owned();
+        let table_id = table_name.into();
         let table = Table {
-            name: format!("{}/tables/{}", self.table_prefix, table_name),
             column_families: column_families
                 .into_iter()
                 .map(|(name, rule)| {
@@ -121,19 +140,32 @@ where
         Ok(response.into_inner())
     }
 
-    /// List all tables.
+    /// List all tables belonging to this project and instance.
     pub async fn list_tables(
         &mut self,
-    ) -> Result<impl Stream<Item = Result<Table, tonic::Status>>, tonic::Status> {
-        let req = admin::v2::ListTablesRequest {
-            parent: self.table_prefix.clone(),
-            ..Default::default()
-        };
-        let response = self.inner.list_tables(req).await?;
-        // TODO: if the response was paged, make a follow-up request.
-        Ok(futures::stream::iter(
-            response.into_inner().tables.into_iter().map(|x| Ok(x)),
-        ))
+    ) -> Result<impl Stream<Item = Result<Table, tonic::Status>> + '_, tonic::Status> {
+        Ok(async_stream::stream! {
+            let mut page_token = String::new();
+            loop {
+                let req = admin::v2::ListTablesRequest {
+                    parent: self.table_prefix.clone(),
+                    page_token,
+                    ..Default::default()
+                };
+                let response = self.inner.list_tables(req).await?.into_inner();
+
+                for table in response.tables.into_iter() {
+                    yield Ok(table);
+                }
+
+                if response.next_page_token.is_empty() {
+                    break;
+                } else {
+                    page_token = response.next_page_token;
+                    continue;
+                }
+            }
+        })
     }
 }
 
@@ -142,41 +174,27 @@ where
 #[error(transparent)]
 pub struct BuildError(#[from] tonic::transport::Error);
 
-impl<C> builder::ClientBuilder<C>
-where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-    Box<dyn std::error::Error + Send + Sync + 'static>: From<C::Error>,
-{
+impl builder::ClientBuilder {
     /// Create a client for administering bigtable tables.
     pub async fn build_bigtable_admin_client(
         &self,
         config: BigtableTableAdminConfig,
         project: &str,
         instance_name: &str,
-    ) -> Result<BigtableTableAdminClient<C>, BuildError> {
+    ) -> Result<BigtableTableAdminClient<DefaultGrpcImpl>, BuildError> {
         let scopes = vec![BIGTABLE_ADMIN_SCOPE.to_owned()];
         let endpoint = tonic::transport::Endpoint::new(config.endpoint)?;
 
-        let connection = endpoint
-            .connect_with_connector(self.connector.clone())
-            .await?;
-        let table_prefix = format!("projects/{}/instances/{}", project, instance_name);
+        let connection = endpoint.connect().await?;
 
         let inner = admin::v2::bigtable_table_admin_client::BigtableTableAdminClient::new(
-            grpc::AuthGrpcService::new(connection, self.auth.clone(), scopes),
+            DefaultGrpcImpl::new(connection, self.auth.clone(), scopes),
         );
 
-        Ok(BigtableTableAdminClient {
+        Ok(BigtableTableAdminClient::from_raw_api(
             inner,
-            table_prefix,
-        })
+            project,
+            instance_name,
+        ))
     }
 }

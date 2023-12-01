@@ -1,4 +1,5 @@
 /// A schema resource.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Schema {
@@ -24,6 +25,7 @@ pub struct Schema {
 /// Nested message and enum types in `Schema`.
 pub mod schema {
     /// Possible schema definition types.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -68,6 +70,7 @@ pub mod schema {
     }
 }
 /// Request for the CreateSchema method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateSchemaRequest {
@@ -91,6 +94,7 @@ pub struct CreateSchemaRequest {
     pub schema_id: ::prost::alloc::string::String,
 }
 /// Request for the GetSchema method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSchemaRequest {
@@ -104,6 +108,7 @@ pub struct GetSchemaRequest {
     pub view: i32,
 }
 /// Request for the `ListSchemas` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSchemasRequest {
@@ -126,6 +131,7 @@ pub struct ListSchemasRequest {
     pub page_token: ::prost::alloc::string::String,
 }
 /// Response for the `ListSchemas` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSchemasResponse {
@@ -138,6 +144,7 @@ pub struct ListSchemasResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 /// Request for the `ListSchemaRevisions` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSchemaRevisionsRequest {
@@ -158,6 +165,7 @@ pub struct ListSchemaRevisionsRequest {
     pub page_token: ::prost::alloc::string::String,
 }
 /// Response for the `ListSchemaRevisions` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSchemaRevisionsResponse {
@@ -170,6 +178,7 @@ pub struct ListSchemaRevisionsResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 /// Request for CommitSchema method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CommitSchemaRequest {
@@ -182,6 +191,7 @@ pub struct CommitSchemaRequest {
     pub schema: ::core::option::Option<Schema>,
 }
 /// Request for the `RollbackSchema` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RollbackSchemaRequest {
@@ -196,6 +206,7 @@ pub struct RollbackSchemaRequest {
     pub revision_id: ::prost::alloc::string::String,
 }
 /// Request for the `DeleteSchemaRevision` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteSchemaRevisionRequest {
@@ -213,6 +224,7 @@ pub struct DeleteSchemaRevisionRequest {
     pub revision_id: ::prost::alloc::string::String,
 }
 /// Request for the `DeleteSchema` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteSchemaRequest {
@@ -222,6 +234,7 @@ pub struct DeleteSchemaRequest {
     pub name: ::prost::alloc::string::String,
 }
 /// Request for the `ValidateSchema` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ValidateSchemaRequest {
@@ -235,10 +248,12 @@ pub struct ValidateSchemaRequest {
 }
 /// Response for the `ValidateSchema` method.
 /// Empty for now.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ValidateSchemaResponse {}
 /// Request for the `ValidateMessage` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ValidateMessageRequest {
@@ -257,6 +272,7 @@ pub struct ValidateMessageRequest {
 }
 /// Nested message and enum types in `ValidateMessageRequest`.
 pub mod validate_message_request {
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum SchemaSpec {
@@ -272,10 +288,12 @@ pub mod validate_message_request {
 }
 /// Response for the `ValidateMessage` method.
 /// Empty for now.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ValidateMessageResponse {}
 /// View of Schema object fields to be returned by GetSchema and ListSchemas.
+#[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum SchemaView {
@@ -310,6 +328,7 @@ impl SchemaView {
     }
 }
 /// Possible encoding types for messages.
+#[non_exhaustive]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum Encoding {
@@ -698,20 +717,23 @@ pub mod schema_service_client {
     }
 }
 /// A policy constraining the storage of messages published to the topic.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct MessageStoragePolicy {
-    /// A list of IDs of GCP regions where messages that are published to the topic
-    /// may be persisted in storage. Messages published by publishers running in
-    /// non-allowed GCP regions (or running outside of GCP altogether) will be
-    /// routed for storage in one of the allowed regions. An empty list means that
-    /// no regions are allowed, and is not a valid configuration.
+    /// A list of IDs of Google Cloud regions where messages that are published
+    /// to the topic may be persisted in storage. Messages published by publishers
+    /// running in non-allowed Google Cloud regions (or running outside of Google
+    /// Cloud altogether) are routed for storage in one of the allowed regions.
+    /// An empty list means that no regions are allowed, and is not a valid
+    /// configuration.
     #[prost(string, repeated, tag = "1")]
     pub allowed_persistence_regions: ::prost::alloc::vec::Vec<
         ::prost::alloc::string::String,
     >,
 }
 /// Settings for validating messages published against a schema.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SchemaSettings {
@@ -736,6 +758,7 @@ pub struct SchemaSettings {
     pub last_revision_id: ::prost::alloc::string::String,
 }
 /// A topic resource.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Topic {
@@ -747,7 +770,7 @@ pub struct Topic {
     /// must not start with `"goog"`.
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
-    /// See [Creating and managing labels]
+    /// See \[Creating and managing labels\]
     /// (<https://cloud.google.com/pubsub/docs/labels>).
     #[prost(map = "string, string", tag = "2")]
     pub labels: ::std::collections::HashMap<
@@ -788,9 +811,10 @@ pub struct Topic {
 /// Note that client libraries represent this object differently
 /// depending on the language. See the corresponding [client library
 /// documentation](<https://cloud.google.com/pubsub/docs/reference/libraries>) for
-/// more information. See [quotas and limits]
+/// more information. See \[quotas and limits\]
 /// (<https://cloud.google.com/pubsub/quotas>) for more information about message
 /// limits.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PubsubMessage {
@@ -829,6 +853,7 @@ pub struct PubsubMessage {
     pub ordering_key: ::prost::alloc::string::String,
 }
 /// Request for the GetTopic method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetTopicRequest {
@@ -838,6 +863,7 @@ pub struct GetTopicRequest {
     pub topic: ::prost::alloc::string::String,
 }
 /// Request for the UpdateTopic method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateTopicRequest {
@@ -853,6 +879,7 @@ pub struct UpdateTopicRequest {
     pub update_mask: ::core::option::Option<::prost_types::FieldMask>,
 }
 /// Request for the Publish method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PublishRequest {
@@ -865,6 +892,7 @@ pub struct PublishRequest {
     pub messages: ::prost::alloc::vec::Vec<PubsubMessage>,
 }
 /// Response for the `Publish` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PublishResponse {
@@ -875,6 +903,7 @@ pub struct PublishResponse {
     pub message_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
 }
 /// Request for the `ListTopics` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTopicsRequest {
@@ -892,6 +921,7 @@ pub struct ListTopicsRequest {
     pub page_token: ::prost::alloc::string::String,
 }
 /// Response for the `ListTopics` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTopicsResponse {
@@ -904,6 +934,7 @@ pub struct ListTopicsResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 /// Request for the `ListTopicSubscriptions` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTopicSubscriptionsRequest {
@@ -921,6 +952,7 @@ pub struct ListTopicSubscriptionsRequest {
     pub page_token: ::prost::alloc::string::String,
 }
 /// Response for the `ListTopicSubscriptions` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTopicSubscriptionsResponse {
@@ -934,6 +966,7 @@ pub struct ListTopicSubscriptionsResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 /// Request for the `ListTopicSnapshots` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTopicSnapshotsRequest {
@@ -951,6 +984,7 @@ pub struct ListTopicSnapshotsRequest {
     pub page_token: ::prost::alloc::string::String,
 }
 /// Response for the `ListTopicSnapshots` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListTopicSnapshotsResponse {
@@ -964,6 +998,7 @@ pub struct ListTopicSnapshotsResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 /// Request for the `DeleteTopic` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteTopicRequest {
@@ -973,6 +1008,7 @@ pub struct DeleteTopicRequest {
     pub topic: ::prost::alloc::string::String,
 }
 /// Request for the DetachSubscription method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DetachSubscriptionRequest {
@@ -983,12 +1019,14 @@ pub struct DetachSubscriptionRequest {
 }
 /// Response for the DetachSubscription method.
 /// Reserved for future use.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DetachSubscriptionResponse {}
-/// A subscription resource. If none of `push_config` or `bigquery_config` is
-/// set, then the subscriber will pull and ack messages using API methods. At
-/// most one of these fields may be set.
+/// A subscription resource. If none of `push_config`, `bigquery_config`, or
+/// `cloud_storage_config` is set, then the subscriber will pull and ack messages
+/// using API methods. At most one of these fields may be set.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Subscription {
@@ -1013,6 +1051,10 @@ pub struct Subscription {
     /// used to configure it.
     #[prost(message, optional, tag = "18")]
     pub bigquery_config: ::core::option::Option<BigQueryConfig>,
+    /// If delivery to Google Cloud Storage is used with this subscription, this
+    /// field is used to configure it.
+    #[prost(message, optional, tag = "22")]
+    pub cloud_storage_config: ::core::option::Option<CloudStorageConfig>,
     /// The approximate amount of time (on a best-effort basis) Pub/Sub waits for
     /// the subscriber to acknowledge receipt before resending the message. In the
     /// interval after the message is delivered and before it is acknowledged, it
@@ -1038,7 +1080,7 @@ pub struct Subscription {
     /// Indicates whether to retain acknowledged messages. If true, then
     /// messages are not expunged from the subscription's backlog, even if they are
     /// acknowledged, until they fall out of the `message_retention_duration`
-    /// window. This must be true if you would like to [`Seek` to a timestamp]
+    /// window. This must be true if you would like to \[`Seek` to a timestamp\]
     /// (<https://cloud.google.com/pubsub/docs/replay-overview#seek_to_a_time>) in
     /// the past to replay previously-acknowledged messages.
     #[prost(bool, tag = "7")]
@@ -1137,6 +1179,7 @@ pub struct Subscription {
 /// Nested message and enum types in `Subscription`.
 pub mod subscription {
     /// Possible states for a subscription.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -1193,6 +1236,7 @@ pub mod subscription {
 /// Retry Policy is implemented on a best effort basis. At times, the delay
 /// between consecutive deliveries may not match the configuration. That is,
 /// delay can be more or less than configured backoff.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct RetryPolicy {
@@ -1210,6 +1254,7 @@ pub struct RetryPolicy {
 ///
 /// If validation on any of the fields fails at subscription creation/updation,
 /// the create/update subscription request will fail.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeadLetterPolicy {
@@ -1242,6 +1287,7 @@ pub struct DeadLetterPolicy {
 }
 /// A policy that specifies the conditions for resource expiration (i.e.,
 /// automatic resource deletion).
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExpirationPolicy {
@@ -1255,6 +1301,7 @@ pub struct ExpirationPolicy {
     pub ttl: ::core::option::Option<::prost_types::Duration>,
 }
 /// Configuration for a push delivery endpoint.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PushConfig {
@@ -1295,20 +1342,25 @@ pub struct PushConfig {
     /// authenticated push.
     #[prost(oneof = "push_config::AuthenticationMethod", tags = "3")]
     pub authentication_method: ::core::option::Option<push_config::AuthenticationMethod>,
+    /// The format of the delivered message to the push endpoint is defined by
+    /// the chosen wrapper. When unset, `PubsubWrapper` is used.
+    #[prost(oneof = "push_config::Wrapper", tags = "4, 5")]
+    pub wrapper: ::core::option::Option<push_config::Wrapper>,
 }
 /// Nested message and enum types in `PushConfig`.
 pub mod push_config {
     /// Contains information needed for generating an
     /// [OpenID Connect
     /// token](<https://developers.google.com/identity/protocols/OpenIDConnect>).
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct OidcToken {
         /// [Service account
         /// email](<https://cloud.google.com/iam/docs/service-accounts>)
-        /// to be used for generating the OIDC token. The caller (for
-        /// CreateSubscription, UpdateSubscription, and ModifyPushConfig RPCs) must
-        /// have the iam.serviceAccounts.actAs permission for the service account.
+        /// used for generating the OIDC token. For more information
+        /// on setting up authentication, see
+        /// [Push subscriptions](<https://cloud.google.com/pubsub/docs/push>).
         #[prost(string, tag = "1")]
         pub service_account_email: ::prost::alloc::string::String,
         /// Audience to be used when generating OIDC token. The audience claim
@@ -1320,11 +1372,30 @@ pub mod push_config {
         #[prost(string, tag = "2")]
         pub audience: ::prost::alloc::string::String,
     }
+    /// The payload to the push endpoint is in the form of the JSON representation
+    /// of a PubsubMessage
+    /// (<https://cloud.google.com/pubsub/docs/reference/rpc/google.pubsub.v1#pubsubmessage>).
+    #[non_exhaustive]
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct PubsubWrapper {}
+    /// Sets the `data` field as the HTTP body for delivery.
+    #[non_exhaustive]
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct NoWrapper {
+        /// When true, writes the Pub/Sub message metadata to
+        /// `x-goog-pubsub-<KEY>:<VAL>` headers of the HTTP request. Writes the
+        /// Pub/Sub message attributes to `<KEY>:<VAL>` headers of the HTTP request.
+        #[prost(bool, tag = "1")]
+        pub write_metadata: bool,
+    }
     /// An authentication method used by push endpoints to verify the source of
     /// push requests. This can be used with push endpoints that are private by
     /// default to allow requests only from the Cloud Pub/Sub system, for example.
     /// This field is optional and should be set only by users interested in
     /// authenticated push.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum AuthenticationMethod {
@@ -1333,8 +1404,24 @@ pub mod push_config {
         #[prost(message, tag = "3")]
         OidcToken(OidcToken),
     }
+    /// The format of the delivered message to the push endpoint is defined by
+    /// the chosen wrapper. When unset, `PubsubWrapper` is used.
+    #[non_exhaustive]
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum Wrapper {
+        /// When set, the payload to the push endpoint is in the form of the JSON
+        /// representation of a PubsubMessage
+        /// (<https://cloud.google.com/pubsub/docs/reference/rpc/google.pubsub.v1#pubsubmessage>).
+        #[prost(message, tag = "4")]
+        PubsubWrapper(PubsubWrapper),
+        /// When set, the payload to the push endpoint is not wrapped.
+        #[prost(message, tag = "5")]
+        NoWrapper(NoWrapper),
+    }
 }
 /// Configuration for a BigQuery subscription.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct BigQueryConfig {
@@ -1368,6 +1455,7 @@ pub struct BigQueryConfig {
 /// Nested message and enum types in `BigQueryConfig`.
 pub mod big_query_config {
     /// Possible states for a BigQuery subscription.
+    #[non_exhaustive]
     #[derive(
         Clone,
         Copy,
@@ -1390,7 +1478,7 @@ pub mod big_query_config {
         /// - Pub/Sub SA has not been granted the [appropriate BigQuery IAM
         /// permissions](<https://cloud.google.com/pubsub/docs/create-subscription#assign_bigquery_service_account>)
         /// - bigquery.googleapis.com API is not enabled for the project
-        /// (\[instructions\](<https://cloud.google.com/service-usage/docs/enable-disable>))
+        /// ([instructions](<https://cloud.google.com/service-usage/docs/enable-disable>))
         PermissionDenied = 2,
         /// Cannot write to the BigQuery table because it does not exist.
         NotFound = 3,
@@ -1424,7 +1512,132 @@ pub mod big_query_config {
         }
     }
 }
+/// Configuration for a Cloud Storage subscription.
+#[non_exhaustive]
+#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct CloudStorageConfig {
+    /// Required. User-provided name for the Cloud Storage bucket.
+    /// The bucket must be created by the user. The bucket name must be without
+    /// any prefix like "gs://". See the [bucket naming
+    /// requirements] (<https://cloud.google.com/storage/docs/buckets#naming>).
+    #[prost(string, tag = "1")]
+    pub bucket: ::prost::alloc::string::String,
+    /// User-provided prefix for Cloud Storage filename. See the [object naming
+    /// requirements](<https://cloud.google.com/storage/docs/objects#naming>).
+    #[prost(string, tag = "2")]
+    pub filename_prefix: ::prost::alloc::string::String,
+    /// User-provided suffix for Cloud Storage filename. See the [object naming
+    /// requirements](<https://cloud.google.com/storage/docs/objects#naming>). Must
+    /// not end in "/".
+    #[prost(string, tag = "3")]
+    pub filename_suffix: ::prost::alloc::string::String,
+    /// The maximum duration that can elapse before a new Cloud Storage file is
+    /// created. Min 1 minute, max 10 minutes, default 5 minutes. May not exceed
+    /// the subscription's acknowledgement deadline.
+    #[prost(message, optional, tag = "6")]
+    pub max_duration: ::core::option::Option<::prost_types::Duration>,
+    /// The maximum bytes that can be written to a Cloud Storage file before a new
+    /// file is created. Min 1 KB, max 10 GiB. The max_bytes limit may be exceeded
+    /// in cases where messages are larger than the limit.
+    #[prost(int64, tag = "7")]
+    pub max_bytes: i64,
+    /// Output only. An output-only field that indicates whether or not the
+    /// subscription can receive messages.
+    #[prost(enumeration = "cloud_storage_config::State", tag = "9")]
+    pub state: i32,
+    /// Defaults to text format.
+    #[prost(oneof = "cloud_storage_config::OutputFormat", tags = "4, 5")]
+    pub output_format: ::core::option::Option<cloud_storage_config::OutputFormat>,
+}
+/// Nested message and enum types in `CloudStorageConfig`.
+pub mod cloud_storage_config {
+    /// Configuration for writing message data in text format.
+    /// Message payloads will be written to files as raw text, separated by a
+    /// newline.
+    #[non_exhaustive]
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct TextConfig {}
+    /// Configuration for writing message data in Avro format.
+    /// Message payloads and metadata will be written to files as an Avro binary.
+    #[non_exhaustive]
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Message)]
+    pub struct AvroConfig {
+        /// When true, write the subscription name, message_id, publish_time,
+        /// attributes, and ordering_key as additional fields in the output. The
+        /// subscription name, message_id, and publish_time fields are put in their
+        /// own fields while all other message properties other than data (for
+        /// example, an ordering_key, if present) are added as entries in the
+        /// attributes map.
+        #[prost(bool, tag = "1")]
+        pub write_metadata: bool,
+    }
+    /// Possible states for a Cloud Storage subscription.
+    #[non_exhaustive]
+    #[derive(
+        Clone,
+        Copy,
+        Debug,
+        PartialEq,
+        Eq,
+        Hash,
+        PartialOrd,
+        Ord,
+        ::prost::Enumeration
+    )]
+    #[repr(i32)]
+    pub enum State {
+        /// Default value. This value is unused.
+        Unspecified = 0,
+        /// The subscription can actively send messages to Cloud Storage.
+        Active = 1,
+        /// Cannot write to the Cloud Storage bucket because of permission denied
+        /// errors.
+        PermissionDenied = 2,
+        /// Cannot write to the Cloud Storage bucket because it does not exist.
+        NotFound = 3,
+    }
+    impl State {
+        /// String value of the enum field names used in the ProtoBuf definition.
+        ///
+        /// The values are not transformed in any way and thus are considered stable
+        /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+        pub fn as_str_name(&self) -> &'static str {
+            match self {
+                State::Unspecified => "STATE_UNSPECIFIED",
+                State::Active => "ACTIVE",
+                State::PermissionDenied => "PERMISSION_DENIED",
+                State::NotFound => "NOT_FOUND",
+            }
+        }
+        /// Creates an enum from field names used in the ProtoBuf definition.
+        pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+            match value {
+                "STATE_UNSPECIFIED" => Some(Self::Unspecified),
+                "ACTIVE" => Some(Self::Active),
+                "PERMISSION_DENIED" => Some(Self::PermissionDenied),
+                "NOT_FOUND" => Some(Self::NotFound),
+                _ => None,
+            }
+        }
+    }
+    /// Defaults to text format.
+    #[non_exhaustive]
+    #[allow(clippy::derive_partial_eq_without_eq)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
+    pub enum OutputFormat {
+        /// If set, message data will be written to Cloud Storage in text format.
+        #[prost(message, tag = "4")]
+        TextConfig(TextConfig),
+        /// If set, message data will be written to Cloud Storage in Avro format.
+        #[prost(message, tag = "5")]
+        AvroConfig(AvroConfig),
+    }
+}
 /// A message and its corresponding acknowledgment ID.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ReceivedMessage {
@@ -1454,6 +1667,7 @@ pub struct ReceivedMessage {
     pub delivery_attempt: i32,
 }
 /// Request for the GetSubscription method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSubscriptionRequest {
@@ -1463,6 +1677,7 @@ pub struct GetSubscriptionRequest {
     pub subscription: ::prost::alloc::string::String,
 }
 /// Request for the UpdateSubscription method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateSubscriptionRequest {
@@ -1475,6 +1690,7 @@ pub struct UpdateSubscriptionRequest {
     pub update_mask: ::core::option::Option<::prost_types::FieldMask>,
 }
 /// Request for the `ListSubscriptions` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSubscriptionsRequest {
@@ -1492,6 +1708,7 @@ pub struct ListSubscriptionsRequest {
     pub page_token: ::prost::alloc::string::String,
 }
 /// Response for the `ListSubscriptions` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSubscriptionsResponse {
@@ -1505,6 +1722,7 @@ pub struct ListSubscriptionsResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 /// Request for the DeleteSubscription method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteSubscriptionRequest {
@@ -1514,6 +1732,7 @@ pub struct DeleteSubscriptionRequest {
     pub subscription: ::prost::alloc::string::String,
 }
 /// Request for the ModifyPushConfig method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ModifyPushConfigRequest {
@@ -1531,6 +1750,7 @@ pub struct ModifyPushConfigRequest {
     pub push_config: ::core::option::Option<PushConfig>,
 }
 /// Request for the `Pull` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PullRequest {
@@ -1555,6 +1775,7 @@ pub struct PullRequest {
     pub max_messages: i32,
 }
 /// Response for the `Pull` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct PullResponse {
@@ -1567,6 +1788,7 @@ pub struct PullResponse {
     pub received_messages: ::prost::alloc::vec::Vec<ReceivedMessage>,
 }
 /// Request for the ModifyAckDeadline method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ModifyAckDeadlineRequest {
@@ -1589,6 +1811,7 @@ pub struct ModifyAckDeadlineRequest {
     pub ack_deadline_seconds: i32,
 }
 /// Request for the Acknowledge method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AcknowledgeRequest {
@@ -1605,6 +1828,7 @@ pub struct AcknowledgeRequest {
 /// Request for the `StreamingPull` streaming RPC method. This request is used to
 /// establish the initial stream as well as to stream acknowledgements and ack
 /// deadline modifications from the client to the server.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamingPullRequest {
@@ -1682,6 +1906,7 @@ pub struct StreamingPullRequest {
 }
 /// Response for the `StreamingPull` method. This response is used to stream
 /// messages from the server to the client.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct StreamingPullResponse {
@@ -1710,6 +1935,7 @@ pub struct StreamingPullResponse {
 pub mod streaming_pull_response {
     /// Acknowledgement IDs sent in one or more previous requests to acknowledge a
     /// previously received message.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct AcknowledgeConfirmation {
@@ -1731,6 +1957,7 @@ pub mod streaming_pull_response {
     }
     /// Acknowledgement IDs sent in one or more previous requests to modify the
     /// deadline for a specific message.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct ModifyAckDeadlineConfirmation {
@@ -1748,6 +1975,7 @@ pub mod streaming_pull_response {
         >,
     }
     /// Subscription properties sent as part of the response.
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Message)]
     pub struct SubscriptionProperties {
@@ -1760,6 +1988,7 @@ pub mod streaming_pull_response {
     }
 }
 /// Request for the `CreateSnapshot` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CreateSnapshotRequest {
@@ -1767,8 +1996,8 @@ pub struct CreateSnapshotRequest {
     /// in the request, the server will assign a random name for this snapshot on
     /// the same project as the subscription. Note that for REST API requests, you
     /// must specify a name.  See the [resource name
-    /// rules](<https://cloud.google.com/pubsub/docs/admin#resource_names>). Format
-    /// is `projects/{project}/snapshots/{snap}`.
+    /// rules](<https://cloud.google.com/pubsub/docs/pubsub-basics#resource_names>).
+    /// Format is `projects/{project}/snapshots/{snap}`.
     #[prost(string, tag = "1")]
     pub name: ::prost::alloc::string::String,
     /// Required. The subscription whose backlog the snapshot retains.
@@ -1791,6 +2020,7 @@ pub struct CreateSnapshotRequest {
     >,
 }
 /// Request for the UpdateSnapshot method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct UpdateSnapshotRequest {
@@ -1803,10 +2033,11 @@ pub struct UpdateSnapshotRequest {
     pub update_mask: ::core::option::Option<::prost_types::FieldMask>,
 }
 /// A snapshot resource. Snapshots are used in
-/// \[Seek\](<https://cloud.google.com/pubsub/docs/replay-overview>)
+/// [Seek](<https://cloud.google.com/pubsub/docs/replay-overview>)
 /// operations, which allow you to manage message acknowledgments in bulk. That
 /// is, you can set the acknowledgment state of messages in an existing
 /// subscription to the state captured by a snapshot.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct Snapshot {
@@ -1828,7 +2059,7 @@ pub struct Snapshot {
     /// snapshot that would expire in less than 1 hour after creation.
     #[prost(message, optional, tag = "3")]
     pub expire_time: ::core::option::Option<::prost_types::Timestamp>,
-    /// See [Creating and managing labels]
+    /// See \[Creating and managing labels\]
     /// (<https://cloud.google.com/pubsub/docs/labels>).
     #[prost(map = "string, string", tag = "4")]
     pub labels: ::std::collections::HashMap<
@@ -1837,6 +2068,7 @@ pub struct Snapshot {
     >,
 }
 /// Request for the GetSnapshot method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GetSnapshotRequest {
@@ -1846,6 +2078,7 @@ pub struct GetSnapshotRequest {
     pub snapshot: ::prost::alloc::string::String,
 }
 /// Request for the `ListSnapshots` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSnapshotsRequest {
@@ -1863,6 +2096,7 @@ pub struct ListSnapshotsRequest {
     pub page_token: ::prost::alloc::string::String,
 }
 /// Response for the `ListSnapshots` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ListSnapshotsResponse {
@@ -1875,6 +2109,7 @@ pub struct ListSnapshotsResponse {
     pub next_page_token: ::prost::alloc::string::String,
 }
 /// Request for the `DeleteSnapshot` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct DeleteSnapshotRequest {
@@ -1884,6 +2119,7 @@ pub struct DeleteSnapshotRequest {
     pub snapshot: ::prost::alloc::string::String,
 }
 /// Request for the `Seek` method.
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SeekRequest {
@@ -1895,6 +2131,7 @@ pub struct SeekRequest {
 }
 /// Nested message and enum types in `SeekRequest`.
 pub mod seek_request {
+    #[non_exhaustive]
     #[allow(clippy::derive_partial_eq_without_eq)]
     #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Target {
@@ -1919,6 +2156,7 @@ pub mod seek_request {
     }
 }
 /// Response for the `Seek` method (this response is empty).
+#[non_exhaustive]
 #[allow(clippy::derive_partial_eq_without_eq)]
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SeekResponse {}
@@ -2010,7 +2248,7 @@ pub mod publisher_client {
             self
         }
         /// Creates the given topic with the given name. See the [resource name rules]
-        /// (https://cloud.google.com/pubsub/docs/admin#resource_names).
+        /// (https://cloud.google.com/pubsub/docs/pubsub-basics#resource_names).
         pub async fn create_topic(
             &mut self,
             request: impl tonic::IntoRequest<super::Topic>,
@@ -2345,16 +2583,16 @@ pub mod subscriber_client {
             self
         }
         /// Creates a subscription to a given topic. See the [resource name rules]
-        /// (https://cloud.google.com/pubsub/docs/admin#resource_names).
+        /// (https://cloud.google.com/pubsub/docs/pubsub-basics#resource_names).
         /// If the subscription already exists, returns `ALREADY_EXISTS`.
         /// If the corresponding topic doesn't exist, returns `NOT_FOUND`.
         ///
         /// If the name is not provided in the request, the server will assign a random
         /// name for this subscription on the same project as the topic, conforming
         /// to the [resource name format]
-        /// (https://cloud.google.com/pubsub/docs/admin#resource_names). The generated
-        /// name is populated in the returned Subscription object. Note that for REST
-        /// API requests, you must specify a name in the request.
+        /// (https://cloud.google.com/pubsub/docs/pubsub-basics#resource_names). The
+        /// generated name is populated in the returned Subscription object. Note that
+        /// for REST API requests, you must specify a name in the request.
         pub async fn create_subscription(
             &mut self,
             request: impl tonic::IntoRequest<super::Subscription>,
@@ -2702,7 +2940,7 @@ pub mod subscriber_client {
         /// the request, the server will assign a random
         /// name for this snapshot on the same project as the subscription, conforming
         /// to the [resource name format]
-        /// (https://cloud.google.com/pubsub/docs/admin#resource_names). The
+        /// (https://cloud.google.com/pubsub/docs/pubsub-basics#resource_names). The
         /// generated name is populated in the returned Snapshot object. Note that for
         /// REST API requests, you must specify a name in the request.
         pub async fn create_snapshot(

@@ -3,6 +3,10 @@
 #[cfg(feature = "grpc")]
 pub mod grpc;
 
+pub(crate) type Auth = yup_oauth2::authenticator::Authenticator<
+    hyper_rustls::HttpsConnector<hyper::client::HttpConnector>,
+>;
+
 /// Add the given authorization token to the given HTTP request
 ///
 /// Returns an error if the token cannot form a valid HTTP header value.

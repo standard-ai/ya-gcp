@@ -88,7 +88,6 @@ mod bigtable_client_tests {
         assert_eq!("row1-key", row.key);
         assert_eq!(1, row.families.len());
         assert_eq!("fam1", row.families[0].name);
-        dbg!(&row.families);
         assert_eq!(2, row.families[0].columns.len());
         assert_eq!("col1", row.families[0].columns[0].qualifier);
         assert_eq!("data1", row.families[0].columns[0].cells[0].value);
@@ -145,19 +144,19 @@ mod bigtable_client_tests {
             row.most_recent_cells().map(|c| c.value).collect::<Vec<_>>()
         );
 
-        let req = ReadRowsRequest {
-            table_name: format!(
+        let req = {
+            let mut r = ReadRowsRequest::default();
+            r.table_name = format!(
                 "projects/{}/instances/{}/tables/{table_name}",
                 emulator.project(),
                 emulator.instance()
-            ),
-            rows: Some(api::bigtable::v2::RowSet::default().with_key("row1-key")),
-            ..Default::default()
+            );
+            r.rows = Some(api::bigtable::v2::RowSet::default().with_key("row1-key"));
+            r
         };
         let rows: Vec<_> = client.read_rows(req).try_collect().await.unwrap();
         assert_eq!(1, rows.len());
         let row = &rows[0];
-        dbg!(row);
         assert_eq!(2, row.families[0].columns[0].cells.len());
         assert_eq!(
             vec!["data2".as_bytes()],

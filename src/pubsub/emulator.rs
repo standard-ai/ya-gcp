@@ -139,6 +139,7 @@ impl EmulatorClient {
         let mut publisher = self.builder().build_pubsub_publisher(config).await?;
 
         publisher
+            .raw_api_mut()
             .create_topic(pubsub::api::Topic {
                 name: pubsub::ProjectTopicName::new(self.project(), topic_name.as_ref()).into(),
                 ..pubsub::api::Topic::default()

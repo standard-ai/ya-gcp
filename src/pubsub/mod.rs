@@ -3,12 +3,13 @@
 //! Publishing and topic management is done through the [`PublisherClient`], while reading data and
 //! subscription management is done through the [`SubscriberClient`].
 
-use crate::{auth::grpc::AuthGrpcService, retry_policy::RetryPredicate};
+use crate::grpc::{Body, BoxBody, Bytes, DefaultGrpcImpl, GrpcService, StdError};
+use crate::retry_policy::RetryPredicate;
 use std::fmt::Display;
 use tracing::debug_span;
 
 // alias Status as this module's error type
-pub use ::tonic::Status as Error;
+pub use tonic::Status as Error;
 
 pub use client_builder::{BuildError, MakeConnection, PubSubConfig, Uri};
 pub use publish_sink::{PublishConfig, PublishError, PublishTopicSink, SinkError};
@@ -40,53 +41,47 @@ pub mod api {
 ///
 /// This builds on top of the raw [gRPC publisher API](api::publisher_client::PublisherClient)
 /// to provide more ergonomic functionality
-#[derive(Clone)]
-pub struct PublisherClient<C = crate::DefaultConnector> {
-    inner: api::publisher_client::PublisherClient<AuthGrpcService<tonic::transport::Channel, C>>,
+#[derive(Debug, Clone)]
+pub struct PublisherClient<S = DefaultGrpcImpl> {
+    inner: api::publisher_client::PublisherClient<S>,
 }
 
-impl<C> PublisherClient<C>
+impl<S> PublisherClient<S> {
+    /// Manually construct a new client.
+    ///
+    /// There are limited circumstances in which this is useful; consider instead using the builder
+    /// function [crate::builder::ClientBuilder::build_pubsub_publisher]
+    pub fn from_raw_api(client: api::publisher_client::PublisherClient<S>) -> Self {
+        PublisherClient { inner: client }
+    }
+
+    /// Access the underlying grpc api
+    pub fn raw_api(&self) -> &api::publisher_client::PublisherClient<S> {
+        &self.inner
+    }
+
+    /// Mutably access the underlying grpc api
+    pub fn raw_api_mut(&mut self) -> &mut api::publisher_client::PublisherClient<S> {
+        &mut self.inner
+    }
+}
+
+impl<S> PublisherClient<S>
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    S: GrpcService<BoxBody> + Clone,
+    S::Error: Into<StdError>,
+    S::ResponseBody: Body<Data = Bytes> + Send + 'static,
+    <S::ResponseBody as Body>::Error: Into<StdError> + Send,
 {
     /// Create a sink which will publish [messages](api::PubsubMessage) to the given topic.
     ///
     /// See the type's [documentation](PublishTopicSink) for more details.
-    pub fn publish_topic_sink(&mut self, topic: ProjectTopicName) -> PublishTopicSink<C> {
-        self.publish_topic_sink_config(topic, PublishConfig::default())
-    }
-
-    /// Create a sink with non-default config
-    // TODO(major semver) get rid of this method, always require config
-    pub fn publish_topic_sink_config(
+    pub fn publish_topic_sink(
         &mut self,
         topic: ProjectTopicName,
         config: PublishConfig,
-    ) -> PublishTopicSink<C> {
+    ) -> PublishTopicSink<S> {
         PublishTopicSink::new(self.inner.clone(), topic, config)
-    }
-}
-
-impl<C> std::ops::Deref for PublisherClient<C> {
-    type Target =
-        api::publisher_client::PublisherClient<AuthGrpcService<tonic::transport::Channel, C>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl<C> std::ops::DerefMut for PublisherClient<C> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
     }
 }
 
@@ -96,22 +91,37 @@ impl<C> std::ops::DerefMut for PublisherClient<C> {
 ///
 /// This is an interface built on top of the raw [gRPC subscriber
 /// API](api::subscriber_client::SubscriberClient) which provides more ergonomic functionality
-#[derive(Clone)]
-pub struct SubscriberClient<C = crate::DefaultConnector> {
-    inner: api::subscriber_client::SubscriberClient<AuthGrpcService<tonic::transport::Channel, C>>,
+#[derive(Debug, Clone)]
+pub struct SubscriberClient<S = DefaultGrpcImpl> {
+    inner: api::subscriber_client::SubscriberClient<S>,
 }
 
-impl<C> SubscriberClient<C>
+impl<S> SubscriberClient<S> {
+    /// Manually construct a new client.
+    ///
+    /// There are limited circumstances in which this is useful; consider instead using the builder
+    /// function [crate::builder::ClientBuilder::build_pubsub_subscriber]
+    pub fn from_raw_api(client: api::subscriber_client::SubscriberClient<S>) -> Self {
+        Self { inner: client }
+    }
+
+    /// Access the underlying grpc api
+    pub fn raw_api(&self) -> &api::subscriber_client::SubscriberClient<S> {
+        &self.inner
+    }
+
+    /// Mutably access the underlying grpc api
+    pub fn raw_api_mut(&mut self) -> &mut api::subscriber_client::SubscriberClient<S> {
+        &mut self.inner
+    }
+}
+
+impl<S> SubscriberClient<S>
 where
-    C: tower::Service<http::Uri> + Clone + Send + Sync + 'static,
-    C::Response: hyper::client::connect::Connection
-        + tokio::io::AsyncRead
-        + tokio::io::AsyncWrite
-        + Send
-        + Unpin
-        + 'static,
-    C::Future: Send + Unpin + 'static,
-    C::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    S: GrpcService<BoxBody> + Clone,
+    S::Error: Into<StdError>,
+    S::ResponseBody: Body<Data = Bytes> + Send + 'static,
+    <S::ResponseBody as Body>::Error: Into<StdError> + Send,
 {
     /// Start a streaming subscription with the pubsub service.
     ///
@@ -121,26 +131,11 @@ where
         &mut self,
         subscription: ProjectSubscriptionName,
         config: StreamSubscriptionConfig,
-    ) -> StreamSubscription<C> {
+    ) -> StreamSubscription<S> {
         let sub_name: String = subscription.clone().into();
         let span = debug_span!("create_subscription", topic = sub_name);
         let _guard = span.enter();
         StreamSubscription::new(self.inner.clone(), subscription.into(), config)
-    }
-}
-
-impl<C> std::ops::Deref for SubscriberClient<C> {
-    type Target =
-        api::subscriber_client::SubscriberClient<AuthGrpcService<tonic::transport::Channel, C>>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.inner
-    }
-}
-
-impl<C> std::ops::DerefMut for SubscriberClient<C> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
     }
 }
 
