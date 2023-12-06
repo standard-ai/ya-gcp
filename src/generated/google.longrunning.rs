@@ -411,3 +411,440 @@ pub mod operations_client {
         }
     }
 }
+/// Generated server implementations.
+#[cfg(test)]
+pub mod operations_server {
+    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+    use tonic::codegen::*;
+    /// Generated trait containing gRPC methods that should be implemented for use with OperationsServer.
+    #[async_trait]
+    pub trait Operations: Send + Sync + 'static {
+        /// Lists operations that match the specified filter in the request. If the
+        /// server doesn't support this method, it returns `UNIMPLEMENTED`.
+        ///
+        /// NOTE: the `name` binding allows API services to override the binding
+        /// to use different resource name schemes, such as `users/*/operations`. To
+        /// override the binding, API services can add a binding such as
+        /// `"/v1/{name=users/*}/operations"` to their service configuration.
+        /// For backwards compatibility, the default name includes the operations
+        /// collection id, however overriding users must ensure the name binding
+        /// is the parent resource, without the operations collection id.
+        async fn list_operations(
+            &self,
+            request: tonic::Request<super::ListOperationsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::ListOperationsResponse>,
+            tonic::Status,
+        > {
+            Err(tonic::Status::unimplemented("Not yet implemented"))
+        }
+        /// Gets the latest state of a long-running operation.  Clients can use this
+        /// method to poll the operation result at intervals as recommended by the API
+        /// service.
+        async fn get_operation(
+            &self,
+            request: tonic::Request<super::GetOperationRequest>,
+        ) -> std::result::Result<tonic::Response<super::Operation>, tonic::Status> {
+            Err(tonic::Status::unimplemented("Not yet implemented"))
+        }
+        /// Deletes a long-running operation. This method indicates that the client is
+        /// no longer interested in the operation result. It does not cancel the
+        /// operation. If the server doesn't support this method, it returns
+        /// `google.rpc.Code.UNIMPLEMENTED`.
+        async fn delete_operation(
+            &self,
+            request: tonic::Request<super::DeleteOperationRequest>,
+        ) -> std::result::Result<tonic::Response<()>, tonic::Status> {
+            Err(tonic::Status::unimplemented("Not yet implemented"))
+        }
+        /// Starts asynchronous cancellation on a long-running operation.  The server
+        /// makes a best effort to cancel the operation, but success is not
+        /// guaranteed.  If the server doesn't support this method, it returns
+        /// `google.rpc.Code.UNIMPLEMENTED`.  Clients can use
+        /// [Operations.GetOperation][google.longrunning.Operations.GetOperation] or
+        /// other methods to check whether the cancellation succeeded or whether the
+        /// operation completed despite cancellation. On successful cancellation,
+        /// the operation is not deleted; instead, it becomes an operation with
+        /// an [Operation.error][google.longrunning.Operation.error] value with a [google.rpc.Status.code][google.rpc.Status.code] of 1,
+        /// corresponding to `Code.CANCELLED`.
+        async fn cancel_operation(
+            &self,
+            request: tonic::Request<super::CancelOperationRequest>,
+        ) -> std::result::Result<tonic::Response<()>, tonic::Status> {
+            Err(tonic::Status::unimplemented("Not yet implemented"))
+        }
+        /// Waits until the specified long-running operation is done or reaches at most
+        /// a specified timeout, returning the latest state.  If the operation is
+        /// already done, the latest state is immediately returned.  If the timeout
+        /// specified is greater than the default HTTP/RPC timeout, the HTTP/RPC
+        /// timeout is used.  If the server does not support this method, it returns
+        /// `google.rpc.Code.UNIMPLEMENTED`.
+        /// Note that this method is on a best-effort basis.  It may return the latest
+        /// state before the specified timeout (including immediately), meaning even an
+        /// immediate response is no guarantee that the operation is done.
+        async fn wait_operation(
+            &self,
+            request: tonic::Request<super::WaitOperationRequest>,
+        ) -> std::result::Result<tonic::Response<super::Operation>, tonic::Status> {
+            Err(tonic::Status::unimplemented("Not yet implemented"))
+        }
+    }
+    /// Manages long-running operations with an API service.
+    ///
+    /// When an API method normally takes long time to complete, it can be designed
+    /// to return [Operation][google.longrunning.Operation] to the client, and the client can use this
+    /// interface to receive the real response asynchronously by polling the
+    /// operation resource, or pass the operation resource to another API (such as
+    /// Google Cloud Pub/Sub API) to receive the response.  Any API service that
+    /// returns long-running operations should implement the `Operations` interface
+    /// so developers can have a consistent client experience.
+    #[derive(Debug)]
+    pub struct OperationsServer<T: Operations> {
+        inner: _Inner<T>,
+        accept_compression_encodings: EnabledCompressionEncodings,
+        send_compression_encodings: EnabledCompressionEncodings,
+        max_decoding_message_size: Option<usize>,
+        max_encoding_message_size: Option<usize>,
+    }
+    struct _Inner<T>(Arc<T>);
+    impl<T: Operations> OperationsServer<T> {
+        pub fn new(inner: T) -> Self {
+            Self::from_arc(Arc::new(inner))
+        }
+        pub fn from_arc(inner: Arc<T>) -> Self {
+            let inner = _Inner(inner);
+            Self {
+                inner,
+                accept_compression_encodings: Default::default(),
+                send_compression_encodings: Default::default(),
+                max_decoding_message_size: None,
+                max_encoding_message_size: None,
+            }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> InterceptedService<Self, F>
+        where
+            F: tonic::service::Interceptor,
+        {
+            InterceptedService::new(Self::new(inner), interceptor)
+        }
+        /// Enable decompressing requests with the given encoding.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.accept_compression_encodings.enable(encoding);
+            self
+        }
+        /// Compress responses with the given encoding, if the client supports it.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.send_compression_encodings.enable(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.max_decoding_message_size = Some(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.max_encoding_message_size = Some(limit);
+            self
+        }
+    }
+    impl<T, B> tonic::codegen::Service<http::Request<B>> for OperationsServer<T>
+    where
+        T: Operations,
+        B: Body + Send + 'static,
+        B::Error: Into<StdError> + Send + 'static,
+    {
+        type Response = http::Response<tonic::body::BoxBody>;
+        type Error = std::convert::Infallible;
+        type Future = BoxFuture<Self::Response, Self::Error>;
+        fn poll_ready(
+            &mut self,
+            _cx: &mut Context<'_>,
+        ) -> Poll<std::result::Result<(), Self::Error>> {
+            Poll::Ready(Ok(()))
+        }
+        fn call(&mut self, req: http::Request<B>) -> Self::Future {
+            let inner = self.inner.clone();
+            match req.uri().path() {
+                "/google.longrunning.Operations/ListOperations" => {
+                    #[allow(non_camel_case_types)]
+                    struct ListOperationsSvc<T: Operations>(pub Arc<T>);
+                    impl<
+                        T: Operations,
+                    > tonic::server::UnaryService<super::ListOperationsRequest>
+                    for ListOperationsSvc<T> {
+                        type Response = super::ListOperationsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::ListOperationsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as Operations>::list_operations(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = ListOperationsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/google.longrunning.Operations/GetOperation" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetOperationSvc<T: Operations>(pub Arc<T>);
+                    impl<
+                        T: Operations,
+                    > tonic::server::UnaryService<super::GetOperationRequest>
+                    for GetOperationSvc<T> {
+                        type Response = super::Operation;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetOperationRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as Operations>::get_operation(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = GetOperationSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/google.longrunning.Operations/DeleteOperation" => {
+                    #[allow(non_camel_case_types)]
+                    struct DeleteOperationSvc<T: Operations>(pub Arc<T>);
+                    impl<
+                        T: Operations,
+                    > tonic::server::UnaryService<super::DeleteOperationRequest>
+                    for DeleteOperationSvc<T> {
+                        type Response = ();
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::DeleteOperationRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as Operations>::delete_operation(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = DeleteOperationSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/google.longrunning.Operations/CancelOperation" => {
+                    #[allow(non_camel_case_types)]
+                    struct CancelOperationSvc<T: Operations>(pub Arc<T>);
+                    impl<
+                        T: Operations,
+                    > tonic::server::UnaryService<super::CancelOperationRequest>
+                    for CancelOperationSvc<T> {
+                        type Response = ();
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::CancelOperationRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as Operations>::cancel_operation(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = CancelOperationSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/google.longrunning.Operations/WaitOperation" => {
+                    #[allow(non_camel_case_types)]
+                    struct WaitOperationSvc<T: Operations>(pub Arc<T>);
+                    impl<
+                        T: Operations,
+                    > tonic::server::UnaryService<super::WaitOperationRequest>
+                    for WaitOperationSvc<T> {
+                        type Response = super::Operation;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::WaitOperationRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as Operations>::wait_operation(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = WaitOperationSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                _ => {
+                    Box::pin(async move {
+                        Ok(
+                            http::Response::builder()
+                                .status(200)
+                                .header("grpc-status", "12")
+                                .header("content-type", "application/grpc")
+                                .body(empty_body())
+                                .unwrap(),
+                        )
+                    })
+                }
+            }
+        }
+    }
+    impl<T: Operations> Clone for OperationsServer<T> {
+        fn clone(&self) -> Self {
+            let inner = self.inner.clone();
+            Self {
+                inner,
+                accept_compression_encodings: self.accept_compression_encodings,
+                send_compression_encodings: self.send_compression_encodings,
+                max_decoding_message_size: self.max_decoding_message_size,
+                max_encoding_message_size: self.max_encoding_message_size,
+            }
+        }
+    }
+    impl<T: Operations> Clone for _Inner<T> {
+        fn clone(&self) -> Self {
+            Self(Arc::clone(&self.0))
+        }
+    }
+    impl<T: std::fmt::Debug> std::fmt::Debug for _Inner<T> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{:?}", self.0)
+        }
+    }
+    impl<T: Operations> tonic::server::NamedService for OperationsServer<T> {
+        const NAME: &'static str = "google.longrunning.Operations";
+    }
+}

@@ -30,7 +30,12 @@ pub use mutation::{MutateRowRequest, MutateRowsError, MutateRowsRequest};
 #[cfg_attr(docsrs, doc(cfg(feature = "emulators")))]
 pub mod emulator;
 
-#[allow(rustdoc::broken_intra_doc_links, rustdoc::bare_urls, missing_docs)]
+#[allow(
+    rustdoc::broken_intra_doc_links,
+    rustdoc::bare_urls,
+    missing_docs,
+    unreachable_pub
+)]
 pub mod api {
     pub mod rpc {
         include!("../generated/google.rpc.rs");

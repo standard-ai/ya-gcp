@@ -949,78 +949,68 @@ mod pubsub_client_tests {
     }
 
     /// 1) Modifying a deadline with too great a deadline should be an error
-    /// 2) Ack'ing a message should error after the request stream is dropped
-    #[test]
-    fn ack_errors() {
-        let runtime = tokio::runtime::Runtime::new().unwrap();
+    /// 2) Ack'ing a message still works after the request stream is dropped
+    #[tokio::test]
+    async fn ack_errors() {
+        let topic_name = "test-topic";
+        let subscription_name = "test-subscription";
 
-        // Interestingly, it appears that tonic spawns the request stream onto the runtime in some
-        // way, and that dropping the output stream or even the subscriber client does not drop
-        // the request stream. Instead, we have to drop the entire runtime in order to drop the
-        // background task which holds the ack request stream
+        let emulator = Emulator::new().project("test-project").await.unwrap();
+        let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
 
-        let mut ack_token = runtime.block_on(async {
-            let topic_name = "test-topic";
-            let subscription_name = "test-subscription";
+        let mut publish_client = emulator
+            .builder()
+            .build_pubsub_publisher(config.clone())
+            .await
+            .unwrap();
 
-            let emulator = Emulator::new().project("test-project").await.unwrap();
-            let config = pubsub::PubSubConfig::new().endpoint(emulator.endpoint());
-
-            let mut publish_client = emulator
-                .builder()
-                .build_pubsub_publisher(config.clone())
-                .await
-                .unwrap();
-
-            // Create a topic to query.
-            let topic = create_dummy_topic(&mut publish_client, emulator.project(), topic_name)
-                .await
-                .unwrap()
-                .into_inner();
-
-            let mut subscription_client = emulator
-                .builder()
-                .build_pubsub_subscriber(config.clone())
-                .await
-                .unwrap();
-
-            // Create a subscription to query. Must be created before messages are published.
-            let _subscription = create_dummy_subscription(
-                &mut subscription_client,
-                emulator.project(),
-                subscription_name,
-                topic_name,
-            )
+        // Create a topic to query.
+        let topic = create_dummy_topic(&mut publish_client, emulator.project(), topic_name)
             .await
             .unwrap()
             .into_inner();
 
-            // send 1 message to the publisher to get an ack token
-            publish_client
-                .raw_api_mut()
-                .publish({
-                    let mut p = pubsub::api::PublishRequest::default();
-                    p.topic = topic.name;
-                    p.messages = vec![{
-                        let mut m = pubsub::api::PubsubMessage::default();
-                        m.data = "foobar".into();
-                        m
-                    }];
-                    p
-                })
-                .await
-                .unwrap();
+        let mut subscription_client = emulator
+            .builder()
+            .build_pubsub_subscriber(config.clone())
+            .await
+            .unwrap();
 
-            let subscription_stream = subscription_client.stream_subscription(
-                ProjectSubscriptionName::new(emulator.project(), subscription_name),
-                StreamSubscriptionConfig::default(),
-            );
+        // Create a subscription to query. Must be created before messages are published.
+        let _subscription = create_dummy_subscription(
+            &mut subscription_client,
+            emulator.project(),
+            subscription_name,
+            topic_name,
+        )
+        .await
+        .unwrap()
+        .into_inner();
 
-            pin_mut!(subscription_stream);
+        // send 1 message to the publisher to get an ack token
+        publish_client
+            .raw_api_mut()
+            .publish({
+                let mut p = pubsub::api::PublishRequest::default();
+                p.topic = topic.name;
+                p.messages = vec![{
+                    let mut m = pubsub::api::PubsubMessage::default();
+                    m.data = "foobar".into();
+                    m
+                }];
+                p
+            })
+            .await
+            .unwrap();
 
-            let (ack_token, _message) = subscription_stream.next().await.unwrap().unwrap();
-            ack_token
-        });
+        let subscription_stream = subscription_client.stream_subscription(
+            ProjectSubscriptionName::new(emulator.project(), subscription_name),
+            StreamSubscriptionConfig::default(),
+        );
+
+        pin_mut!(subscription_stream);
+
+        let (mut ack_token, _message) = subscription_stream.next().await.unwrap().unwrap();
 
         let mut cx = Context::from_waker(futures::task::noop_waker_ref());
 
@@ -1034,30 +1024,13 @@ mod pubsub_client_tests {
             }))
         );
 
-        // invariant check that ack tokens still work while the runtime is alive
-        assert_eq!(
-            Box::pin(ack_token.modify_deadline(599))
-                .as_mut()
-                .poll(&mut cx),
-            Poll::Ready(Ok(()))
-        );
+        // sanity check that ack tokens work while the stream is alive
+        assert!(matches!(ack_token.modify_deadline(599).await, Ok(())));
 
-        std::mem::drop(runtime);
+        std::mem::drop(subscription_stream);
 
-        // now modifications or acks/nacks will fail
-
-        assert!(matches!(
-            Box::pin(ack_token.modify_deadline(599))
-                .as_mut()
-                .poll(&mut cx),
-            Poll::Ready(Err(pubsub::ModifyAcknowledgeError::Modify(
-                pubsub::AcknowledgeError { .. }
-            )))
-        ));
-
-        assert!(matches!(
-            Box::pin(ack_token.ack()).as_mut().poll(&mut cx),
-            Poll::Ready(Err(pubsub::AcknowledgeError { .. }))
-        ));
+        // now modifications or acks/nacks can still proceed
+        assert!(matches!(ack_token.modify_deadline(599).await, Ok(())));
+        assert!(matches!(ack_token.ack().await, Ok(())));
     }
 }

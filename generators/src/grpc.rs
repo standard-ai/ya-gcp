@@ -76,7 +76,9 @@ fn main() -> Result<(), Error> {
 
     tonic_build::configure()
         .build_client(true)
-        .build_server(false)
+        .build_server(true) // build servers for tests
+        .server_mod_attribute(".", "#[cfg(test)]")
+        .generate_default_stubs(true)
         .out_dir(&args.output_dir)
         .compile_with_config(
             prost_config,
