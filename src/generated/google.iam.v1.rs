@@ -652,3 +652,332 @@ pub mod iam_policy_client {
         }
     }
 }
+/// Generated server implementations.
+#[cfg(test)]
+pub mod iam_policy_server {
+    #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
+    use tonic::codegen::*;
+    /// Generated trait containing gRPC methods that should be implemented for use with IamPolicyServer.
+    #[async_trait]
+    pub trait IamPolicy: Send + Sync + 'static {
+        /// Sets the access control policy on the specified resource. Replaces any
+        /// existing policy.
+        ///
+        /// Can return `NOT_FOUND`, `INVALID_ARGUMENT`, and `PERMISSION_DENIED` errors.
+        async fn set_iam_policy(
+            &self,
+            request: tonic::Request<super::SetIamPolicyRequest>,
+        ) -> std::result::Result<tonic::Response<super::Policy>, tonic::Status> {
+            Err(tonic::Status::unimplemented("Not yet implemented"))
+        }
+        /// Gets the access control policy for a resource.
+        /// Returns an empty policy if the resource exists and does not have a policy
+        /// set.
+        async fn get_iam_policy(
+            &self,
+            request: tonic::Request<super::GetIamPolicyRequest>,
+        ) -> std::result::Result<tonic::Response<super::Policy>, tonic::Status> {
+            Err(tonic::Status::unimplemented("Not yet implemented"))
+        }
+        /// Returns permissions that a caller has on the specified resource.
+        /// If the resource does not exist, this will return an empty set of
+        /// permissions, not a `NOT_FOUND` error.
+        ///
+        /// Note: This operation is designed to be used for building permission-aware
+        /// UIs and command-line tools, not for authorization checking. This operation
+        /// may "fail open" without warning.
+        async fn test_iam_permissions(
+            &self,
+            request: tonic::Request<super::TestIamPermissionsRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::TestIamPermissionsResponse>,
+            tonic::Status,
+        > {
+            Err(tonic::Status::unimplemented("Not yet implemented"))
+        }
+    }
+    /// API Overview
+    ///
+    ///
+    /// Manages Identity and Access Management (IAM) policies.
+    ///
+    /// Any implementation of an API that offers access control features
+    /// implements the google.iam.v1.IAMPolicy interface.
+    ///
+    /// ## Data model
+    ///
+    /// Access control is applied when a principal (user or service account), takes
+    /// some action on a resource exposed by a service. Resources, identified by
+    /// URI-like names, are the unit of access control specification. Service
+    /// implementations can choose the granularity of access control and the
+    /// supported permissions for their resources.
+    /// For example one database service may allow access control to be
+    /// specified only at the Table level, whereas another might allow access control
+    /// to also be specified at the Column level.
+    ///
+    /// ## Policy Structure
+    ///
+    /// See google.iam.v1.Policy
+    ///
+    /// This is intentionally not a CRUD style API because access control policies
+    /// are created and deleted implicitly with the resources to which they are
+    /// attached.
+    #[derive(Debug)]
+    pub struct IamPolicyServer<T: IamPolicy> {
+        inner: _Inner<T>,
+        accept_compression_encodings: EnabledCompressionEncodings,
+        send_compression_encodings: EnabledCompressionEncodings,
+        max_decoding_message_size: Option<usize>,
+        max_encoding_message_size: Option<usize>,
+    }
+    struct _Inner<T>(Arc<T>);
+    impl<T: IamPolicy> IamPolicyServer<T> {
+        pub fn new(inner: T) -> Self {
+            Self::from_arc(Arc::new(inner))
+        }
+        pub fn from_arc(inner: Arc<T>) -> Self {
+            let inner = _Inner(inner);
+            Self {
+                inner,
+                accept_compression_encodings: Default::default(),
+                send_compression_encodings: Default::default(),
+                max_decoding_message_size: None,
+                max_encoding_message_size: None,
+            }
+        }
+        pub fn with_interceptor<F>(
+            inner: T,
+            interceptor: F,
+        ) -> InterceptedService<Self, F>
+        where
+            F: tonic::service::Interceptor,
+        {
+            InterceptedService::new(Self::new(inner), interceptor)
+        }
+        /// Enable decompressing requests with the given encoding.
+        #[must_use]
+        pub fn accept_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.accept_compression_encodings.enable(encoding);
+            self
+        }
+        /// Compress responses with the given encoding, if the client supports it.
+        #[must_use]
+        pub fn send_compressed(mut self, encoding: CompressionEncoding) -> Self {
+            self.send_compression_encodings.enable(encoding);
+            self
+        }
+        /// Limits the maximum size of a decoded message.
+        ///
+        /// Default: `4MB`
+        #[must_use]
+        pub fn max_decoding_message_size(mut self, limit: usize) -> Self {
+            self.max_decoding_message_size = Some(limit);
+            self
+        }
+        /// Limits the maximum size of an encoded message.
+        ///
+        /// Default: `usize::MAX`
+        #[must_use]
+        pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
+            self.max_encoding_message_size = Some(limit);
+            self
+        }
+    }
+    impl<T, B> tonic::codegen::Service<http::Request<B>> for IamPolicyServer<T>
+    where
+        T: IamPolicy,
+        B: Body + Send + 'static,
+        B::Error: Into<StdError> + Send + 'static,
+    {
+        type Response = http::Response<tonic::body::BoxBody>;
+        type Error = std::convert::Infallible;
+        type Future = BoxFuture<Self::Response, Self::Error>;
+        fn poll_ready(
+            &mut self,
+            _cx: &mut Context<'_>,
+        ) -> Poll<std::result::Result<(), Self::Error>> {
+            Poll::Ready(Ok(()))
+        }
+        fn call(&mut self, req: http::Request<B>) -> Self::Future {
+            let inner = self.inner.clone();
+            match req.uri().path() {
+                "/google.iam.v1.IAMPolicy/SetIamPolicy" => {
+                    #[allow(non_camel_case_types)]
+                    struct SetIamPolicySvc<T: IamPolicy>(pub Arc<T>);
+                    impl<
+                        T: IamPolicy,
+                    > tonic::server::UnaryService<super::SetIamPolicyRequest>
+                    for SetIamPolicySvc<T> {
+                        type Response = super::Policy;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::SetIamPolicyRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as IamPolicy>::set_iam_policy(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = SetIamPolicySvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/google.iam.v1.IAMPolicy/GetIamPolicy" => {
+                    #[allow(non_camel_case_types)]
+                    struct GetIamPolicySvc<T: IamPolicy>(pub Arc<T>);
+                    impl<
+                        T: IamPolicy,
+                    > tonic::server::UnaryService<super::GetIamPolicyRequest>
+                    for GetIamPolicySvc<T> {
+                        type Response = super::Policy;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::GetIamPolicyRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as IamPolicy>::get_iam_policy(&inner, request).await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = GetIamPolicySvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                "/google.iam.v1.IAMPolicy/TestIamPermissions" => {
+                    #[allow(non_camel_case_types)]
+                    struct TestIamPermissionsSvc<T: IamPolicy>(pub Arc<T>);
+                    impl<
+                        T: IamPolicy,
+                    > tonic::server::UnaryService<super::TestIamPermissionsRequest>
+                    for TestIamPermissionsSvc<T> {
+                        type Response = super::TestIamPermissionsResponse;
+                        type Future = BoxFuture<
+                            tonic::Response<Self::Response>,
+                            tonic::Status,
+                        >;
+                        fn call(
+                            &mut self,
+                            request: tonic::Request<super::TestIamPermissionsRequest>,
+                        ) -> Self::Future {
+                            let inner = Arc::clone(&self.0);
+                            let fut = async move {
+                                <T as IamPolicy>::test_iam_permissions(&inner, request)
+                                    .await
+                            };
+                            Box::pin(fut)
+                        }
+                    }
+                    let accept_compression_encodings = self.accept_compression_encodings;
+                    let send_compression_encodings = self.send_compression_encodings;
+                    let max_decoding_message_size = self.max_decoding_message_size;
+                    let max_encoding_message_size = self.max_encoding_message_size;
+                    let inner = self.inner.clone();
+                    let fut = async move {
+                        let inner = inner.0;
+                        let method = TestIamPermissionsSvc(inner);
+                        let codec = tonic::codec::ProstCodec::default();
+                        let mut grpc = tonic::server::Grpc::new(codec)
+                            .apply_compression_config(
+                                accept_compression_encodings,
+                                send_compression_encodings,
+                            )
+                            .apply_max_message_size_config(
+                                max_decoding_message_size,
+                                max_encoding_message_size,
+                            );
+                        let res = grpc.unary(method, req).await;
+                        Ok(res)
+                    };
+                    Box::pin(fut)
+                }
+                _ => {
+                    Box::pin(async move {
+                        Ok(
+                            http::Response::builder()
+                                .status(200)
+                                .header("grpc-status", "12")
+                                .header("content-type", "application/grpc")
+                                .body(empty_body())
+                                .unwrap(),
+                        )
+                    })
+                }
+            }
+        }
+    }
+    impl<T: IamPolicy> Clone for IamPolicyServer<T> {
+        fn clone(&self) -> Self {
+            let inner = self.inner.clone();
+            Self {
+                inner,
+                accept_compression_encodings: self.accept_compression_encodings,
+                send_compression_encodings: self.send_compression_encodings,
+                max_decoding_message_size: self.max_decoding_message_size,
+                max_encoding_message_size: self.max_encoding_message_size,
+            }
+        }
+    }
+    impl<T: IamPolicy> Clone for _Inner<T> {
+        fn clone(&self) -> Self {
+            Self(Arc::clone(&self.0))
+        }
+    }
+    impl<T: std::fmt::Debug> std::fmt::Debug for _Inner<T> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{:?}", self.0)
+        }
+    }
+    impl<T: IamPolicy> tonic::server::NamedService for IamPolicyServer<T> {
+        const NAME: &'static str = "google.iam.v1.IAMPolicy";
+    }
+}

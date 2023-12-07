@@ -1,6 +1,6 @@
 [package]
 name = "ya-gcp"
-version = "0.11.0"
+version = "0.11.1"
 authors = ["Renar Narubin <renar@standard.ai>"]
 edition = "2021"
 description = "APIs for using Google Cloud Platform services"
@@ -39,7 +39,7 @@ webpki-roots = ["dep:webpki-roots", "tonic?/tls-webpki-roots"]
 grpc = ["tonic", "prost", "prost-types", "tower", "derive_more"]
 
 bigtable = ["async-stream", "grpc", "prost", "tower"]
-pubsub = ["grpc", "uuid", "async-stream", "pin-project", "async-channel", "tokio/time"]
+pubsub = ["grpc", "uuid", "async-stream", "pin-project", "tokio/sync"]
 storage = ["tame-gcs", "tower"]
 
 # whether to include service emulator implementations. useful for testing
@@ -57,12 +57,11 @@ rand = "0.8"
 rustls = "0.21.8"
 serde = { version = "1", features = ["derive"] }
 thiserror = "1"
-tokio = { version = "1", features = ["time"] }
+tokio = { version = "1.34", features = ["time"] }
 tracing = "0.1.37"
 yup-oauth2 = "8.3.0"
 
 async-stream = { version = "0.3", optional = true }
-async-channel = { version = "1", optional = true }
 derive_more = { version = "0.99", optional = true }
 pin-project = { version = "1.0.11", optional = true }
 prost = { version = "0.12.3", optional = true }
@@ -82,7 +81,7 @@ quickcheck = "1"
 quickcheck_macros = "1"
 serde_json = "1"
 structopt = "0.3" # for examples
-tokio = { version = "1.4.0", features = ["rt-multi-thread", "time", "test-util"] }
+tokio = { version = "1.34.0", features = ["rt-multi-thread", "time", "test-util"] }
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 tracing-tree = "0.2"
 

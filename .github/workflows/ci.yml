@@ -119,5 +119,6 @@ jobs:
         with:
           toolchain: nightly-2023-04-18
           command: doc
+          args: --all-features
         env:
           RUSTDOCFLAGS: "--cfg docsrs"

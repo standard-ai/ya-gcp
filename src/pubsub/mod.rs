@@ -27,7 +27,12 @@ mod streaming_subscription;
 pub mod emulator;
 
 /// Types and functions generated from PubSub's gRPC schema
-#[allow(rustdoc::broken_intra_doc_links, rustdoc::bare_urls, missing_docs)]
+#[allow(
+    rustdoc::broken_intra_doc_links,
+    rustdoc::bare_urls,
+    missing_docs,
+    unreachable_pub
+)]
 pub mod api {
     include!("../generated/google.pubsub.v1.rs");
 
@@ -135,7 +140,27 @@ where
         let sub_name: String = subscription.clone().into();
         let span = debug_span!("create_subscription", topic = sub_name);
         let _guard = span.enter();
-        StreamSubscription::new(self.inner.clone(), subscription.into(), config)
+        StreamSubscription::new(
+            // As of the ack handler changes, the streaming implementation needs more than one
+            // client. The obvious approach would be to clone the client as necessary. However
+            // adding a Clone bound is a major semver change, and for downstream-simplification
+            // reasons we'd like to avoid that.
+            //
+            // Fortunately, there already *was* a clone bound on this `stream_subscription`
+            // function, which is the only public way to construct the stream. Also fortunately we
+            // only need a static number of clients and not arbitrary clones, so we can clone here
+            // and pass an array down there. This isn't *pretty*, but it works
+            //
+            // TODO(0.12.0) just add the clone bound
+            [
+                self.inner.clone(),
+                self.inner.clone(),
+                self.inner.clone(),
+                self.inner.clone(),
+            ],
+            subscription.into(),
+            config,
+        )
     }
 }
 
