@@ -156,7 +156,7 @@ impl AcknowledgeToken {
     /// This may be useful if the message consumer encounters an error while processing the
     /// message.
     ///
-    /// The returned future need not be awaited, see [`ack`]
+    /// The returned future need not be awaited, see [`AcknowledgeToken::ack`]
     pub fn nack(self) -> impl Future<Output = Result<(), AcknowledgeError>> + Send {
         TokenFeedback::send(&self.router.nacks, self.id)
     }
@@ -172,7 +172,7 @@ impl AcknowledgeToken {
     /// immediately available for re-delivery. The maximum deadline accepted by the service is 600
     /// seconds.
     ///
-    /// The returned future need not be awaited, see [`ack`]
+    /// The returned future need not be awaited, see [`AcknowledgeToken::ack`]
     pub fn modify_deadline(
         &mut self,
         seconds: u32,
