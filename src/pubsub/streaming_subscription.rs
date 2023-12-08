@@ -3,7 +3,7 @@ use std::{
     future::Future,
     mem,
     pin::Pin,
-    sync::Arc,
+    sync::{Arc, Mutex},
     task::{Context, Poll},
     time::Duration,
 };
@@ -249,16 +249,20 @@ impl<T: Send> TokenFeedback<T> {
 
 /// Wait for acks to arrive over the given channel, and send them to the server via the acknowledge
 /// grpc method.
-async fn handle_acks<S>(
+async fn handle_acks<S, R>(
     mut client: api::subscriber_client::SubscriberClient<S>,
     subscription: String,
     mut acks: mpsc::UnboundedReceiver<TokenFeedback<String>>,
+    mut retry_policy: R,
 ) where
     S: GrpcService<BoxBody> + Send + 'static,
     S::Future: Send + 'static,
     S::Error: Into<StdError>,
     S::ResponseBody: Body<Data = Bytes> + Send + 'static,
     <S::ResponseBody as Body>::Error: Into<StdError> + Send,
+    R: RetryPolicy<(), tonic::Status> + Send + 'static,
+    R::RetryOp: Send + 'static,
+    <R::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,
 {
     let mut batch = Vec::new();
     loop {
@@ -275,11 +279,19 @@ async fn handle_acks<S>(
                 .collect(),
         };
 
-        let response = client
-            .acknowledge(request)
-            .await
-            .map(tonic::Response::into_inner)
-            .map_err(|err| AcknowledgeError(AckErr::Request(err)));
+        let mut retry_op = retry_policy.new_operation();
+        let response = 'retry: loop {
+            match client.acknowledge(request.clone()).await {
+                Ok(response) => break Ok(response.into_inner()),
+                Err(err) => match retry_op.check_retry(&(), &err) {
+                    None => break Err(AcknowledgeError(AckErr::Request(err))),
+                    Some(backoff) => {
+                        backoff.await;
+                        continue 'retry;
+                    }
+                },
+            }
+        };
 
         let mut listeners = batch
             .drain(..)
@@ -299,16 +311,20 @@ async fn handle_acks<S>(
 
 /// much like handle_acks except includes ack_deadline_seconds and calls modify_ack_deadline.
 // unfortunately hard to unify the two without proper async closures (or macros i guess)
-async fn handle_nacks<S>(
+async fn handle_nacks<S, R>(
     mut client: api::subscriber_client::SubscriberClient<S>,
     subscription: String,
     mut nacks: mpsc::UnboundedReceiver<TokenFeedback<String>>,
+    mut retry_policy: R,
 ) where
     S: GrpcService<BoxBody> + Send + 'static,
     S::Future: Send + 'static,
     S::Error: Into<StdError>,
     S::ResponseBody: Body<Data = Bytes> + Send + 'static,
     <S::ResponseBody as Body>::Error: Into<StdError> + Send,
+    R: RetryPolicy<(), tonic::Status> + Send + 'static,
+    R::RetryOp: Send + 'static,
+    <R::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,
 {
     let mut batch = Vec::new();
     loop {
@@ -326,11 +342,19 @@ async fn handle_nacks<S>(
                 .collect(),
         };
 
-        let response = client
-            .modify_ack_deadline(request)
-            .await
-            .map(tonic::Response::into_inner)
-            .map_err(|err| AcknowledgeError(AckErr::Request(err)));
+        let mut retry_op = retry_policy.new_operation();
+        let response = 'retry: loop {
+            match client.modify_ack_deadline(request.clone()).await {
+                Ok(response) => break Ok(response.into_inner()),
+                Err(err) => match retry_op.check_retry(&(), &err) {
+                    None => break Err(AcknowledgeError(AckErr::Request(err))),
+                    Some(backoff) => {
+                        backoff.await;
+                        continue 'retry;
+                    }
+                },
+            }
+        };
 
         let mut listeners = batch
             .drain(..)
@@ -344,16 +368,20 @@ async fn handle_nacks<S>(
     }
 }
 
-async fn handle_modacks<S>(
+async fn handle_modacks<S, R>(
     mut client: api::subscriber_client::SubscriberClient<S>,
     subscription: String,
     mut modacks: mpsc::UnboundedReceiver<TokenFeedback<ModAck>>,
+    mut retry_policy: R,
 ) where
     S: GrpcService<BoxBody> + Send + 'static,
     S::Future: Send + 'static,
     S::Error: Into<StdError>,
     S::ResponseBody: Body<Data = Bytes> + Send + 'static,
     <S::ResponseBody as Body>::Error: Into<StdError> + Send,
+    R: RetryPolicy<(), tonic::Status> + Send + 'static,
+    R::RetryOp: Send + 'static,
+    <R::RetryOp as RetryOperation<(), tonic::Status>>::Sleep: Send + 'static,
 {
     let mut batch = Vec::new();
     loop {
@@ -388,11 +416,19 @@ async fn handle_modacks<S>(
                     .collect(),
             };
 
-            let response = client
-                .modify_ack_deadline(request)
-                .await
-                .map(tonic::Response::into_inner)
-                .map_err(|err| AcknowledgeError(AckErr::Request(err)));
+            let mut retry_op = retry_policy.new_operation();
+            let response = 'retry: loop {
+                match client.modify_ack_deadline(request.clone()).await {
+                    Ok(response) => break Ok(response.into_inner()),
+                    Err(err) => match retry_op.check_retry(&(), &err) {
+                        None => break Err(AcknowledgeError(AckErr::Request(err))),
+                        Some(backoff) => {
+                            backoff.await;
+                            continue 'retry;
+                        }
+                    },
+                }
+            };
 
             let mut listeners = batch
                 .drain(section_start..)
@@ -645,7 +681,7 @@ fn stream_from_client<S, R>(
     clients: [api::subscriber_client::SubscriberClient<S>; 4],
     subscription: String,
     config: StreamSubscriptionConfig,
-    mut retry_policy: R,
+    retry_policy: R,
 ) -> impl Stream<Item = Result<(AcknowledgeToken, api::PubsubMessage), tonic::Status>> + Send + 'static
 where
     S: GrpcService<BoxBody> + Send + 'static,
@@ -663,6 +699,7 @@ where
     // the client id is used for stream reconnection on error
     let client_id = uuid::Uuid::new_v4().to_string();
 
+    let mut retry_policy = ArcRetry::new(retry_policy);
     let [mut client, ack_client, nack_client, modack_client] = clients;
 
     async_stream::stream! {
@@ -676,9 +713,9 @@ where
         // spawn the ack processing in the background. These should continue to process even
         // when messages are not being pulled.
         let ack_processor = tokio::spawn(future::join3(
-                handle_acks(ack_client, subscription.clone(), acks_rx),
-                handle_nacks(nack_client, subscription.clone(), nacks_rx),
-                handle_modacks(modack_client, subscription.clone(), modacks_rx),
+                handle_acks(ack_client, subscription.clone(), acks_rx, retry_policy.clone()),
+                handle_nacks(nack_client, subscription.clone(), nacks_rx, retry_policy.clone()),
+                handle_modacks(modack_client, subscription.clone(), modacks_rx, retry_policy.clone()),
             ))
             .unwrap_or_else(|join_err| std::panic::resume_unwind(join_err.into_panic()))
             .map(|((), (), ())| ());
@@ -775,6 +812,39 @@ where
                 }
             }
         }
+    }
+}
+
+// Generic `R: RetryPolicy` doesn't impl Clone? fine! i'll build my own
+// TODO(0.12.0) require `R: Clone` on stream instead of these shenanigans
+struct ArcRetry<R> {
+    inner: Arc<Mutex<R>>,
+}
+
+impl<R> ArcRetry<R> {
+    fn new(r: R) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(r)),
+        }
+    }
+}
+
+impl<R> Clone for ArcRetry<R> {
+    fn clone(&self) -> Self {
+        Self {
+            inner: Arc::clone(&self.inner),
+        }
+    }
+}
+
+impl<R, T, E> RetryPolicy<T, E> for ArcRetry<R>
+where
+    R: RetryPolicy<T, E>,
+{
+    type RetryOp = R::RetryOp;
+
+    fn new_operation(&mut self) -> Self::RetryOp {
+        self.inner.lock().unwrap().new_operation()
     }
 }
 
@@ -893,6 +963,7 @@ mod test {
             ),
             "test-subscription".into(),
             recv,
+            TestRetryPolicy { max_retries: 0 },
         )
         .boxed();
 
@@ -1068,6 +1139,7 @@ mod test {
             ),
             "test-subscription".into(),
             recv,
+            TestRetryPolicy { max_retries: 0 },
         )
         .boxed();
 
@@ -1248,6 +1320,7 @@ mod test {
             ),
             "test-subscription".into(),
             recv,
+            TestRetryPolicy { max_retries: 0 },
         )
         .boxed();
 
@@ -1572,7 +1645,7 @@ mod test {
             }),
             "test-subscription".into(),
             StreamSubscriptionConfig::default(),
-            ExponentialBackoff::new(PubSubRetryCheck::default(), Default::default()),
+            TestRetryPolicy { max_retries: 0 },
         )
         .boxed();
 
@@ -1608,5 +1681,356 @@ mod test {
             ack_fut.as_mut().poll(&mut cx),
             Poll::Ready(Err(AcknowledgeError(AckErr::BackgroundTaskPanic)))
         ));
+    }
+
+    // check that acks/nacks/modacks are retried on non-terminal errors
+    #[test]
+    fn ack_retry() {
+        let mut cx = Context::from_waker(futures::task::noop_waker_ref());
+        #[derive(Default, Clone)]
+        struct MockSubscriberServer {
+            acks: Arc<Mutex<Vec<api::AcknowledgeRequest>>>,
+            modacks: Arc<Mutex<Vec<api::ModifyAckDeadlineRequest>>>,
+            injected_errors: Arc<Mutex<Vec<tonic::Status>>>,
+        }
+
+        #[tonic::codegen::async_trait]
+        impl api::subscriber_server::Subscriber for MockSubscriberServer {
+            async fn acknowledge(
+                &self,
+                request: tonic::Request<api::AcknowledgeRequest>,
+            ) -> std::result::Result<tonic::Response<()>, tonic::Status> {
+                self.acks.lock().unwrap().push(request.into_inner());
+
+                let mut errs = self.injected_errors.lock().unwrap();
+                if errs.is_empty() {
+                    Ok(tonic::Response::new(()))
+                } else {
+                    Err(errs.remove(0))
+                }
+            }
+
+            async fn modify_ack_deadline(
+                &self,
+                request: tonic::Request<api::ModifyAckDeadlineRequest>,
+            ) -> std::result::Result<tonic::Response<()>, tonic::Status> {
+                self.modacks.lock().unwrap().push(request.into_inner());
+
+                let mut errs = self.injected_errors.lock().unwrap();
+                if errs.is_empty() {
+                    Ok(tonic::Response::new(()))
+                } else {
+                    Err(errs.remove(0))
+                }
+            }
+        }
+
+        let retry_policy = TestRetryPolicy { max_retries: 2 };
+        let server = MockSubscriberServer::default();
+        let take_server_acks = || server.acks.lock().unwrap().drain(..).collect::<Vec<_>>();
+        let take_server_modacks = || server.modacks.lock().unwrap().drain(..).collect::<Vec<_>>();
+
+        let client = api::subscriber_client::SubscriberClient::new(
+            api::subscriber_server::SubscriberServer::new(server.clone()),
+        );
+
+        {
+            let (ack_send, recv) = mpsc::unbounded_channel();
+            let mut ack_handler = handle_acks(
+                client.clone(),
+                "test-subscription".into(),
+                recv,
+                retry_policy.clone(),
+            )
+            .boxed();
+
+            let mut ack_fut = TokenFeedback::send(&ack_send, "ack1".into()).boxed();
+            // inject 2 errors which the ack handler should retry
+            server.injected_errors.lock().unwrap().extend([
+                tonic::Status::unavailable("please try again"),
+                tonic::Status::unavailable("please try again"),
+            ]);
+
+            assert!(matches!(ack_handler.as_mut().poll(&mut cx), Poll::Pending));
+            // two errors should show 3 total requests
+            assert_eq!(
+                take_server_acks(),
+                vec![
+                    api::AcknowledgeRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["ack1".into()]
+                    },
+                    api::AcknowledgeRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["ack1".into()]
+                    },
+                    api::AcknowledgeRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["ack1".into()]
+                    }
+                ]
+            );
+
+            // and the ack should be successful in the end
+            assert!(matches!(
+                ack_fut.as_mut().poll(&mut cx),
+                Poll::Ready(Ok(()))
+            ));
+
+            // exceeding the error count should still yield the error in the end
+            server.injected_errors.lock().unwrap().extend([
+                tonic::Status::unavailable("please try again"),
+                tonic::Status::unavailable("please try again"),
+                tonic::Status::unavailable("3 is too many, give up"),
+            ]);
+            let mut ack_fut = TokenFeedback::send(&ack_send, "ack2".into()).boxed();
+            assert!(matches!(ack_handler.as_mut().poll(&mut cx), Poll::Pending));
+            assert_eq!(
+                take_server_acks(),
+                vec![
+                    api::AcknowledgeRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["ack2".into()]
+                    },
+                    api::AcknowledgeRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["ack2".into()]
+                    },
+                    api::AcknowledgeRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["ack2".into()]
+                    }
+                ]
+            );
+            // the ack should be informed that the operation failed
+            let ack_response = ack_fut.as_mut().poll(&mut cx);
+            match ack_response {
+                Poll::Ready(Err(AcknowledgeError(AckErr::Request(status))))
+                    if (status.code(), status.message())
+                        == (Code::Unavailable, "3 is too many, give up") => {}
+                _ => panic!("unexpected future output {ack_response:?}"),
+            };
+        }
+        // do all the same again for nacks
+        {
+            let (nack_send, recv) = mpsc::unbounded_channel();
+            let mut nack_handler = handle_nacks(
+                client.clone(),
+                "test-subscription".into(),
+                recv,
+                retry_policy.clone(),
+            )
+            .boxed();
+
+            let mut nack_fut = TokenFeedback::send(&nack_send, "nack1".into()).boxed();
+            // inject 2 errors which the nack handler should retry
+            server.injected_errors.lock().unwrap().extend([
+                tonic::Status::unavailable("please try again"),
+                tonic::Status::unavailable("please try again"),
+            ]);
+
+            assert!(matches!(nack_handler.as_mut().poll(&mut cx), Poll::Pending));
+            // two errors should show 3 total requests
+            assert_eq!(
+                take_server_modacks(),
+                vec![
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["nack1".into()],
+                        ack_deadline_seconds: 0,
+                    },
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["nack1".into()],
+                        ack_deadline_seconds: 0,
+                    },
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["nack1".into()],
+                        ack_deadline_seconds: 0,
+                    },
+                ]
+            );
+
+            // and the nack should be successful in the end
+            assert!(matches!(
+                nack_fut.as_mut().poll(&mut cx),
+                Poll::Ready(Ok(()))
+            ));
+
+            // exceeding the error count should still yield the error in the end
+            server.injected_errors.lock().unwrap().extend([
+                tonic::Status::unavailable("please try again"),
+                tonic::Status::unavailable("please try again"),
+                tonic::Status::unavailable("3 is too many, give up"),
+            ]);
+            let mut nack_fut = TokenFeedback::send(&nack_send, "nack2".into()).boxed();
+            assert!(matches!(nack_handler.as_mut().poll(&mut cx), Poll::Pending));
+            assert_eq!(
+                take_server_modacks(),
+                vec![
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["nack2".into()],
+                        ack_deadline_seconds: 0,
+                    },
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["nack2".into()],
+                        ack_deadline_seconds: 0,
+                    },
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["nack2".into()],
+                        ack_deadline_seconds: 0,
+                    },
+                ]
+            );
+            // the nack should be informed that the operation failed
+            let nack_response = nack_fut.as_mut().poll(&mut cx);
+            match nack_response {
+                Poll::Ready(Err(AcknowledgeError(AckErr::Request(status))))
+                    if (status.code(), status.message())
+                        == (Code::Unavailable, "3 is too many, give up") => {}
+                _ => panic!("unexpected future output {nack_response:?}"),
+            };
+        }
+        // do all the same again for modacks
+        {
+            let (modack_send, recv) = mpsc::unbounded_channel();
+            let mut modack_handler = handle_modacks(
+                client.clone(),
+                "test-subscription".into(),
+                recv,
+                retry_policy.clone(),
+            )
+            .boxed();
+
+            let mut modack_fut = TokenFeedback::send(
+                &modack_send,
+                ModAck {
+                    id: "modack1".into(),
+                    deadline: 2,
+                },
+            )
+            .boxed();
+            // inject 2 errors which the modack handler should retry
+            server.injected_errors.lock().unwrap().extend([
+                tonic::Status::unavailable("please try again"),
+                tonic::Status::unavailable("please try again"),
+            ]);
+
+            assert!(matches!(
+                modack_handler.as_mut().poll(&mut cx),
+                Poll::Pending
+            ));
+            // two errors should show 3 total requests
+            assert_eq!(
+                take_server_modacks(),
+                vec![
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["modack1".into()],
+                        ack_deadline_seconds: 2,
+                    },
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["modack1".into()],
+                        ack_deadline_seconds: 2,
+                    },
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["modack1".into()],
+                        ack_deadline_seconds: 2,
+                    },
+                ]
+            );
+
+            // and the modack should be successful in the end
+            assert!(matches!(
+                modack_fut.as_mut().poll(&mut cx),
+                Poll::Ready(Ok(()))
+            ));
+
+            // exceeding the error count should still yield the error in the end
+            server.injected_errors.lock().unwrap().extend([
+                tonic::Status::unavailable("please try again"),
+                tonic::Status::unavailable("please try again"),
+                tonic::Status::unavailable("3 is too many, give up"),
+            ]);
+            let mut modack_fut = TokenFeedback::send(
+                &modack_send,
+                ModAck {
+                    id: "modack2".into(),
+                    deadline: 2,
+                },
+            )
+            .boxed();
+            assert!(matches!(
+                modack_handler.as_mut().poll(&mut cx),
+                Poll::Pending
+            ));
+            assert_eq!(
+                take_server_modacks(),
+                vec![
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["modack2".into()],
+                        ack_deadline_seconds: 2,
+                    },
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["modack2".into()],
+                        ack_deadline_seconds: 2,
+                    },
+                    api::ModifyAckDeadlineRequest {
+                        subscription: "test-subscription".into(),
+                        ack_ids: vec!["modack2".into()],
+                        ack_deadline_seconds: 2,
+                    },
+                ]
+            );
+            // the modack should be informed that the operation failed
+            let modack_response = modack_fut.as_mut().poll(&mut cx);
+            match modack_response {
+                Poll::Ready(Err(AcknowledgeError(AckErr::Request(status))))
+                    if (status.code(), status.message())
+                        == (Code::Unavailable, "3 is too many, give up") => {}
+                _ => panic!("unexpected future output {modack_response:?}"),
+            };
+        }
+    }
+
+    #[derive(Clone)]
+    struct TestRetryPolicy {
+        max_retries: usize,
+    }
+
+    struct TestRetryOp {
+        attempt: usize,
+        limit: usize,
+    }
+
+    impl RetryPolicy<(), tonic::Status> for TestRetryPolicy {
+        type RetryOp = TestRetryOp;
+
+        fn new_operation(&mut self) -> Self::RetryOp {
+            TestRetryOp {
+                attempt: 0,
+                limit: self.max_retries,
+            }
+        }
+    }
+
+    impl RetryOperation<(), tonic::Status> for TestRetryOp {
+        type Sleep = future::Ready<()>;
+
+        fn check_retry(&mut self, _: &(), _: &tonic::Status) -> Option<Self::Sleep> {
+            if self.attempt >= self.limit {
+                return None;
+            }
+            self.attempt += 1;
+            Some(future::ready(()))
+        }
     }
 }
