@@ -16,7 +16,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust_toolchain: [1.64.0, ""] # MSRV + ("" = rust-toolchain version)
+        rust_toolchain: [1.70.0, ""] # MSRV + ("" = rust-toolchain version)
         # some features like emulators and openssl won't work on windows/mac; those are tested in test-xplat
         os: [ubuntu-latest]
         test_flags: ["", "--no-default-features", "--all-features"]
