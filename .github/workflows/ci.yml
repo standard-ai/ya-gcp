@@ -16,38 +16,30 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust_toolchain: [1.64.0, ""] # MSRV + ("" = rust-toolchain version)
+        rust_toolchain: [1.64.0, "stable"] 
         # some features like emulators and openssl won't work on windows/mac; those are tested in test-xplat
         os: [ubuntu-latest]
         test_flags: ["", "--no-default-features", "--all-features"]
     timeout-minutes: 20
     steps:
-      - name: Install sudo package
-        run: apt update && apt install sudo
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get -y install git default-jre curl clang pkg-config libssl-dev
+          apt-get update
+          apt-get -y install git default-jre curl clang pkg-config libssl-dev
       # Fix for:
       # - https://github.com/actions/checkout/issues/363
       # - https://github.com/actions/checkout/issues/766
       - name: Make workspace a safe git directory
         run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v0
+        uses: google-github-actions/setup-gcloud@v2
       - name: Install Emulators
         run: gcloud components install beta pubsub-emulator bigtable
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: ${{ matrix.rust_toolchain }}
-          profile: minimal
-          default: true
-      - uses: actions-rs/cargo@v1
-        with:
-          toolchain: ${{ matrix.rust_toolchain }}
-          command: test
-          args: ${{ matrix.test_flags }} -- --test-threads 1
+      - run: cargo +${{matrix.rust_toolchain}} test ${{ matrix.test_flags }} -- --test-threads 1
         env:
           RUSTFLAGS: -Cdebuginfo=0
 
@@ -56,22 +48,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust_toolchain: [""] # "" = rust-toolchain version
         os: [windows-latest, macOS-latest]
         test_flags: ["--features pubsub,storage"]
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: ${{ matrix.rust_toolchain }}
-          profile: minimal
-          default: true
-      - uses: actions-rs/cargo@v1
-        with:
-          toolchain: ${{ matrix.rust_toolchain }}
-          command: test
-          args: ${{ matrix.test_flags }}
+          toolchain: stable
+      - run: cargo test ${{ matrix.test_flags }}
         env:
           RUSTFLAGS: -Cdebuginfo=0
 
@@ -79,46 +64,30 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          profile: minimal
           components: rustfmt
-          default: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: -- --check
+      - run: cargo fmt --check
 
   clippy:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          profile: minimal
           components: clippy
-          default: true
-      - uses: actions-rs/cargo@v1
-        with:
-          command: clippy
-          args: -- -Dclippy::all
+      - run: cargo clippy -- -Dclippy::all
 
   documentation:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly-2023-04-18
-          profile: minimal
-          default: true
-      - uses: actions-rs/cargo@v1
-        with:
-          toolchain: nightly-2023-04-18
-          command: doc
-          args: --all-features
+          toolchain: nightly-2024-02-10 
+      - run: cargo +nightly-2024-02-10 doc --all-features
         env:
           RUSTDOCFLAGS: "--cfg docsrs"
