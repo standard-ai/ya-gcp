@@ -66,9 +66,7 @@ pub mod api {
 
 use api::bigtable::v2;
 
-pub use api::bigtable::v2::ReadRowsRequest;
-
-pub use api::bigtable::v2::{RowRange, RowSet};
+pub use api::bigtable::v2::{CheckAndMutateRowRequest, ReadRowsRequest, RowRange, RowSet};
 
 fn bound_to_start_key(bound: Bound<&Bytes>) -> Option<v2::row_range::StartKey> {
     use v2::row_range::StartKey;
@@ -613,6 +611,31 @@ where
         } else {
             Ok(())
         }
+    }
+
+    /// Performs a conditional mutation on a single row, returning whether the filter matched.
+    pub async fn check_and_mutate_row(
+        &mut self,
+        request: CheckAndMutateRowRequest,
+    ) -> Result<bool, MutateRowsError> {
+        let mut retry = self.retry.new_operation();
+
+        let response = loop {
+            match self.inner.check_and_mutate_row(request.clone()).await {
+                Ok(resp) => {
+                    break resp.into_inner();
+                }
+                Err(e) => {
+                    if let Some(sleep) = retry.check_retry(&(), &e) {
+                        sleep.await;
+                    } else {
+                        return Err(e.into());
+                    }
+                }
+            }
+        };
+
+        Ok(response.predicate_matched)
     }
 
     /// Performs a mutation request for a single row.
