@@ -1,5 +1,6 @@
 # Yet Another Google Cloud Platform Crate
 
+
 [![Build status](https://github.com/standard-ai/ya-gcp/actions/workflows/ci.yml/badge.svg)](https://github.com/standard-ai/ya-gcp/actions)
 [![Crate](https://img.shields.io/crates/v/ya-gcp)](https://crates.io/crates/ya-gcp)
 [![Docs](https://img.shields.io/docsrs/ya-gcp/latest)](https://docs.rs/ya-gcp)
