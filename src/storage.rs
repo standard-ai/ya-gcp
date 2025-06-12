@@ -93,7 +93,9 @@ fn bucket(name: &str) -> Result<BucketName, api::Error> {
         return Err(api::Error::InvalidSequence("google"));
     }
 
-    Ok(BucketName::non_validated(Box::leak(name.to_string().into_boxed_str())))
+    Ok(BucketName::non_validated(Box::leak(
+        name.to_string().into_boxed_str(),
+    )))
 }
 
 fn names_to_object<'a>(
