@@ -1,6 +1,7 @@
 #![deny(
     missing_docs,
     rustdoc::broken_intra_doc_links,
+    clippy::all,
     unsafe_code,
     unreachable_pub
 )]
