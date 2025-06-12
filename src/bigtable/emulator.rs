@@ -163,7 +163,7 @@ impl EmulatorClient {
 
         let mut admin = self
             .builder()
-            .build_bigtable_admin_client(config, &self.project(), &self.instance)
+            .build_bigtable_admin_client(config, self.project(), &self.instance)
             .await?;
 
         let column_families = column_families

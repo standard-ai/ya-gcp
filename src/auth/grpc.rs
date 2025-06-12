@@ -133,7 +133,7 @@ where
                 let token = token_fut.await.map_err(AuthGrpcError::Auth)?;
                 let token = token.token().ok_or(AuthGrpcError::MissingToken)?;
 
-                crate::auth::add_auth_token(&mut request, &token)
+                crate::auth::add_auth_token(&mut request, token)
                     .map_err(|e| AuthGrpcError::InvalidToken(e, token.to_owned()))?;
             }
 

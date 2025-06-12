@@ -93,7 +93,7 @@ fn bucket(name: &str) -> Result<BucketName, api::Error> {
         return Err(api::Error::InvalidSequence("google"));
     }
 
-    Ok(BucketName::non_validated(name.into()))
+    Ok(BucketName::non_validated(name))
 }
 
 fn names_to_object<'a>(
@@ -173,7 +173,7 @@ impl StorageClient {
                 .map_err(AuthError::Fetch)?;
             let token = token.token().ok_or(AuthError::MissingToken)?;
 
-            crate::auth::add_auth_token(&mut request, &token)
+            crate::auth::add_auth_token(&mut request, token)
                 .map_err(|e| AuthError::InvalidToken(e, token.to_owned()))?;
         }
 
