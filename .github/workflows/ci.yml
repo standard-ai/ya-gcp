@@ -92,9 +92,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       # Crate enables `#![cfg_attr(docsrs, feature(doc_cfg))]` so rustdoc matched to docs.rs still needs nightly.
+      # `--no-deps` avoids documenting transitive crates (they can break under newer rustc with removed doc features).
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: nightly
-      - run: cargo doc --all-features
+      - run: cargo doc --all-features --no-deps
         env:
           RUSTDOCFLAGS: "--cfg docsrs"
