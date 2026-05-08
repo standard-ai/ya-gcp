@@ -48,7 +48,7 @@ pub enum InvalidNameError {
 // forbids '.' (see https://github.com/EmbarkStudios/tame-gcs/issues/58).
 // This is mostly a copy of their name verification function, but modified
 // to allow '.'
-fn bucket(name: &str) -> Result<BucketName, api::Error> {
+fn bucket(name: &str) -> Result<BucketName<'_>, api::Error> {
     let count = name.chars().count();
 
     // Bucket names must contain 3 to 63 characters.

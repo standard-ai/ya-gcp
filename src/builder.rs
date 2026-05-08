@@ -77,6 +77,10 @@ config_default! {
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum CreateBuilderError {
+    /// An error in loading workload identity federation / external-account credentials from file
+    #[error("failed to read external account credentials from {}", _1.display())]
+    ReadExternalAccountCredential(#[source] std::io::Error, PathBuf),
+
     /// An error in loading service account credentials from file
     #[error("failed to read service account key {}", _1.display())]
     ReadServiceAccountKey(#[source] std::io::Error, PathBuf),
@@ -187,21 +191,42 @@ impl ClientBuilder {
     }
 }
 
+fn is_external_account_json(contents: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(contents)
+        .ok()
+        .and_then(|v| v.get("type")?.as_str().map(|t| t == "external_account"))
+        .unwrap_or(false)
+}
+
 /// Convenience method to create an Authorization for the oauth ServiceFlow.
 async fn create_service_auth(
     service_account_key_path: Option<impl AsRef<std::path::Path>>,
     client: Client,
 ) -> Result<Auth, CreateBuilderError> {
-    match service_account_key_path {
-        Some(service_account_key_path) => {
-            let service_account_key =
-                yup_oauth2::read_service_account_key(service_account_key_path.as_ref())
+    match service_account_key_path.as_ref().map(|p| p.as_ref()) {
+        Some(path) => {
+            let contents = tokio::fs::read_to_string(path).await.map_err(|e| {
+                CreateBuilderError::ReadServiceAccountKey(e, path.to_owned())
+            })?;
+
+            if is_external_account_json(&contents) {
+                let secret = yup_oauth2::read_external_account_secret(path)
                     .await
                     .map_err(|e| {
-                        CreateBuilderError::ReadServiceAccountKey(
-                            e,
-                            service_account_key_path.as_ref().to_owned(),
-                        )
+                        CreateBuilderError::ReadExternalAccountCredential(e, path.to_owned())
+                    })?;
+
+                return yup_oauth2::ExternalAccountAuthenticator::with_client(secret, client)
+                    .build()
+                    .await
+                    .map_err(CreateBuilderError::Authenticator);
+            }
+
+            let service_account_key =
+                yup_oauth2::read_service_account_key(path)
+                    .await
+                    .map_err(|e| {
+                        CreateBuilderError::ReadServiceAccountKey(e, path.to_owned())
                     })?;
 
             yup_oauth2::ServiceAccountAuthenticator::builder(service_account_key)
@@ -210,24 +235,52 @@ async fn create_service_auth(
                 .await
                 .map_err(CreateBuilderError::Authenticator)
         }
-        None => match yup_oauth2::ApplicationDefaultCredentialsAuthenticator::with_client(
-            yup_oauth2::ApplicationDefaultCredentialsFlowOpts::default(),
-            client,
-        )
-        .await
-        {
-            yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::ServiceAccount(auth) => {
-                auth.build()
-                    .await
-                    .map_err(CreateBuilderError::Authenticator)
+        None => {
+            if let Ok(path_str) = std::env::var(SERVICE_ACCOUNT_ENV_VAR) {
+                let path_buf = PathBuf::from(path_str);
+                if let Ok(true) = tokio::fs::try_exists(&path_buf).await {
+                    if let Ok(contents) = tokio::fs::read_to_string(&path_buf).await {
+                        if is_external_account_json(&contents) {
+                            let secret = yup_oauth2::read_external_account_secret(&path_buf)
+                                .await
+                                .map_err(|e| {
+                                    CreateBuilderError::ReadExternalAccountCredential(
+                                        e,
+                                        path_buf.clone(),
+                                    )
+                                })?;
+
+                            return yup_oauth2::ExternalAccountAuthenticator::with_client(
+                                secret, client,
+                            )
+                            .build()
+                            .await
+                            .map_err(CreateBuilderError::Authenticator);
+                        }
+                    }
+                }
             }
-            yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::InstanceMetadata(
-                auth,
-            ) => auth
-                .build()
-                .await
-                .map_err(CreateBuilderError::Authenticator),
-        },
+
+            match yup_oauth2::ApplicationDefaultCredentialsAuthenticator::with_client(
+                yup_oauth2::ApplicationDefaultCredentialsFlowOpts::default(),
+                client,
+            )
+            .await
+            {
+                yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::ServiceAccount(
+                    auth,
+                ) => auth
+                    .build()
+                    .await
+                    .map_err(CreateBuilderError::Authenticator),
+                yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::InstanceMetadata(
+                    auth,
+                ) => auth
+                    .build()
+                    .await
+                    .map_err(CreateBuilderError::Authenticator),
+            }
+        }
     }
 }
 
