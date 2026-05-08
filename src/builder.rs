@@ -8,12 +8,13 @@ use std::path::PathBuf;
 const SERVICE_ACCOUNT_ENV_VAR: &str = "GOOGLE_APPLICATION_CREDENTIALS";
 
 /// Configuration for loading service account credentials from file
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum ServiceAccountAuth {
     /// Specifies that the service account credentials should be read from the path stored in the
     /// environment variable `GOOGLE_APPLICATION_CREDENTIALS`
+    #[default]
     EnvVar,
 
     /// Specifies that the service account credentials should be read from the given path
@@ -22,12 +23,6 @@ pub enum ServiceAccountAuth {
     /// Use the Application Default Service Account, which is often attached to a specific
     /// compute instance via metadata
     ApplicationDefault,
-}
-
-impl Default for ServiceAccountAuth {
-    fn default() -> Self {
-        Self::EnvVar
-    }
 }
 
 /// A marker to choose the mechanism by which authentication credentials should be loaded
