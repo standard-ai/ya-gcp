@@ -205,9 +205,9 @@ async fn create_service_auth(
 ) -> Result<Auth, CreateBuilderError> {
     match service_account_key_path.as_ref().map(|p| p.as_ref()) {
         Some(path) => {
-            let contents = tokio::fs::read_to_string(path).await.map_err(|e| {
-                CreateBuilderError::ReadServiceAccountKey(e, path.to_owned())
-            })?;
+            let contents = tokio::fs::read_to_string(path)
+                .await
+                .map_err(|e| CreateBuilderError::ReadServiceAccountKey(e, path.to_owned()))?;
 
             if is_external_account_json(&contents) {
                 let secret = yup_oauth2::read_external_account_secret(path)
@@ -222,12 +222,9 @@ async fn create_service_auth(
                     .map_err(CreateBuilderError::Authenticator);
             }
 
-            let service_account_key =
-                yup_oauth2::read_service_account_key(path)
-                    .await
-                    .map_err(|e| {
-                        CreateBuilderError::ReadServiceAccountKey(e, path.to_owned())
-                    })?;
+            let service_account_key = yup_oauth2::read_service_account_key(path)
+                .await
+                .map_err(|e| CreateBuilderError::ReadServiceAccountKey(e, path.to_owned()))?;
 
             yup_oauth2::ServiceAccountAuthenticator::builder(service_account_key)
                 .hyper_client(client)
