@@ -95,7 +95,7 @@ jobs:
       # `--no-deps` avoids documenting transitive crates (they can break under newer rustc with removed doc features).
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2026-02-27
       - run: cargo doc --all-features --no-deps
         env:
           RUSTDOCFLAGS: "--cfg docsrs"
