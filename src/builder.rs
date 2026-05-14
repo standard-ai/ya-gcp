@@ -127,8 +127,7 @@ pub(crate) fn https_connector() -> hyper_rustls::HttpsConnector<hyper::client::H
     hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
-        .enable_http1()
-        .enable_http2()
+        .enable_all_versions()
         .build()
 }
 
