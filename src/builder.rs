@@ -160,21 +160,19 @@ impl ClientBuilder {
         let auth = match config.auth_flow {
             NoAuth => None,
             ServiceAccount(service_config) => Some(
-                create_service_auth(
-                    match service_config {
-                        ServiceAccountAuth::Path(path) => Some(path.into_os_string()),
-                        ServiceAccountAuth::EnvVar => Some(
-                            std::env::var_os(SERVICE_ACCOUNT_ENV_VAR)
-                                .ok_or(CreateBuilderError::CredentialsVarMissing)?,
-                        ),
-                        ServiceAccountAuth::ApplicationDefault => None,
-                    },
-                )
+                create_service_auth(match service_config {
+                    ServiceAccountAuth::Path(path) => Some(path.into_os_string()),
+                    ServiceAccountAuth::EnvVar => Some(
+                        std::env::var_os(SERVICE_ACCOUNT_ENV_VAR)
+                            .ok_or(CreateBuilderError::CredentialsVarMissing)?,
+                    ),
+                    ServiceAccountAuth::ApplicationDefault => None,
+                })
                 .await?,
             ),
-            ServiceAccountImpersonation { user, email } => Some(
-                create_service_impersonation_auth(user.into_os_string(), email).await?,
-            ),
+            ServiceAccountImpersonation { user, email } => {
+                Some(create_service_impersonation_auth(user.into_os_string(), email).await?)
+            }
             UserAccount(path) => Some(create_user_auth(path.into_os_string()).await?),
         };
 
@@ -237,9 +235,9 @@ async fn create_service_auth(
                                 })?;
 
                             return yup_oauth2::ExternalAccountAuthenticator::builder(secret)
-                            .build()
-                            .await
-                            .map_err(CreateBuilderError::Authenticator);
+                                .build()
+                                .await
+                                .map_err(CreateBuilderError::Authenticator);
                         }
                     }
                 }
@@ -248,7 +246,8 @@ async fn create_service_auth(
             match yup_oauth2::ApplicationDefaultCredentialsAuthenticator::builder(
                 yup_oauth2::ApplicationDefaultCredentialsFlowOpts::default(),
             )
-            .await {
+            .await
+            {
                 yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::ServiceAccount(
                     auth,
                 ) => auth
