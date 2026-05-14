@@ -100,8 +100,6 @@ pub enum CreateBuilderError {
     Connector(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
 
-type Client = hyper::client::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>;
-
 #[allow(unused)] // only used by some feature combinations
 pub(crate) fn https_connector() -> hyper_rustls::HttpsConnector<hyper::client::HttpConnector> {
     #[allow(unused_mut)]
@@ -129,7 +127,8 @@ pub(crate) fn https_connector() -> hyper_rustls::HttpsConnector<hyper::client::H
     hyper_rustls::HttpsConnectorBuilder::new()
         .with_tls_config(tls_config)
         .https_or_http()
-        .enable_all_versions()
+        .enable_http1()
+        .enable_http2()
         .build()
 }
 
@@ -149,13 +148,15 @@ impl ClientBuilder {
         Self::with_auth_connector(config, https_connector).await
     }
 
-    /// Create a new client builder using the given connector for authentication requests
+    /// Create a new client builder.
+    ///
+    /// The `connector_fn` is preserved for API compatibility, but authentication itself uses
+    /// yup-oauth2's default HTTPS client.
     pub async fn with_auth_connector(
         config: ClientBuilderConfig,
-        connector_fn: impl FnOnce() -> hyper_rustls::HttpsConnector<hyper::client::HttpConnector>,
+        _connector_fn: impl FnOnce() -> hyper_rustls::HttpsConnector<hyper::client::HttpConnector>,
     ) -> Result<Self, CreateBuilderError> {
         use AuthFlow::{NoAuth, ServiceAccount, ServiceAccountImpersonation, UserAccount};
-        let make_client = move || hyper::client::Client::builder().build(connector_fn());
 
         let auth = match config.auth_flow {
             NoAuth => None,
@@ -169,17 +170,13 @@ impl ClientBuilder {
                         ),
                         ServiceAccountAuth::ApplicationDefault => None,
                     },
-                    make_client(),
                 )
                 .await?,
             ),
             ServiceAccountImpersonation { user, email } => Some(
-                create_service_impersonation_auth(user.into_os_string(), email, make_client())
-                    .await?,
+                create_service_impersonation_auth(user.into_os_string(), email).await?,
             ),
-            UserAccount(path) => {
-                Some(create_user_auth(path.into_os_string(), make_client()).await?)
-            }
+            UserAccount(path) => Some(create_user_auth(path.into_os_string()).await?),
         };
 
         Ok(Self { auth })
@@ -196,7 +193,6 @@ fn is_external_account_json(contents: &str) -> bool {
 /// Convenience method to create an Authorization for the oauth ServiceFlow.
 async fn create_service_auth(
     service_account_key_path: Option<impl AsRef<std::path::Path>>,
-    client: Client,
 ) -> Result<Auth, CreateBuilderError> {
     match service_account_key_path.as_ref().map(|p| p.as_ref()) {
         Some(path) => {
@@ -211,7 +207,7 @@ async fn create_service_auth(
                         CreateBuilderError::ReadExternalAccountCredential(e, path.to_owned())
                     })?;
 
-                return yup_oauth2::ExternalAccountAuthenticator::with_client(secret, client)
+                return yup_oauth2::ExternalAccountAuthenticator::builder(secret)
                     .build()
                     .await
                     .map_err(CreateBuilderError::Authenticator);
@@ -222,7 +218,6 @@ async fn create_service_auth(
                 .map_err(|e| CreateBuilderError::ReadServiceAccountKey(e, path.to_owned()))?;
 
             yup_oauth2::ServiceAccountAuthenticator::builder(service_account_key)
-                .hyper_client(client)
                 .build()
                 .await
                 .map_err(CreateBuilderError::Authenticator)
@@ -242,9 +237,7 @@ async fn create_service_auth(
                                     )
                                 })?;
 
-                            return yup_oauth2::ExternalAccountAuthenticator::with_client(
-                                secret, client,
-                            )
+                            return yup_oauth2::ExternalAccountAuthenticator::builder(secret)
                             .build()
                             .await
                             .map_err(CreateBuilderError::Authenticator);
@@ -253,12 +246,10 @@ async fn create_service_auth(
                 }
             }
 
-            match yup_oauth2::ApplicationDefaultCredentialsAuthenticator::with_client(
+            match yup_oauth2::ApplicationDefaultCredentialsAuthenticator::builder(
                 yup_oauth2::ApplicationDefaultCredentialsFlowOpts::default(),
-                client,
             )
-            .await
-            {
+            .await {
                 yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::ServiceAccount(
                     auth,
                 ) => auth
@@ -278,7 +269,6 @@ async fn create_service_auth(
 
 async fn create_user_auth(
     user_secrets_path: impl AsRef<std::path::Path>,
-    client: Client,
 ) -> Result<Auth, CreateBuilderError> {
     let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
         .await
@@ -286,7 +276,7 @@ async fn create_user_auth(
             CreateBuilderError::ReadUserSecrets(e, user_secrets_path.as_ref().to_owned())
         })?;
 
-    yup_oauth2::AuthorizedUserAuthenticator::with_client(user_secret, client)
+    yup_oauth2::AuthorizedUserAuthenticator::builder(user_secret)
         .build()
         .await
         .map_err(CreateBuilderError::Authenticator)
@@ -295,7 +285,6 @@ async fn create_user_auth(
 async fn create_service_impersonation_auth(
     user_secrets_path: impl AsRef<std::path::Path>,
     email: String,
-    client: Client,
 ) -> Result<Auth, CreateBuilderError> {
     let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
         .await
@@ -303,7 +292,7 @@ async fn create_service_impersonation_auth(
             CreateBuilderError::ReadUserSecrets(e, user_secrets_path.as_ref().to_owned())
         })?;
 
-    yup_oauth2::ServiceAccountImpersonationAuthenticator::with_client(user_secret, &email, client)
+    yup_oauth2::ServiceAccountImpersonationAuthenticator::builder(user_secret, &email)
         .build()
         .await
         .map_err(CreateBuilderError::Authenticator)

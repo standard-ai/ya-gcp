@@ -3,9 +3,7 @@
 #[cfg(feature = "grpc")]
 pub mod grpc;
 
-pub(crate) type Auth = yup_oauth2::authenticator::Authenticator<
-    hyper_rustls::HttpsConnector<hyper::client::HttpConnector>,
->;
+pub(crate) type Auth = yup_oauth2::authenticator::DefaultAuthenticator;
 
 /// Add the given authorization token to the given HTTP request
 ///
