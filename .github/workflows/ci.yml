@@ -2,7 +2,7 @@ name: CI
 
 # Bump with `rust-toolchain.toml` and `Cargo.toml` `rust-version` when upgrading.
 env:
-  RUST_STABLE: "1.95.0"
+  RUST_STABLE: "1.88.0"
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        rust_toolchain: ["1.95.0"]
+        rust_toolchain: ["1.88.0"]
         # some features like emulators and openssl won't work on windows/mac; those are tested in test-xplat
         os: [ubuntu-latest]
         test_flags: ["", "--no-default-features", "--all-features"]
