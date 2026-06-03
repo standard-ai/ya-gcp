@@ -3,7 +3,7 @@
 //! See [`ClientBuilder`], which is used to instantiate the various GCP service clients.
 
 use crate::auth::Auth;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 const SERVICE_ACCOUNT_ENV_VAR: &str = "GOOGLE_APPLICATION_CREDENTIALS";
 
@@ -187,6 +187,48 @@ fn is_external_account_json(contents: &str) -> bool {
         .unwrap_or(false)
 }
 
+fn log_external_account_credentials(path: &Path) {
+    tracing::info!(
+        auth_build = crate::AUTH_BUILD_ID,
+        path = %path.display(),
+        "ya-gcp: using external_account credentials"
+    );
+}
+
+async fn build_external_account_auth(path: &Path) -> Result<Auth, CreateBuilderError> {
+    log_external_account_credentials(path);
+
+    let secret = yup_oauth2::read_external_account_secret(path)
+        .await
+        .map_err(|e| CreateBuilderError::ReadExternalAccountCredential(e, path.to_owned()))?;
+
+    yup_oauth2::ExternalAccountAuthenticator::builder(secret)
+        .build()
+        .await
+        .map_err(CreateBuilderError::Authenticator)
+}
+
+/// Load WIF / external-account credentials from `GOOGLE_APPLICATION_CREDENTIALS` when set.
+async fn external_account_auth_from_gac_env() -> Result<Option<Auth>, CreateBuilderError> {
+    let Ok(path_buf) = std::env::var(SERVICE_ACCOUNT_ENV_VAR).map(PathBuf::from) else {
+        return Ok(None);
+    };
+
+    if !tokio::fs::try_exists(&path_buf).await.unwrap_or(false) {
+        return Ok(None);
+    }
+
+    let Ok(contents) = tokio::fs::read_to_string(&path_buf).await else {
+        return Ok(None);
+    };
+
+    if !is_external_account_json(&contents) {
+        return Ok(None);
+    }
+
+    build_external_account_auth(&path_buf).await.map(Some)
+}
+
 /// Convenience method to create an Authorization for the oauth ServiceFlow.
 async fn create_service_auth(
     service_account_key_path: Option<impl AsRef<std::path::Path>>,
@@ -198,16 +240,7 @@ async fn create_service_auth(
                 .map_err(|e| CreateBuilderError::ReadServiceAccountKey(e, path.to_owned()))?;
 
             if is_external_account_json(&contents) {
-                let secret = yup_oauth2::read_external_account_secret(path)
-                    .await
-                    .map_err(|e| {
-                        CreateBuilderError::ReadExternalAccountCredential(e, path.to_owned())
-                    })?;
-
-                return yup_oauth2::ExternalAccountAuthenticator::builder(secret)
-                    .build()
-                    .await
-                    .map_err(CreateBuilderError::Authenticator);
+                return build_external_account_auth(path).await;
             }
 
             let service_account_key = yup_oauth2::read_service_account_key(path)
@@ -220,27 +253,8 @@ async fn create_service_auth(
                 .map_err(CreateBuilderError::Authenticator)
         }
         None => {
-            if let Ok(path_str) = std::env::var(SERVICE_ACCOUNT_ENV_VAR) {
-                let path_buf = PathBuf::from(path_str);
-                if let Ok(true) = tokio::fs::try_exists(&path_buf).await {
-                    if let Ok(contents) = tokio::fs::read_to_string(&path_buf).await {
-                        if is_external_account_json(&contents) {
-                            let secret = yup_oauth2::read_external_account_secret(&path_buf)
-                                .await
-                                .map_err(|e| {
-                                    CreateBuilderError::ReadExternalAccountCredential(
-                                        e,
-                                        path_buf.clone(),
-                                    )
-                                })?;
-
-                            return yup_oauth2::ExternalAccountAuthenticator::builder(secret)
-                                .build()
-                                .await
-                                .map_err(CreateBuilderError::Authenticator);
-                        }
-                    }
-                }
+            if let Some(auth) = external_account_auth_from_gac_env().await? {
+                return Ok(auth);
             }
 
             match yup_oauth2::ApplicationDefaultCredentialsAuthenticator::builder(
