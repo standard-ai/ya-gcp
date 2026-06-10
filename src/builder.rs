@@ -3,7 +3,10 @@
 //! See [`ClientBuilder`], which is used to instantiate the various GCP service clients.
 
 use crate::auth::Auth;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
+use std::path::Path;
 
 const SERVICE_ACCOUNT_ENV_VAR: &str = "GOOGLE_APPLICATION_CREDENTIALS";
 
