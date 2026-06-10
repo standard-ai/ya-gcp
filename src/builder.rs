@@ -141,20 +141,12 @@ pub struct ClientBuilder {
 }
 
 impl ClientBuilder {
-    /// Create a new client builder using default HTTPS settings
-    #[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
-    pub async fn new(config: ClientBuilderConfig) -> Result<Self, CreateBuilderError> {
-        Self::with_auth_connector(config, https_connector).await
-    }
-
     /// Create a new client builder.
     ///
-    /// The `connector_fn` is preserved for API compatibility, but authentication itself uses
-    /// yup-oauth2's default HTTPS client.
-    pub async fn with_auth_connector(
-        config: ClientBuilderConfig,
-        _connector_fn: impl FnOnce() -> hyper_rustls::HttpsConnector<hyper::client::HttpConnector>,
-    ) -> Result<Self, CreateBuilderError> {
+    /// HTTP clients for GCP API calls use [`https_connector`]; yup-oauth2 uses its own default
+    /// HTTPS client for token exchange.
+    #[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
+    pub async fn new(config: ClientBuilderConfig) -> Result<Self, CreateBuilderError> {
         use AuthFlow::{NoAuth, ServiceAccount, ServiceAccountImpersonation, UserAccount};
 
         let auth = match config.auth_flow {
