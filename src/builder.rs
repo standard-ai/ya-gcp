@@ -172,6 +172,7 @@ impl ClientBuilder {
     }
 }
 
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
 fn is_external_account_json(contents: &str) -> bool {
     serde_json::from_str::<serde_json::Value>(contents)
         .ok()
@@ -179,6 +180,7 @@ fn is_external_account_json(contents: &str) -> bool {
         .unwrap_or(false)
 }
 
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
 fn log_external_account_credentials(path: &Path) {
     tracing::info!(
         auth_build = crate::AUTH_BUILD_ID,
@@ -187,6 +189,7 @@ fn log_external_account_credentials(path: &Path) {
     );
 }
 
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
 async fn build_external_account_auth(path: &Path) -> Result<Auth, CreateBuilderError> {
     log_external_account_credentials(path);
 
@@ -201,6 +204,7 @@ async fn build_external_account_auth(path: &Path) -> Result<Auth, CreateBuilderE
 }
 
 /// Load WIF / external-account credentials from `GOOGLE_APPLICATION_CREDENTIALS` when set.
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
 async fn external_account_auth_from_gac_env() -> Result<Option<Auth>, CreateBuilderError> {
     let Ok(path_buf) = std::env::var(SERVICE_ACCOUNT_ENV_VAR).map(PathBuf::from) else {
         return Ok(None);
@@ -222,6 +226,7 @@ async fn external_account_auth_from_gac_env() -> Result<Option<Auth>, CreateBuil
 }
 
 /// Convenience method to create an Authorization for the oauth ServiceFlow.
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
 async fn create_service_auth(
     service_account_key_path: Option<impl AsRef<std::path::Path>>,
 ) -> Result<Auth, CreateBuilderError> {
@@ -271,6 +276,7 @@ async fn create_service_auth(
     }
 }
 
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
 async fn create_user_auth(
     user_secrets_path: impl AsRef<std::path::Path>,
 ) -> Result<Auth, CreateBuilderError> {
@@ -286,6 +292,7 @@ async fn create_user_auth(
         .map_err(CreateBuilderError::Authenticator)
 }
 
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
 async fn create_service_impersonation_auth(
     user_secrets_path: impl AsRef<std::path::Path>,
     email: String,
