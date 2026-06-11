@@ -123,5 +123,8 @@ pub use builder::{
     AuthFlow, ClientBuilder, ClientBuilderConfig, CreateBuilderError, ServiceAccountAuth,
 };
 
+/// Identifies builds that include workload-identity / external-account credential support.
+pub const AUTH_BUILD_ID: &str = "ya-gcp-external-account-v1";
+
 pub mod retry_policy;
 pub use retry_policy::RetryPolicy;

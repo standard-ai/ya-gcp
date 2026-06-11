@@ -5,15 +5,19 @@
 use crate::auth::Auth;
 use std::path::PathBuf;
 
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
+use std::path::Path;
+
 const SERVICE_ACCOUNT_ENV_VAR: &str = "GOOGLE_APPLICATION_CREDENTIALS";
 
 /// Configuration for loading service account credentials from file
-#[derive(Debug, Clone, serde::Deserialize)]
+#[derive(Debug, Clone, Default, serde::Deserialize)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum ServiceAccountAuth {
     /// Specifies that the service account credentials should be read from the path stored in the
     /// environment variable `GOOGLE_APPLICATION_CREDENTIALS`
+    #[default]
     EnvVar,
 
     /// Specifies that the service account credentials should be read from the given path
@@ -22,12 +26,6 @@ pub enum ServiceAccountAuth {
     /// Use the Application Default Service Account, which is often attached to a specific
     /// compute instance via metadata
     ApplicationDefault,
-}
-
-impl Default for ServiceAccountAuth {
-    fn default() -> Self {
-        Self::EnvVar
-    }
 }
 
 /// A marker to choose the mechanism by which authentication credentials should be loaded
@@ -77,6 +75,10 @@ config_default! {
 #[derive(Debug, thiserror::Error)]
 #[non_exhaustive]
 pub enum CreateBuilderError {
+    /// An error in loading workload identity federation / external-account credentials from file
+    #[error("failed to read external account credentials from {}", _1.display())]
+    ReadExternalAccountCredential(#[source] std::io::Error, PathBuf),
+
     /// An error in loading service account credentials from file
     #[error("failed to read service account key {}", _1.display())]
     ReadServiceAccountKey(#[source] std::io::Error, PathBuf),
@@ -100,8 +102,6 @@ pub enum CreateBuilderError {
     #[error("failed to initialize HTTP connector")]
     Connector(#[source] Box<dyn std::error::Error + Send + Sync + 'static>),
 }
-
-type Client = hyper::client::Client<hyper_rustls::HttpsConnector<hyper::client::HttpConnector>>;
 
 #[allow(unused)] // only used by some feature combinations
 pub(crate) fn https_connector() -> hyper_rustls::HttpsConnector<hyper::client::HttpConnector> {
@@ -144,113 +144,145 @@ pub struct ClientBuilder {
 }
 
 impl ClientBuilder {
-    /// Create a new client builder using default HTTPS settings
+    /// Create a new client builder with credentials loaded per `config`.
+    ///
+    /// Service clients built from this builder (for example GCS or Pub/Sub) use a rustls-backed
+    /// HTTPS connector configured from this crate's TLS feature flags. OAuth token exchange is
+    /// handled separately by yup-oauth2 and does not use that connector.
     #[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
     pub async fn new(config: ClientBuilderConfig) -> Result<Self, CreateBuilderError> {
-        Self::with_auth_connector(config, https_connector).await
-    }
-
-    /// Create a new client builder using the given connector for authentication requests
-    pub async fn with_auth_connector(
-        config: ClientBuilderConfig,
-        connector_fn: impl FnOnce() -> hyper_rustls::HttpsConnector<hyper::client::HttpConnector>,
-    ) -> Result<Self, CreateBuilderError> {
         use AuthFlow::{NoAuth, ServiceAccount, ServiceAccountImpersonation, UserAccount};
-        let make_client = move || hyper::client::Client::builder().build(connector_fn());
 
         let auth = match config.auth_flow {
             NoAuth => None,
             ServiceAccount(service_config) => Some(
-                create_service_auth(
-                    match service_config {
-                        ServiceAccountAuth::Path(path) => Some(path.into_os_string()),
-                        ServiceAccountAuth::EnvVar => Some(
-                            std::env::var_os(SERVICE_ACCOUNT_ENV_VAR)
-                                .ok_or(CreateBuilderError::CredentialsVarMissing)?,
-                        ),
-                        ServiceAccountAuth::ApplicationDefault => None,
-                    },
-                    make_client(),
-                )
+                create_service_auth(match service_config {
+                    ServiceAccountAuth::Path(path) => Some(path.into_os_string()),
+                    ServiceAccountAuth::EnvVar => Some(
+                        std::env::var_os(SERVICE_ACCOUNT_ENV_VAR)
+                            .ok_or(CreateBuilderError::CredentialsVarMissing)?,
+                    ),
+                    ServiceAccountAuth::ApplicationDefault => None,
+                })
                 .await?,
             ),
-            ServiceAccountImpersonation { user, email } => Some(
-                create_service_impersonation_auth(user.into_os_string(), email, make_client())
-                    .await?,
-            ),
-            UserAccount(path) => {
-                Some(create_user_auth(path.into_os_string(), make_client()).await?)
+            ServiceAccountImpersonation { user, email } => {
+                Some(create_service_impersonation_auth(user.into_os_string(), email).await?)
             }
+            UserAccount(path) => Some(create_user_auth(path.into_os_string()).await?),
         };
 
         Ok(Self { auth })
     }
 }
 
-/// Convenience method to create an Authorization for the oauth ServiceFlow.
-async fn create_service_auth(
-    service_account_key_path: Option<impl AsRef<std::path::Path>>,
-    client: Client,
-) -> Result<Auth, CreateBuilderError> {
-    match service_account_key_path {
-        Some(service_account_key_path) => {
-            let service_account_key =
-                yup_oauth2::read_service_account_key(service_account_key_path.as_ref())
-                    .await
-                    .map_err(|e| {
-                        CreateBuilderError::ReadServiceAccountKey(
-                            e,
-                            service_account_key_path.as_ref().to_owned(),
-                        )
-                    })?;
-
-            yup_oauth2::ServiceAccountAuthenticator::builder(service_account_key)
-                .hyper_client(client)
-                .build()
-                .await
-                .map_err(CreateBuilderError::Authenticator)
-        }
-        None => match yup_oauth2::ApplicationDefaultCredentialsAuthenticator::with_client(
-            yup_oauth2::ApplicationDefaultCredentialsFlowOpts::default(),
-            client,
-        )
-        .await
-        {
-            yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::ServiceAccount(auth) => {
-                auth.build()
-                    .await
-                    .map_err(CreateBuilderError::Authenticator)
-            }
-            yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::InstanceMetadata(
-                auth,
-            ) => auth
-                .build()
-                .await
-                .map_err(CreateBuilderError::Authenticator),
-        },
-    }
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
+fn is_external_account_json(contents: &str) -> bool {
+    serde_json::from_str::<serde_json::Value>(contents)
+        .ok()
+        .and_then(|v| v.get("type")?.as_str().map(|t| t == "external_account"))
+        .unwrap_or(false)
 }
 
-async fn create_user_auth(
-    user_secrets_path: impl AsRef<std::path::Path>,
-    client: Client,
-) -> Result<Auth, CreateBuilderError> {
-    let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
-        .await
-        .map_err(|e| {
-            CreateBuilderError::ReadUserSecrets(e, user_secrets_path.as_ref().to_owned())
-        })?;
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
+fn log_external_account_credentials(path: &Path) {
+    tracing::info!(
+        auth_build = crate::AUTH_BUILD_ID,
+        path = %path.display(),
+        "ya-gcp: using external_account credentials"
+    );
+}
 
-    yup_oauth2::AuthorizedUserAuthenticator::with_client(user_secret, client)
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
+async fn build_external_account_auth(path: &Path) -> Result<Auth, CreateBuilderError> {
+    log_external_account_credentials(path);
+
+    let secret = yup_oauth2::read_external_account_secret(path)
+        .await
+        .map_err(|e| CreateBuilderError::ReadExternalAccountCredential(e, path.to_owned()))?;
+
+    yup_oauth2::ExternalAccountAuthenticator::builder(secret)
         .build()
         .await
         .map_err(CreateBuilderError::Authenticator)
 }
 
-async fn create_service_impersonation_auth(
+/// Load WIF / external-account credentials from `GOOGLE_APPLICATION_CREDENTIALS` when set.
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
+async fn external_account_auth_from_gac_env() -> Result<Option<Auth>, CreateBuilderError> {
+    let Ok(path_buf) = std::env::var(SERVICE_ACCOUNT_ENV_VAR).map(PathBuf::from) else {
+        return Ok(None);
+    };
+
+    if !tokio::fs::try_exists(&path_buf).await.unwrap_or(false) {
+        return Ok(None);
+    }
+
+    let Ok(contents) = tokio::fs::read_to_string(&path_buf).await else {
+        return Ok(None);
+    };
+
+    if !is_external_account_json(&contents) {
+        return Ok(None);
+    }
+
+    build_external_account_auth(&path_buf).await.map(Some)
+}
+
+/// Convenience method to create an Authorization for the oauth ServiceFlow.
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
+async fn create_service_auth(
+    service_account_key_path: Option<impl AsRef<std::path::Path>>,
+) -> Result<Auth, CreateBuilderError> {
+    match service_account_key_path.as_ref().map(|p| p.as_ref()) {
+        Some(path) => {
+            let contents = tokio::fs::read_to_string(path)
+                .await
+                .map_err(|e| CreateBuilderError::ReadServiceAccountKey(e, path.to_owned()))?;
+
+            if is_external_account_json(&contents) {
+                return build_external_account_auth(path).await;
+            }
+
+            let service_account_key = yup_oauth2::read_service_account_key(path)
+                .await
+                .map_err(|e| CreateBuilderError::ReadServiceAccountKey(e, path.to_owned()))?;
+
+            yup_oauth2::ServiceAccountAuthenticator::builder(service_account_key)
+                .build()
+                .await
+                .map_err(CreateBuilderError::Authenticator)
+        }
+        None => {
+            if let Some(auth) = external_account_auth_from_gac_env().await? {
+                return Ok(auth);
+            }
+
+            match yup_oauth2::ApplicationDefaultCredentialsAuthenticator::builder(
+                yup_oauth2::ApplicationDefaultCredentialsFlowOpts::default(),
+            )
+            .await
+            {
+                yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::ServiceAccount(
+                    auth,
+                ) => auth
+                    .build()
+                    .await
+                    .map_err(CreateBuilderError::Authenticator),
+                yup_oauth2::authenticator::ApplicationDefaultCredentialsTypes::InstanceMetadata(
+                    auth,
+                ) => auth
+                    .build()
+                    .await
+                    .map_err(CreateBuilderError::Authenticator),
+            }
+        }
+    }
+}
+
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
+async fn create_user_auth(
     user_secrets_path: impl AsRef<std::path::Path>,
-    email: String,
-    client: Client,
 ) -> Result<Auth, CreateBuilderError> {
     let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
         .await
@@ -258,7 +290,24 @@ async fn create_service_impersonation_auth(
             CreateBuilderError::ReadUserSecrets(e, user_secrets_path.as_ref().to_owned())
         })?;
 
-    yup_oauth2::ServiceAccountImpersonationAuthenticator::with_client(user_secret, &email, client)
+    yup_oauth2::AuthorizedUserAuthenticator::builder(user_secret)
+        .build()
+        .await
+        .map_err(CreateBuilderError::Authenticator)
+}
+
+#[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
+async fn create_service_impersonation_auth(
+    user_secrets_path: impl AsRef<std::path::Path>,
+    email: String,
+) -> Result<Auth, CreateBuilderError> {
+    let user_secret = yup_oauth2::read_authorized_user_secret(user_secrets_path.as_ref())
+        .await
+        .map_err(|e| {
+            CreateBuilderError::ReadUserSecrets(e, user_secrets_path.as_ref().to_owned())
+        })?;
+
+    yup_oauth2::ServiceAccountImpersonationAuthenticator::builder(user_secret, &email)
         .build()
         .await
         .map_err(CreateBuilderError::Authenticator)
