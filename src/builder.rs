@@ -144,10 +144,11 @@ pub struct ClientBuilder {
 }
 
 impl ClientBuilder {
-    /// Create a new client builder.
+    /// Create a new client builder with credentials loaded per `config`.
     ///
-    /// HTTP clients for GCP API calls use [`https_connector`]; yup-oauth2 uses its own default
-    /// HTTPS client for token exchange.
+    /// Service clients built from this builder (for example GCS or Pub/Sub) use a rustls-backed
+    /// HTTPS connector configured from this crate's TLS feature flags. OAuth token exchange is
+    /// handled separately by yup-oauth2 and does not use that connector.
     #[cfg(any(feature = "rustls-native-certs", feature = "webpki-roots"))]
     pub async fn new(config: ClientBuilderConfig) -> Result<Self, CreateBuilderError> {
         use AuthFlow::{NoAuth, ServiceAccount, ServiceAccountImpersonation, UserAccount};
