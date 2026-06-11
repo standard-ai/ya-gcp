@@ -756,7 +756,7 @@ dependencies = [
  "hyper 1.9.0",
  "libc",
  "pin-project-lite",
- "socket2 0.5.10",
+ "socket2 0.6.3",
  "tokio",
  "tower-service",
  "tracing",
@@ -1684,6 +1684,31 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6ce2be8dc25455e1f91df71bfa12ad37d7af1092ae736f3a6cd0e37bc7810596"
 
 [[package]]
+name = "standard-yup-oauth2"
+version = "12.1.2-2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4fb903eccd367f0657245429d4ea976dee28b0034c4b5d11c6880e2586236721"
+dependencies = [
+ "async-trait",
+ "base64 0.22.1",
+ "http 1.4.0",
+ "http-body-util",
+ "hyper 1.9.0",
+ "hyper-rustls 0.27.9",
+ "hyper-util",
+ "log",
+ "percent-encoding",
+ "rustls 0.23.40",
+ "seahash",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.18",
+ "time",
+ "tokio",
+ "url",
+]
+
+[[package]]
 name = "strsim"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2604,6 +2629,7 @@ dependencies = [
  "rustls-native-certs 0.6.3",
  "serde",
  "serde_json",
+ "standard-yup-oauth2",
  "structopt",
  "tame-gcs",
  "tempdir",
@@ -2616,7 +2642,6 @@ dependencies = [
  "tracing-tree",
  "uuid",
  "webpki-roots",
- "yup-oauth2",
 ]
 
 [[package]]
@@ -2640,30 +2665,6 @@ dependencies = [
  "quote",
  "syn 2.0.117",
  "synstructure",
-]
-
-[[package]]
-name = "yup-oauth2"
-version = "12.1.2"
-source = "git+https://github.com/standard-ai/yup-oauth2?branch=wif-iap-support#62027485cb8fd0f374bd631b59e5ce2a863c503f"
-dependencies = [
- "async-trait",
- "base64 0.22.1",
- "http 1.4.0",
- "http-body-util",
- "hyper 1.9.0",
- "hyper-rustls 0.27.9",
- "hyper-util",
- "log",
- "percent-encoding",
- "rustls 0.23.40",
- "seahash",
- "serde",
- "serde_json",
- "thiserror 2.0.18",
- "time",
- "tokio",
- "url",
 ]
 
 [[package]]
