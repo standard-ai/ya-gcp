@@ -253,8 +253,7 @@ impl StorageClient {
         prefix: Option<&str>,
     ) -> Result<impl Stream<Item = Result<Metadata, ObjectError>> + '_, ObjectError> {
         let bucket_name = bucket_name.as_ref().to_owned();
-        bucket(&bucket_name)
-            .map_err(|e| InvalidNameError::Bucket(e, bucket_name.clone()))?;
+        bucket(&bucket_name).map_err(|e| InvalidNameError::Bucket(e, bucket_name.clone()))?;
         let prefix = prefix.map(str::to_owned);
 
         Ok(async_stream::stream! {
