@@ -41,7 +41,7 @@ grpc = ["tonic", "prost", "prost-types", "tower", "derive_more"]
 
 bigtable = ["async-stream", "grpc", "prost", "tower"]
 pubsub = ["grpc", "uuid", "async-stream", "pin-project", "tokio/sync"]
-storage = ["tame-gcs", "tower"]
+storage = ["tame-gcs", "tower", "async-stream"]
 
 # whether to include service emulator implementations. useful for testing
 emulators = ["tempdir", "tokio/process"]
