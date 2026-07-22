@@ -224,6 +224,60 @@ impl StorageClient {
             .metadata)
     }
 
+    /// List objects in a bucket, optionally filtered by a name prefix.
+    ///
+    /// Automatically follows page tokens until all matching objects are returned.
+    ///
+    /// ```no_run
+    /// use ya_gcp::storage;
+    ///
+    /// # async {
+    /// let client: storage::StorageClient = // ...
+    /// # unimplemented!();
+    /// let objects = client.list_objects("my-bucket", Some("prefix/")).await?;
+    /// for object in objects {
+    ///     println!("{:?}", object.name);
+    /// }
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// # };
+    /// ```
+    pub async fn list_objects(
+        &self,
+        bucket_name: impl AsRef<str>,
+        prefix: Option<&str>,
+    ) -> Result<Vec<Metadata>, ObjectError> {
+        let bucket = bucket(bucket_name.as_ref())
+            .map_err(|e| InvalidNameError::Bucket(e, bucket_name.as_ref().to_owned()))?;
+
+        let mut objects = Vec::new();
+        let mut page_token: Option<String> = None;
+
+        loop {
+            let optional = objects::ListOptional {
+                prefix,
+                page_token: page_token.as_deref(),
+                ..Default::default()
+            };
+
+            let request = objects::Object::list(&bucket, Some(optional))
+                .map_err(ObjectError::InvalidRequest)?;
+
+            let response = self.send_request(empty_body(request)).await?;
+
+            let list_response =
+                objects::ListResponse::try_from_parts(response).map_err(ObjectError::Failure)?;
+
+            objects.extend(list_response.objects);
+
+            match list_response.page_token {
+                Some(token) => page_token = Some(token),
+                None => break,
+            }
+        }
+
+        Ok(objects)
+    }
+
     /// Store the given data as an object in storage without any additional metadata
     ///
     /// Returns the metadata of the newly written object if successful.
