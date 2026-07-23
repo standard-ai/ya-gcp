@@ -2,6 +2,7 @@
 use std::convert::TryFrom;
 
 pub use api::objects::Metadata;
+use futures::Stream;
 pub use hyper::body::Bytes;
 use hyper::client::Client;
 pub use tame_gcs as api;
@@ -222,6 +223,83 @@ impl StorageClient {
         Ok(objects::GetObjectResponse::try_from_parts(response)
             .map_err(ObjectError::Failure)?
             .metadata)
+    }
+
+    /// List objects in a bucket, optionally filtered by a name prefix.
+    ///
+    /// Automatically follows page tokens until all matching objects are returned.
+    ///
+    /// ```no_run
+    /// use futures::TryStreamExt;
+    /// use ya_gcp::storage;
+    ///
+    /// # async {
+    /// let client: storage::StorageClient = // ...
+    /// # unimplemented!();
+    /// let objects: Vec<_> = client
+    ///     .list_objects("my-bucket", Some("prefix/"))?
+    ///     .try_collect()
+    ///     .await?;
+    /// for object in objects {
+    ///     println!("{:?}", object.name);
+    /// }
+    /// # Ok::<(), Box<dyn std::error::Error>>(())
+    /// # };
+    /// ```
+    pub fn list_objects(
+        &self,
+        bucket_name: impl AsRef<str>,
+        prefix: Option<&str>,
+    ) -> Result<impl Stream<Item = Result<Metadata, ObjectError>> + '_, ObjectError> {
+        let bucket_name = bucket_name.as_ref().to_owned();
+        bucket(&bucket_name).map_err(|e| InvalidNameError::Bucket(e, bucket_name.clone()))?;
+        let prefix = prefix.map(str::to_owned);
+
+        Ok(async_stream::stream! {
+            let mut page_token: Option<String> = None;
+
+            loop {
+                let bucket = BucketName::non_validated(&bucket_name);
+                let optional = objects::ListOptional {
+                    prefix: prefix.as_deref(),
+                    page_token: page_token.as_deref(),
+                    ..Default::default()
+                };
+
+                let request = match objects::Object::list(&bucket, Some(optional)) {
+                    Ok(request) => request,
+                    Err(e) => {
+                        yield Err(ObjectError::InvalidRequest(e));
+                        break;
+                    }
+                };
+
+                let response = match self.send_request(empty_body(request)).await {
+                    Ok(response) => response,
+                    Err(e) => {
+                        yield Err(e);
+                        break;
+                    }
+                };
+
+                let list_response = match objects::ListResponse::try_from_parts(response) {
+                    Ok(response) => response,
+                    Err(e) => {
+                        yield Err(ObjectError::Failure(e));
+                        break;
+                    }
+                };
+
+                for object in list_response.objects {
+                    yield Ok(object);
+                }
+
+                match list_response.page_token {
+                    Some(token) if !token.is_empty() => page_token = Some(token),
+                    _ => break,
+                }
+            }
+        })
     }
 
     /// Store the given data as an object in storage without any additional metadata
