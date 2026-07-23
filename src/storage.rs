@@ -237,8 +237,7 @@ impl StorageClient {
     /// let client: storage::StorageClient = // ...
     /// # unimplemented!();
     /// let objects: Vec<_> = client
-    ///     .list_objects("my-bucket", Some("prefix/"))
-    ///     .await?
+    ///     .list_objects("my-bucket", Some("prefix/"))?
     ///     .try_collect()
     ///     .await?;
     /// for object in objects {
@@ -247,7 +246,7 @@ impl StorageClient {
     /// # Ok::<(), Box<dyn std::error::Error>>(())
     /// # };
     /// ```
-    pub async fn list_objects(
+    pub fn list_objects(
         &self,
         bucket_name: impl AsRef<str>,
         prefix: Option<&str>,
