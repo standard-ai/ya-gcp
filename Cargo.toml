@@ -74,7 +74,7 @@ tempdir = { version = "0.3", optional = true }
 tonic = { version = "0.10.2", optional = true }
 tower = { version = "0.4", features = ["make"], optional = true }
 uuid = { version = "1.6", features = ["v4"], optional = true }
-webpki-roots = { version = "0.25.3", optional = true }
+webpki-roots = { version = "1.0.10", optional = true }
 
 [dev-dependencies]
 approx = "0.5"
